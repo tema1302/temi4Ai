@@ -4,7 +4,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
 
 const store = useMemoryStore()
-const member = computed(() => store.primaryMember)
+const member = computed(() => store.activeMember)
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return 'Не указано'

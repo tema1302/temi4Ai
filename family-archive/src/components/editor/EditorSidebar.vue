@@ -9,7 +9,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useMemoryStore()
-const currentMember = computed(() => store.primaryMember)
+const currentMember = computed(() => store.activeMember)
 
 const updateField = (field: string, value: string) => {
   if (currentMember.value) {

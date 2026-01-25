@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import type { Family, FamilyInsert, Member, MemberInsert } from '@/types/supabase'
+import type { Family, Member, MemberInsert } from '@/types/supabase'
 import type { FamilyData, FamilyMember } from '@/stores/memoryStore'
 
 // ===================
@@ -85,16 +85,21 @@ export async function fetchFamilyData(familySlug: string): Promise<FamilyData | 
     return DEMO_DATA[familySlug] || null
   }
 
-  // Fetch from Supabase
+  // FIX: Use maybeSingle() instead of single() to handle 0 results
   const { data: family, error: familyError } = await supabase
     .from('families')
     .select('*')
     .eq('slug', familySlug)
-    .single()
+    .maybeSingle()
 
-  if (familyError || !family) {
+  if (familyError) {
     console.error('Family fetch error:', familyError)
     return null
+  }
+
+  if (!family) {
+    // Family doesn't exist, check demo data
+    return DEMO_DATA[familySlug] || null
   }
 
   const { data: members, error: membersError } = await supabase
@@ -111,6 +116,8 @@ export async function fetchFamilyData(familySlug: string): Promise<FamilyData | 
   return mapDbToFamilyData(family, members || [])
 }
 
+
+
 /**
  * Save family data (create or update)
  */
@@ -120,19 +127,35 @@ export async function saveFamilyData(data: FamilyData, userId: string): Promise<
     return true
   }
 
+  // DEBUG: Verify current session before saving
+  const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !currentUser) {
+    console.error('CRITICAL: Cannot save - no active Supabase session found.', userError)
+    return false
+  }
+
+  if (currentUser.id !== userId) {
+    console.warn('WARNING: Mismatch between passed userId and session userId. Using session ID.')
+    userId = currentUser.id
+  }
+
   try {
     // Check if family exists
-    const { data: existing } = await supabase
+    // Fix: Using maybeSingle to handle 0 rows gracefully
+    const { data: existing, error: checkError } = await supabase
       .from('families')
       .select('id')
       .eq('slug', data.id)
-      .single()
+      .maybeSingle()
+
+    console.log('Checking family existence:', { slug: data.id, existing, checkError })
 
     let familyDbId: string
 
     if (existing) {
       // Update family
-      await supabase
+      const { error: updateError } = await supabase
         .from('families')
         .update({
           name: data.familyName,
@@ -141,21 +164,36 @@ export async function saveFamilyData(data: FamilyData, userId: string): Promise<
         })
         .eq('id', existing.id)
       
+      if (updateError) throw updateError
       familyDbId = existing.id
     } else {
       // Insert new family
-      const { data: newFamily, error } = await supabase
+      console.log('Attempting INSERT with:', {
+        slug: data.id,
+        name: data.familyName,
+        user_id: userId,
+        auth_uid: currentUser.id
+      })
+
+      const { data: newFamily, error: insertError } = await supabase
         .from('families')
         .insert({
           slug: data.id,
           name: data.familyName,
-          hero_image: data.heroImage,
+          hero_image: data.heroImage || null,
           user_id: userId,
         })
         .select('id')
         .single()
 
-      if (error || !newFamily) throw error
+      if (insertError) {
+        console.error('Supabase INSERT failed:', insertError)
+        console.error('Hint: Check RLS policies. Ensure "auth.uid() = user_id" policy exists on INSERT.')
+        throw insertError
+      }
+      
+      if (!newFamily) throw new Error('Insert successful but no data returned')
+      
       familyDbId = newFamily.id
     }
 
@@ -163,14 +201,21 @@ export async function saveFamilyData(data: FamilyData, userId: string): Promise<
     for (const member of data.members) {
       const memberData = mapMemberToDb(member, familyDbId)
       
-      await supabase
+      // Remove created_at from upsert to avoid issues if column is managed by DB
+      const { created_at, ...upsertData } = memberData as any
+
+      const { error: memberError } = await supabase
         .from('members')
-        .upsert(memberData, { onConflict: 'id' })
+        .upsert(upsertData, { onConflict: 'id' })
+      
+      if (memberError) {
+        console.error('Member upsert error:', memberError)
+      }
     }
 
     return true
   } catch (err) {
-    console.error('Save error:', err)
+    console.error('Save operation failed:', err)
     return false
   }
 }
@@ -179,7 +224,33 @@ export async function saveFamilyData(data: FamilyData, userId: string): Promise<
  * Create a new family archive
  */
 export async function createFamilyArchive(familyName: string, userId?: string): Promise<FamilyData> {
-  const slug = familyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  // Enhanced Transliteration
+  const ruMap: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+  }
+
+  const transliterated = familyName.toLowerCase().split('').map(char => {
+    return ruMap[char] || char
+  }).join('')
+
+  // Sanitize: allow only a-z, 0-9, and hyphen
+  let slug = transliterated
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+    .trim()
+    .replace(/\s+/g, '-')         // Sample Spaces to hyphens
+    .replace(/-+/g, '-')          // Remove duplicate hyphens
+
+  // Fallback if slug became empty (e.g. only special chars used)
+  if (!slug || slug.length < 2) {
+    slug = `family-${Date.now().toString(36)}`
+  }
+
+  // Ensure randomness/uniqueness locally to avoid immediate collision before DB check
+  // (Optional: could append random suffix if we wanted strictly unique, but user might want pretty URL)
   
   const newFamily: FamilyData = {
     id: slug,
@@ -188,12 +259,6 @@ export async function createFamilyArchive(familyName: string, userId?: string): 
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     members: [],
-  }
-
-  if (isSupabaseConfigured && userId) {
-    await saveFamilyData(newFamily, userId)
-  } else {
-    localStorage.setItem(`family-archive-${slug}`, JSON.stringify(newFamily))
   }
 
   return newFamily
@@ -234,11 +299,53 @@ export async function fetchUserFamilies(userId: string): Promise<FamilyData[]> {
 }
 
 /**
+ * Delete a family archive
+ */
+export async function deleteFamily(familySlug: string): Promise<boolean> {
+  if (!isSupabaseConfigured) {
+    localStorage.removeItem(`family-archive-${familySlug}`)
+    return true
+  }
+
+  const { error } = await supabase
+    .from('families')
+    .delete()
+    .eq('slug', familySlug)
+
+  if (error) {
+    console.error('Delete family error:', error)
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Delete a member
+ */
+export async function deleteMember(memberId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) {
+    return true // LocalStorage sync handled by saving the whole family object
+  }
+
+  const { error } = await supabase
+    .from('members')
+    .delete()
+    .eq('id', memberId)
+
+  if (error) {
+    console.error('Delete member error:', error)
+    return false
+  }
+
+  return true
+}
+
+/**
  * Upload image to Supabase Storage
  */
 export async function uploadImage(file: File, familySlug: string): Promise<string | null> {
   if (!isSupabaseConfigured) {
-    // Return object URL for demo mode
     return URL.createObjectURL(file)
   }
 
@@ -265,7 +372,7 @@ export async function uploadImage(file: File, familySlug: string): Promise<strin
  * Generate member ID
  */
 export function generateMemberId(): string {
-  return `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return crypto.randomUUID()
 }
 
 /**

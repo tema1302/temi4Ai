@@ -7,7 +7,7 @@ import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
-import { createFamilyArchive, createEmptyMember, saveFamilyData, fetchUserFamilies } from '@/services/memoryService'
+import { createFamilyArchive, saveFamilyData, fetchUserFamilies } from '@/services/memoryService'
 import { useRouter } from 'vue-router'
 
 const store = useMemoryStore()
@@ -19,11 +19,18 @@ const newFamilyName = ref('')
 const userFamilies = ref<any[]>([])
 const isSaving = ref(false)
 
+// Load user's existing families on mount
 onMounted(async () => {
+  if (authStore.userId) {
+    await refreshFamilies()
+  }
+})
+
+const refreshFamilies = async () => {
   if (authStore.userId) {
     userFamilies.value = await fetchUserFamilies(authStore.userId)
   }
-})
+}
 
 const startNewArchive = async () => {
   if (!newFamilyName.value.trim()) return
@@ -31,9 +38,17 @@ const startNewArchive = async () => {
   isCreating.value = true
   const newFamily = await createFamilyArchive(newFamilyName.value, authStore.userId || undefined)
   
-  const member = createEmptyMember()
-  member.name = 'Новый член семьи'
-  newFamily.members.push(member)
+  // Initial member is added by store action or manually if createFamilyArchive doesn't adding it anymore
+  // store.addMember() handles pushing "New Member"
+  newFamily.members.push({
+    id: crypto.randomUUID(), 
+    name: 'Главный герой', 
+    birthDate: '', 
+    biography: '', 
+    photos: [], 
+    quotes: [], 
+    photoUrl: ''
+  })
   
   store.setFamily(newFamily)
   store.toggleEditing()
@@ -46,15 +61,35 @@ const loadFamily = (family: any) => {
   store.toggleEditing()
 }
 
+const deleteArchive = async (e: Event, familyId: string, slug: string) => {
+  e.stopPropagation()
+  if (!confirm('Вы уверены? Весь архив будет удален безвозвратно.')) return
+  
+  await store.removeFamily(slug)
+  await refreshFamilies()
+}
+
 const saveChanges = async () => {
-  if (store.currentFamily && authStore.userId) {
+  if (!authStore.userId) {
+    alert('Ошибка: Пользователь не авторизован.')
+    return
+  }
+
+  if (store.currentFamily) {
     isSaving.value = true
-    const success = await saveFamilyData(store.currentFamily, authStore.userId)
-    isSaving.value = false
-    if (success) {
-      alert('Сохранено успешно!')
-    } else {
-      alert('Ошибка сохранения. Попробуйте снова.')
+    try {
+      const success = await saveFamilyData(store.currentFamily, authStore.userId)
+      if (success) {
+        alert('Сохранено успешно!')
+        await refreshFamilies()
+      } else {
+        alert('Ошибка при сохранении.')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Ошибка при сохранении.')
+    } finally {
+      isSaving.value = false
     }
   }
 }
@@ -63,6 +98,22 @@ const handleLogout = async () => {
   await authStore.signOut()
   store.resetStore()
   router.push('/')
+}
+
+// Member Management
+const addMember = () => {
+  store.addMember()
+}
+
+const selectMember = (id: string) => {
+  store.setActiveMember(id)
+}
+
+const deleteActiveMember = async () => {
+  if (!store.activeMember) return
+  if (!confirm(`Удалить ${store.activeMember.name}?`)) return
+  
+  await store.removeMember(store.activeMember.id)
 }
 
 const previewLink = computed(() => {
@@ -78,8 +129,52 @@ const previewLink = computed(() => {
     <div class="min-h-screen flex">
       
       <!-- Sidebar -->
-      <aside v-if="store.isEditing && store.currentFamily" class="w-96 bg-charcoal/50 border-r border-white/5 p-6 overflow-y-auto">
-        <EditorSidebar @save="saveChanges" />
+      <aside v-if="store.isEditing && store.currentFamily" class="w-96 bg-charcoal/50 border-r border-white/5 flex flex-col h-screen sticky top-0">
+        <!-- Members List -->
+        <div class="p-4 border-b border-white/5 bg-obsidian/30">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Члены семьи</h3>
+            <button @click="addMember" class="text-gold hover:text-white text-xs">+ Добавить</button>
+          </div>
+          
+          <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+            <div 
+              v-for="member in store.members" 
+              :key="member.id"
+              class="flex-shrink-0 cursor-pointer"
+              @click="selectMember(member.id)"
+            >
+              <div 
+                class="w-10 h-10 rounded-full border-2 overflow-hidden"
+                :class="store.activeMemberId === member.id ? 'border-gold' : 'border-white/10 hover:border-white/30'"
+              >
+                <img 
+                  v-if="member.photoUrl" 
+                  :src="member.photoUrl" 
+                  class="w-full h-full object-cover"
+                >
+                <div v-else class="w-full h-full bg-white/10 flex items-center justify-center text-xs text-gray-400">
+                  {{ member.name[0] || '?' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor Form -->
+        <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          <EditorSidebar @save="saveChanges" />
+          
+          <div class="mt-8 pt-6 border-t border-white/5">
+            <button 
+              v-if="store.members.length > 1"
+              @click="deleteActiveMember"
+              class="text-red-400 hover:text-red-300 text-sm flex items-center gap-2"
+            >
+              🗑️ Удалить этого члена семьи
+            </button>
+          </div>
+        </div>
       </aside>
 
       <!-- Main -->
@@ -108,15 +203,24 @@ const previewLink = computed(() => {
               <BaseCard 
                 v-for="family in userFamilies" 
                 :key="family.id"
-                class="p-6 cursor-pointer"
+                class="p-6 cursor-pointer group relative overflow-hidden"
                 @click="loadFamily(family)"
               >
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between relative z-10">
                   <div>
                     <h3 class="text-lg text-silk">{{ family.familyName }}</h3>
                     <p class="text-sm text-gray-400">{{ family.members.length }} {{ family.members.length === 1 ? 'человек' : 'людей' }}</p>
                   </div>
-                  <span class="text-gold">Редактировать →</span>
+                  <div class="flex items-center gap-4">
+                    <button 
+                      @click="(e) => deleteArchive(e, family.id, family.id)"
+                      class="p-2 text-gray-500 hover:text-red-400 transition-colors"
+                      title="Удалить архив"
+                    >
+                      🗑️
+                    </button>
+                    <span class="text-gold">Редактировать →</span>
+                  </div>
                 </div>
               </BaseCard>
             </div>
@@ -126,16 +230,12 @@ const previewLink = computed(() => {
           <BaseCard class="p-10 text-center">
             <div class="text-6xl mb-6">📜</div>
             <h2 class="text-3xl font-serif text-silk mb-4">Создать новый архив</h2>
-            <p class="text-gray-400 mb-8">
-              Начните сохранять историю вашей семьи уже сегодня.
-            </p>
-            
             <div class="flex flex-col gap-4 max-w-md mx-auto">
               <input
                 v-model="newFamilyName"
                 type="text"
-                placeholder="Введите название семьи (например, Семья Ивановых)"
-                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+                placeholder="Название семьи"
+                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50 transition-colors"
                 @keyup.enter="startNewArchive"
               />
               <BaseButton 
@@ -170,7 +270,11 @@ const previewLink = computed(() => {
             </div>
           </div>
 
-          <EditorPreview />
+          <!-- Active Member Preview -->
+          <EditorPreview v-if="store.activeMember" :key="store.activeMember.id" />
+          <div v-else class="text-center py-20 text-gray-500">
+            Выберите члена семьи слева или добавьте нового
+          </div>
         </div>
 
       </main>

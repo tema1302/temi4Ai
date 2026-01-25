@@ -29,6 +29,11 @@ onMounted(async () => {
   
   isLoading.value = false
 })
+
+const setActiveMember = (id: string) => {
+  store.setActiveMember(id)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
@@ -54,45 +59,84 @@ onMounted(async () => {
     <!-- Main Content -->
     <div v-else class="relative z-10">
       
-      <!-- Hero Section -->
-      <HeroSection 
-        v-if="store.primaryMember"
-        :member="store.primaryMember"
-        :family-name="store.familyName"
-      />
-
-      <!-- Bento Grid Gallery -->
-      <section class="container mx-auto px-4 py-20">
-        <h2 class="text-3xl font-serif text-center mb-12 text-silk/90">
-          Дорогие сердцу моменты
-        </h2>
-        <BentoGrid v-if="store.primaryMember" :photos="store.primaryMember.photos" />
-      </section>
-
-      <!-- Timeline -->
-      <TimelineSection 
-        v-if="store.primaryMember"
-        :member="store.primaryMember"
-      />
-
-      <!-- Quotes Section -->
-      <section v-if="store.primaryMember?.quotes?.length" class="container mx-auto px-4 py-20">
-        <h2 class="text-3xl font-serif text-center mb-12 text-silk/90">
-          Слова, которые останутся с нами
-        </h2>
-        <div class="max-w-3xl mx-auto space-y-8">
-          <BaseCard 
-            v-for="(quote, index) in store.primaryMember.quotes" 
-            :key="index"
-            class="p-8 text-center"
+      <!-- Member Navigation (Sticky) -->
+      <div v-if="store.members.length > 1" class="sticky top-0 z-50 bg-obsidian/80 backdrop-blur-md border-b border-white/10 py-4 overflow-x-auto">
+        <div class="container mx-auto px-4 flex justify-center gap-4">
+          <button 
+            v-for="member in store.members" 
+            :key="member.id"
+            @click="setActiveMember(member.id)"
+            class="flex items-center gap-2 px-4 py-2 rounded-full transition-all border"
+            :class="store.activeMemberId === member.id 
+              ? 'bg-gold/20 border-gold text-gold' 
+              : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-silk'"
           >
-            <p class="text-2xl font-serif italic text-silk/80 leading-relaxed">
-              {{ quote }}
-            </p>
-          </BaseCard>
+            <div class="w-6 h-6 rounded-full overflow-hidden bg-charcoal">
+              <img 
+                v-if="member.photoUrl" 
+                :src="member.photoUrl" 
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-[10px] text-gray-500">
+                {{ member.name[0] || '?' }}
+              </div>
+            </div>
+            <span class="text-sm font-medium whitespace-nowrap">{{ member.name }}</span>
+          </button>
         </div>
-      </section>
+      </div>
 
+      <!-- Content Components -->
+      <div v-if="store.activeMember" :key="store.activeMember.id" class="animate-fade-in">
+        
+        <HeroSection 
+          :member="store.activeMember"
+          :family-name="store.familyName"
+        />
+
+        <!-- Bento Grid Gallery -->
+        <section class="container mx-auto px-4 py-20">
+          <h2 class="text-3xl font-serif text-center mb-12 text-silk/90">
+            Дорогие сердцу моменты
+          </h2>
+          <BentoGrid :photos="store.activeMember.photos" />
+        </section>
+
+        <!-- Timeline -->
+        <TimelineSection 
+          :member="store.activeMember"
+        />
+
+        <!-- Quotes Section -->
+        <section v-if="store.activeMember.quotes?.length" class="container mx-auto px-4 py-20">
+          <h2 class="text-3xl font-serif text-center mb-12 text-silk/90">
+            Слова, которые останутся с нами
+          </h2>
+          <div class="max-w-3xl mx-auto space-y-8">
+            <BaseCard 
+              v-for="(quote, index) in store.activeMember.quotes" 
+              :key="index"
+              class="p-8 text-center"
+            >
+              <p class="text-2xl font-serif italic text-silk/80 leading-relaxed">
+                {{ quote }}
+              </p>
+            </BaseCard>
+          </div>
+        </section>
+
+      </div>
     </div>
   </MainLayout>
 </template>
+
+<style scoped>
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>

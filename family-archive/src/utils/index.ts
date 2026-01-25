@@ -43,5 +43,5 @@ export function delay(ms: number): Promise<void> {
  * Generate a random ID
  */
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return crypto.randomUUID()
 }
