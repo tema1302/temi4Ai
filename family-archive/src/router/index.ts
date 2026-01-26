@@ -26,8 +26,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/:id',
-    name: 'MemoryViewer',
+    path: '/archive/:id',    name: 'MemoryViewer',
     component: MemoryViewer,
   },
 ]
