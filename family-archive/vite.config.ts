@@ -4,6 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: '/temi4Ai/family-archive/',
   plugins: [vue()],
   resolve: {
     alias: {
