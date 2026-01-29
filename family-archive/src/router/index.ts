@@ -26,7 +26,15 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/archive/:id',    name: 'MemoryViewer',
+    path: '/archive/:id',
+    name: 'MemoryViewer',
+    component: MemoryViewer,
+  },
+  // Fallback for direct root links (e.g. /semya-panasyuk)
+  // Must be last to avoid catching /auth or /editor
+  {
+    path: '/:id',
+    name: 'MemoryViewerRoot',
     component: MemoryViewer,
   },
 ]
