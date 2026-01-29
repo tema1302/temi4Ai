@@ -42,7 +42,7 @@ const setActiveMember = (id: string) => {
     <div v-if="isLoading" class="min-h-screen flex items-center justify-center">
       <div class="text-center">
         <div class="w-16 h-16 border-4 border-gold/30 border-t-gold rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-gray-400">Загружаем воспоминания...</p>
+        <p class="text-gray-400">Загружаем воспоминания...<br><span class="text-xs opacity-50">{{ familyId }}</span></p>
       </div>
     </div>
 
@@ -52,6 +52,16 @@ const setActiveMember = (id: string) => {
         <div class="text-6xl mb-6">🕊️</div>
         <h2 class="text-2xl font-serif text-silk mb-4">Архив не найден</h2>
         <p class="text-gray-400 mb-6">Семейный архив "{{ familyId }}" еще не создан.</p>
+        <router-link to="/" class="text-gold hover:underline">← Вернуться на главную</router-link>
+      </BaseCard>
+    </div>
+
+    <!-- Empty Family State -->
+    <div v-else-if="!store.activeMember" class="min-h-screen flex items-center justify-center">
+      <BaseCard class="p-12 text-center max-w-md">
+        <div class="text-6xl mb-6">👥</div>
+        <h2 class="text-2xl font-serif text-silk mb-4">Семья найдена</h2>
+        <p class="text-gray-400 mb-6">Но в этом архиве пока нет добавленных людей.</p>
         <router-link to="/" class="text-gold hover:underline">← Вернуться на главную</router-link>
       </BaseCard>
     </div>
