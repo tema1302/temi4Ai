@@ -4,6 +4,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { Motion, Presence } from "@motionone/vue"
 
 const router = useRouter()
 
@@ -39,27 +40,52 @@ const toggleFaq = (index: number) => {
   <MainLayout>
     
     <!-- HERO SECTION -->
-    <section class="relative min-h-screen flex items-center justify-center px-4 py-20">
-      <div class="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent opacity-40"></div>
+    <section class="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
+      <div 
+        v-motion
+        :initial="{ scale: 0.8, opacity: 0 }"
+        :enter="{ scale: 1, opacity: 1, transition: { duration: 1000, delay: 500 } }"
+        class="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent opacity-40"
+      ></div>
       
       <div class="relative z-10 max-w-5xl mx-auto text-center">
-        <div class="inline-block mb-6 px-5 py-2 rounded-full border border-gold/30 bg-gold/5 backdrop-blur-sm">
+        <div 
+          v-motion
+          :initial="{ y: 20, opacity: 0 }"
+          :enter="{ y: 0, opacity: 1, transition: { duration: 500, delay: 200 } }"
+          class="inline-block mb-6 px-5 py-2 rounded-full border border-gold/30 bg-gold/5 backdrop-blur-sm"
+        >
           <span class="text-gold font-medium tracking-wide uppercase text-sm">Цифровое наследие вашей семьи</span>
         </div>
         
-        <h1 class="text-5xl md:text-7xl lg:text-8xl font-serif leading-tight mb-8">
+        <h1 
+          v-motion
+          :initial="{ y: 20, opacity: 0 }"
+          :enter="{ y: 0, opacity: 1, transition: { duration: 500, delay: 400 } }"
+          class="text-5xl md:text-7xl lg:text-8xl font-serif leading-tight mb-8"
+        >
           <span class="block text-silk">Сохраните</span>
           <span class="block bg-gradient-to-r from-gold via-yellow-400 to-gold bg-clip-text text-transparent italic">
             их историю навсегда
           </span>
         </h1>
         
-        <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+        <p 
+          v-motion
+          :initial="{ y: 20, opacity: 0 }"
+          :enter="{ y: 0, opacity: 1, transition: { duration: 500, delay: 600 } }"
+          class="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
+        >
           Создайте элегантный цифровой мемориал за 5 минут. <br class="hidden md:block"/>
           Фотографии, биография, хронология — всё на одной красивой странице.
         </p>
         
-        <div class="flex flex-col sm:flex-row gap-5 justify-center items-center mb-16">
+        <div 
+          v-motion
+          :initial="{ y: 20, opacity: 0 }"
+          :enter="{ y: 0, opacity: 1, transition: { duration: 500, delay: 800 } }"
+          class="flex flex-col sm:flex-row gap-5 justify-center items-center mb-16"
+        >
           <BaseButton size="lg" @click="router.push('/auth')">
             Создать архив бесплатно
           </BaseButton>
@@ -69,7 +95,12 @@ const toggleFaq = (index: number) => {
         </div>
 
         <!-- Social Proof -->
-        <div class="flex items-center justify-center gap-8 text-gray-400 text-sm">
+        <div 
+          v-motion
+          :initial="{ y: 20, opacity: 0 }"
+          :enter="{ y: 0, opacity: 1, transition: { duration: 500, delay: 1000 } }"
+          class="flex items-center justify-center gap-8 text-gray-400 text-sm"
+        >
           <div class="flex items-center gap-2">
             <span class="text-gold text-xl">★★★★★</span>
             <span>4.9/5 отзывов</span>
@@ -81,28 +112,48 @@ const toggleFaq = (index: number) => {
     </section>
 
     <!-- PROBLEM SECTION -->
-    <section class="py-32 px-4 bg-gradient-to-b from-transparent to-charcoal/30">
+    <section class="py-32 px-4 bg-gradient-to-b from-transparent to-charcoal/30 overflow-hidden">
       <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-3xl md:text-5xl font-serif text-silk mb-8">
+        <h2 
+          v-motion
+          :initial="{ y: 50, opacity: 0 }"
+          :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500 } }"
+          class="text-3xl md:text-5xl font-serif text-silk mb-8"
+        >
           Знакомая боль?
         </h2>
         
         <div class="grid md:grid-cols-3 gap-6 mt-12">
-          <BaseCard class="p-8 text-center">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 200 } }"
+            class="p-8 text-center"
+          >
             <div class="text-4xl mb-4">📸</div>
             <p class="text-gray-300 leading-relaxed">
               Фотографии разбросаны по телефонам, дискам и старым альбомам
             </p>
           </BaseCard>
           
-          <BaseCard class="p-8 text-center">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 400 } }"
+            class="p-8 text-center"
+          >
             <div class="text-4xl mb-4">⏳</div>
             <p class="text-gray-300 leading-relaxed">
               Истории теряются — некому передать память о предках
             </p>
           </BaseCard>
           
-          <BaseCard class="p-8 text-center">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 600 } }"
+            class="p-8 text-center"
+          >
             <div class="text-4xl mb-4">🔗</div>
             <p class="text-gray-300 leading-relaxed">
               Сложно поделиться: нужен сайт, но это дорого и трудно
@@ -113,19 +164,33 @@ const toggleFaq = (index: number) => {
     </section>
 
     <!-- SOLUTION SECTION -->
-    <section class="py-32 px-4">
+    <section class="py-32 px-4 overflow-hidden">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-20">
-          <h2 class="text-4xl md:text-6xl font-serif text-silk mb-6">
+          <h2 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500 } }"
+            class="text-4xl md:text-6xl font-serif text-silk mb-6"
+          >
             Решение за 5 минут
           </h2>
-          <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 200 } }"
+            class="text-xl text-gray-400 max-w-2xl mx-auto"
+          >
             Без программистов. Без дизайнеров. Просто добавьте фото и текст.
           </p>
         </div>
 
         <div class="grid md:grid-cols-2 gap-12 items-center">
-          <div>
+          <div
+            v-motion
+            :initial="{ x: -100, opacity: 0 }"
+            :visibleOnce="{ x: 0, opacity: 1, transition: { duration: 700 } }"
+          >
             <BaseCard class="p-2 bg-gradient-to-br from-gold/10 to-purple-500/10">
               <div class="aspect-video bg-charcoal rounded-lg overflow-hidden flex items-center justify-center">
                 <span class="text-gray-500 text-sm">[Скриншот редактора]</span>
@@ -134,35 +199,23 @@ const toggleFaq = (index: number) => {
           </div>
 
           <div class="space-y-8">
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">1</div>
+            <div 
+              v-motion
+              v-for="(item, index) in [
+                { title: 'Регистрация за 30 секунд', desc: 'Просто email и пароль — ничего лишнего.' },
+                { title: 'Заполните биографию', desc: 'Имя, даты, история жизни. Всё в простом редакторе.' },
+                { title: 'Загрузите фотографии', desc: 'Наша система автоматически создаст красивую галерею.' },
+                { title: 'Поделитесь ссылкой', desc: 'Отправьте родственникам — память доступна всегда.' }
+              ]"
+              :key="index"
+              :initial="{ x: 100, opacity: 0 }"
+              :visibleOnce="{ x: 0, opacity: 1, transition: { duration: 500, delay: 200 * (index + 1) } }"
+              class="flex gap-4"
+            >
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">{{ index + 1 }}</div>
               <div>
-                <h3 class="text-xl font-serif text-silk mb-2">Регистрация за 30 секунд</h3>
-                <p class="text-gray-400">Просто email и пароль — ничего лишнего.</p>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">2</div>
-              <div>
-                <h3 class="text-xl font-serif text-silk mb-2">Заполните биографию</h3>
-                <p class="text-gray-400">Имя, даты, история жизни. Всё в простом редакторе.</p>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">3</div>
-              <div>
-                <h3 class="text-xl font-serif text-silk mb-2">Загрузите фотографии</h3>
-                <p class="text-gray-400">Наша система автоматически создаст красивую галерею.</p>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">4</div>
-              <div>
-                <h3 class="text-xl font-serif text-silk mb-2">Поделитесь ссылкой</h3>
-                <p class="text-gray-400">Отправьте родственникам — память доступна всегда.</p>
+                <h3 class="text-xl font-serif text-silk mb-2">{{ item.title }}</h3>
+                <p class="text-gray-400">{{ item.desc }}</p>
               </div>
             </div>
           </div>
@@ -171,16 +224,26 @@ const toggleFaq = (index: number) => {
     </section>
 
     <!-- FEATURES -->
-    <section class="py-32 px-4 bg-gradient-to-b from-charcoal/30 to-transparent">
+    <section class="py-32 px-4 bg-gradient-to-b from-charcoal/30 to-transparent overflow-hidden">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-20">
-          <h2 class="text-4xl md:text-6xl font-serif text-silk mb-6">
+          <h2 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500 } }"
+            class="text-4xl md:text-6xl font-serif text-silk mb-6"
+          >
             Что внутри?
           </h2>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
-          <BaseCard class="p-8">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 200 } }"
+            class="p-8"
+          >
             <div class="w-14 h-14 rounded-xl bg-gold/10 flex items-center justify-center mb-6 text-gold">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -192,7 +255,12 @@ const toggleFaq = (index: number) => {
             </p>
           </BaseCard>
 
-          <BaseCard class="p-8">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 400 } }"
+            class="p-8"
+          >
             <div class="w-14 h-14 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 text-purple-400">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -204,7 +272,12 @@ const toggleFaq = (index: number) => {
             </p>
           </BaseCard>
 
-          <BaseCard class="p-8">
+          <BaseCard 
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 600 } }"
+            class="p-8"
+          >
             <div class="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 text-blue-400">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
@@ -220,8 +293,13 @@ const toggleFaq = (index: number) => {
     </section>
 
     <!-- PRICING -->
-    <section class="py-32 px-4">
-      <div class="max-w-4xl mx-auto text-center">
+    <section class="py-32 px-4 overflow-hidden">
+      <div 
+        v-motion
+        :initial="{ opacity: 0 }"
+        :visibleOnce="{ opacity: 1, transition: { duration: 1000 } }"
+        class="max-w-4xl mx-auto text-center"
+      >
         <h2 class="text-4xl md:text-6xl font-serif text-silk mb-6">
           Доступно каждому
         </h2>
@@ -260,37 +338,60 @@ const toggleFaq = (index: number) => {
     </section>
 
     <!-- FAQ -->
-    <section class="py-32 px-4 bg-gradient-to-b from-transparent to-charcoal/30">
+    <section class="py-32 px-4 bg-gradient-to-b from-transparent to-charcoal/30 overflow-hidden">
       <div class="max-w-3xl mx-auto">
-        <h2 class="text-4xl md:text-5xl font-serif text-silk mb-16 text-center">
+        <h2 
+          v-motion
+          :initial="{ y: 50, opacity: 0 }"
+          :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500 } }"
+          class="text-4xl md:text-5xl font-serif text-silk mb-16 text-center"
+        >
           Частые вопросы
         </h2>
 
         <div class="space-y-4">
-          <BaseCard 
+          <div 
             v-for="(item, index) in faqItems" 
             :key="index"
-            class="p-6 cursor-pointer transition-all"
-            @click="toggleFaq(index)"
+            v-motion
+            :initial="{ y: 50, opacity: 0 }"
+            :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 100 * index } }"
           >
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-medium text-silk pr-4">{{ item.q }}</h3>
-              <span class="text-gold text-2xl transition-transform" :class="{ 'rotate-45': item.open }">+</span>
-            </div>
-            <div 
-              v-if="item.open"
-              class="mt-4 pt-4 border-t border-white/10 text-gray-400 leading-relaxed"
+            <BaseCard 
+              class="p-6 cursor-pointer transition-colors hover:bg-white/5"
+              @click="toggleFaq(index)"
             >
-              {{ item.a }}
-            </div>
-          </BaseCard>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-silk pr-4">{{ item.q }}</h3>
+                <span class="text-gold text-2xl transition-transform duration-300" :class="{ 'rotate-45': item.open }">+</span>
+              </div>
+              <Presence>
+                <Motion
+                  v-if="item.open"
+                  :initial="{ opacity: 0, height: 0, marginTop: '0px' }"
+                  :animate="{ opacity: 1, height: 'auto', marginTop: '1rem', transition: { duration: 0.3 } }"
+                  :exit="{ opacity: 0, height: 0, marginTop: '0px', transition: { duration: 0.3 } }"
+                  class="overflow-hidden"
+                >
+                  <div class="pt-4 border-t border-white/10 text-gray-400 leading-relaxed">
+                    {{ item.a }}
+                  </div>
+                </Motion>
+              </Presence>
+            </BaseCard>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- FINAL CTA -->
-    <section class="py-32 px-4">
-      <div class="max-w-4xl mx-auto text-center">
+    <section class="py-32 px-4 overflow-hidden">
+      <div 
+        class="max-w-4xl mx-auto text-center"
+        v-motion
+        :initial="{ opacity: 0.5 }"
+        :visibleOnce="{ opacity: 1, transition: { duration: 1000 } }"
+      >
         <h2 class="text-4xl md:text-6xl font-serif text-silk mb-8">
           Они заслуживают <br class="hidden md:block"/>
           <span class="text-gold italic">быть запомненными</span>
@@ -300,7 +401,7 @@ const toggleFaq = (index: number) => {
           Простой. Красивый. Вечный.
         </p>
         
-        <BaseButton class="w-full" size="lg" @click="router.push('/auth')">
+        <BaseButton full="true" size="lg" @click="router.push('/auth')">
           Создать архив за 5 минут
         </BaseButton>
       </div>

@@ -2,11 +2,13 @@
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
+  full?: boolean // Добавляем новый пропс `full`
 }
 
 withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
+  full: false, // Устанавливаем значение по умолчанию
 })
 </script>
 
@@ -23,6 +25,9 @@ withDefaults(defineProps<Props>(), {
       variant === 'primary' ? 'bg-gradient-to-r from-gold to-yellow-600 text-obsidian shadow-lg shadow-gold/20 hover:shadow-gold/40' : '',
       variant === 'secondary' ? 'bg-white/10 text-silk border border-white/10 hover:bg-white/20' : '',
       variant === 'ghost' ? 'text-silk/70 hover:text-gold hover:bg-white/5' : '',
+
+      // Full width
+      full ? 'w-full' : '', // Применяем w-full если full=true
     ]"
   >
     <slot />
