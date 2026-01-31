@@ -33,5 +33,8 @@ export default defineConfig({
         }
       }
     }
+  },
+  optimizeDeps: {
+    include: ['vue-gtag-next']
   }
 })

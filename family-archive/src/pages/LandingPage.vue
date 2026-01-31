@@ -75,7 +75,7 @@ const pricingPlans = [
     
     <!-- 1. HERO SCREEN -->
     <!-- Image: Cozy living room / warm light -->
-    <section class="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
+    <section id="hero" class="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
       <!-- Background Image with Overlay -->
       <div class="absolute inset-0 z-0">
         <img 
@@ -120,7 +120,7 @@ const pricingPlans = [
     </section>
 
     <!-- 2. WHY IT MATTERS -->
-    <section class="py-24 px-4 bg-charcoal relative">
+    <section id="about" class="py-24 px-4 bg-charcoal relative">
       <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
         <div 
           v-motion
@@ -176,7 +176,7 @@ const pricingPlans = [
     </section>
 
     <!-- 3. WHAT YOU GET (FEATURES) -->
-    <section class="py-24 px-4 bg-obsidian">
+    <section id="features" class="py-24 px-4 bg-obsidian">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-3xl md:text-5xl font-serif text-silk mb-4">Что вы получите</h2>
@@ -333,6 +333,12 @@ const pricingPlans = [
             </p>
           </div>
         </div>
+
+        <div class="mt-12">
+          <BaseButton variant="secondary" :center="true" @click="router.push('/auth')">
+            Создать безопасный архив
+          </BaseButton>
+        </div>
       </div>
     </section>
 
@@ -384,11 +390,17 @@ const pricingPlans = [
             <p class="text-gray-500 text-sm">Система сама сделает страницу красивой. Без дизайнеров и сложностей.</p>
           </div>
         </div>
+
+        <div class="mt-16 text-center">
+          <BaseButton size="lg" :center="true" @click="router.push('/auth')">
+            Попробовать бесплатно
+          </BaseButton>
+        </div>
       </div>
     </section>
 
     <!-- 7. PRICING -->
-    <section class="py-24 px-4 bg-charcoal">
+    <section id="pricing" class="py-24 px-4 bg-charcoal">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">Выберите подходящий вариант</h2>

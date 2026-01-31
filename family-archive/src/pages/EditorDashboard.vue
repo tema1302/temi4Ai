@@ -3,26 +3,37 @@ import { ref, computed, onMounted } from 'vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import PricingModal from '@/components/ui/PricingModal.vue'
 import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import { useSubscription } from '@/composables/useSubscription'
+import { useAnalytics } from '@/composables/useAnalytics'
 import { createFamilyArchive, saveFamilyData, fetchUserFamilies } from '@/services/memoryService'
 import { useRouter } from 'vue-router'
 
 const store = useMemoryStore()
 const authStore = useAuthStore()
+const subStore = useSubscriptionStore()
+const subscription = useSubscription()
 const router = useRouter()
+const { trackArchiveCreation, trackUpgrade } = useAnalytics()
 
 const isCreating = ref(false)
 const newFamilyName = ref('')
 const userFamilies = ref<any[]>([])
 const isSaving = ref(false)
+const showPricing = ref(false)
 
-// Load user's existing families on mount
+// Load user's existing families and subscription on mount
 onMounted(async () => {
   if (authStore.userId) {
-    await refreshFamilies()
+    await Promise.all([
+      refreshFamilies(),
+      subStore.fetchSubscription()
+    ])
   }
 })
 
@@ -35,11 +46,15 @@ const refreshFamilies = async () => {
 const startNewArchive = async () => {
   if (!newFamilyName.value.trim()) return
   
+  // Check subscription limit
+  if (!subscription.canAddFamily(userFamilies.value.length)) {
+    showPricing.value = true
+    return
+  }
+  
   isCreating.value = true
   const newFamily = await createFamilyArchive(newFamilyName.value, authStore.userId || undefined)
   
-  // Initial member is added by store action or manually if createFamilyArchive doesn't adding it anymore
-  // store.addMember() handles pushing "New Member"
   newFamily.members.push({
     id: crypto.randomUUID(), 
     name: 'Главный герой', 
@@ -54,6 +69,8 @@ const startNewArchive = async () => {
   store.toggleEditing()
   isCreating.value = false
   newFamilyName.value = ''
+  await refreshFamilies()
+  trackArchiveCreation(newFamily.id)
 }
 
 const loadFamily = (family: any) => {
@@ -122,10 +139,21 @@ const previewLink = computed(() => {
   }
   return '#'
 })
+
+const planName = computed(() => {
+  switch (subStore.tier) {
+    case 'guardian': return 'Хранитель'
+    case 'legacy': return 'Наследие'
+    default: return 'Базовый'
+  }
+})
 </script>
 
 <template>
   <MainLayout>
+    <!-- Pricing Modal -->
+    <PricingModal :isOpen="showPricing" @close="showPricing = false" />
+
     <div class="min-h-screen flex">
       
       <!-- Sidebar -->
@@ -184,9 +212,22 @@ const previewLink = computed(() => {
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
           <div>
             <h1 class="text-2xl font-serif text-silk">Панель управления</h1>
-            <p class="text-gray-400 text-sm mt-1">
-              Вы вошли как <span class="text-gold">{{ authStore.userEmail }}</span>
-            </p>
+            <div class="flex items-center gap-3 text-sm mt-1">
+              <p class="text-gray-400">
+                Вы вошли как <span class="text-gold">{{ authStore.userEmail }}</span>
+              </p>
+              <span class="text-gray-600">|</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-400">Тариф: <span :class="subStore.isPremium ? 'text-gold' : 'text-gray-300'">{{ planName }}</span></span>
+                <button 
+                  v-if="!subStore.isPremium"
+                  class="text-xs px-2 py-0.5 bg-gold/10 border border-gold/30 text-gold rounded hover:bg-gold/20 transition-colors"
+                  @click="showPricing = true"
+                >
+                  Улучшить
+                </button>
+              </div>
+            </div>
           </div>
           <BaseButton variant="ghost" size="sm" @click="handleLogout">
             Выйти
@@ -230,7 +271,8 @@ const previewLink = computed(() => {
           <BaseCard class="p-10 text-center">
             <div class="text-6xl mb-6">📜</div>
             <h2 class="text-3xl font-serif text-silk mb-4">Создать новый архив</h2>
-            <div class="flex flex-col gap-4 max-w-md mx-auto">
+            
+            <div v-if="subscription.canAddFamily(userFamilies.length)" class="flex flex-col gap-4 max-w-md mx-auto">
               <input
                 v-model="newFamilyName"
                 type="text"
@@ -239,12 +281,24 @@ const previewLink = computed(() => {
                 @keyup.enter="startNewArchive"
               />
               <BaseButton 
+                full
                 :disabled="!newFamilyName.trim() || isCreating"
                 @click="startNewArchive"
               >
                 {{ isCreating ? 'Создаём...' : 'Создать архив' }}
               </BaseButton>
             </div>
+            
+            <div v-else class="max-w-md mx-auto">
+              <p class="text-gray-400 mb-6">
+                Вы достигли лимита бесплатных архивов (1). <br/>
+                Обновите тариф, чтобы создать больше.
+              </p>
+              <BaseButton full variant="primary" @click="showPricing = true">
+                Стать Хранителем (Безлимит)
+              </BaseButton>
+            </div>
+
           </BaseCard>
         </div>
 

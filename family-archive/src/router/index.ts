@@ -6,12 +6,24 @@ const LandingPage = () => import('@/pages/LandingPage.vue')
 const MemoryViewer = () => import('@/pages/MemoryViewer.vue')
 const EditorDashboard = () => import('@/pages/EditorDashboard.vue')
 const AuthPage = () => import('@/pages/AuthPage.vue')
+const PrivacyPolicy = () => import('@/pages/legal/PrivacyPolicy.vue')
+const TermsOfService = () => import('@/pages/legal/TermsOfService.vue')
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Landing',
     component: LandingPage,
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: PrivacyPolicy,
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: TermsOfService,
   },
   {
     path: '/auth',
@@ -42,8 +54,16 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(_to, _from) {
-    return { top: 0 }
+  scrollBehavior(to, from, savedPosition) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (savedPosition) {
+          resolve(savedPosition)
+        } else {
+          resolve({ top: 0 })
+        }
+      }, 300) // Match transition duration (0.3s)
+    })
   },
 })
 

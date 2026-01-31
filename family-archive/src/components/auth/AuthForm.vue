@@ -4,9 +4,11 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
+import { useAnalytics } from '@/composables/useAnalytics'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { trackSignUp } = useAnalytics()
 
 const isLoginMode = ref(true)
 const email = ref('')
@@ -41,6 +43,9 @@ const handleSubmit = async () => {
       result = await authStore.signIn(email.value, password.value)
     } else {
       result = await authStore.signUp(email.value, password.value)
+      if (result.success) {
+        trackSignUp('email')
+      }
     }
 
     if (result.success) {
@@ -67,8 +72,8 @@ const handleSubmit = async () => {
           {{ isLoginMode ? 'Войдите, чтобы управлять архивами' : 'Начните сохранять историю вашей семьи' }}
         </p>
       </div>
-
-      <!-- Error Message -->
+      
+      <!-- ... (error message) ... -->
       <div v-if="errorMessage" class="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
         {{ errorMessage }}
       </div>
@@ -76,6 +81,7 @@ const handleSubmit = async () => {
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-5">
         
+        <!-- ... (inputs) ... -->
         <!-- Email -->
         <div>
           <label class="block text-sm text-gray-400 mb-2">Email</label>
@@ -100,7 +106,7 @@ const handleSubmit = async () => {
           />
         </div>
 
-        <!-- Confirm Password (Register only) -->
+        <!-- Confirm Password -->
         <div v-if="!isLoginMode">
           <label class="block text-sm text-gray-400 mb-2">Подтвердите пароль</label>
           <input
@@ -115,11 +121,18 @@ const handleSubmit = async () => {
         <!-- Submit Button -->
         <BaseButton 
           type="submit" 
-          class="w-full"
+          full
           :disabled="isSubmitting"
         >
           {{ isSubmitting ? 'Подождите...' : (isLoginMode ? 'Войти' : 'Зарегистрироваться') }}
         </BaseButton>
+
+        <!-- Legal Disclaimer -->
+        <p v-if="!isLoginMode" class="text-xs text-gray-500 text-center mt-2">
+          Нажимая кнопку, вы соглашаетесь с 
+          <router-link to="/terms" class="text-gray-400 hover:text-gold">условиями использования</router-link> и 
+          <router-link to="/privacy" class="text-gray-400 hover:text-gold">политикой конфиденциальности</router-link>.
+        </p>
 
       </form>
 

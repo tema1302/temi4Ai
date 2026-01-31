@@ -30,11 +30,11 @@ const MOCK_FAMILY_DATA: FamilyData = {
       birthDate: '1945-05-12',
       deathDate: '2018-11-20',
       biography: 'Инженер-конструктор, посвятивший жизнь авиации. Любил шахматы, рыбалку и долгие прогулки по лесу. Всегда говорил, что главное в жизни — это честность и трудолюбие.',
-      photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1000&auto=format&fit=crop',
+      photoUrl: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=1000&auto=format&fit=crop',
       photos: [
-        'https://images.unsplash.com/photo-1518175510034-754859737926?q=80&w=1000',
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000',
-        'https://images.unsplash.com/photo-1520342868574-5fa3804e551c?q=80&w=1000'
+        'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?q=80&w=1000',
+        'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=1000',
+        'https://images.unsplash.com/photo-1605116788220-d39675ba7251?q=80&w=1000'
       ],
       quotes: [
         'Никогда не сдавайся, даже если кажется, что выхода нет.',
@@ -47,10 +47,10 @@ const MOCK_FAMILY_DATA: FamilyData = {
       name: 'Елена Смирнова',
       birthDate: '1948-08-25',
       biography: 'Учительница литературы, воспитавшая не одно поколение учеников. Обожает классическую музыку, садоводство и своих троих внуков.',
-      photoUrl: 'https://images.unsplash.com/photo-1551843022-4cc718489bed?q=80&w=1000&auto=format&fit=crop',
+      photoUrl: 'https://images.unsplash.com/photo-1545167622-3a6ac156f422?q=80&w=1000&auto=format&fit=crop',
       photos: [
-        'https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=1000',
-        'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1000'
+        'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1000',
+        'https://images.unsplash.com/photo-1466027532670-6da472756313?q=80&w=1000'
       ],
       quotes: [
         'Книга — лучший советчик.',
