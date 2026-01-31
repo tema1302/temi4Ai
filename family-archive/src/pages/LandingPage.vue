@@ -401,7 +401,7 @@ const toggleFaq = (index: number) => {
           Простой. Красивый. Вечный.
         </p>
         
-        <BaseButton full="true" size="lg" @click="router.push('/auth')">
+        <BaseButton :full="true" size="lg" @click="router.push('/auth')">
           Создать архив за 5 минут
         </BaseButton>
       </div>
