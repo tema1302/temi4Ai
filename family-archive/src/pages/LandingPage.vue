@@ -4,6 +4,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import oldPhotos from '@/assets/oldPhotos.webp'
 import { 
   BookOpen, 
   Users, 
@@ -130,7 +131,7 @@ const pricingPlans = [
         >
           <div class="absolute -inset-4 bg-gold/5 rounded-2xl -z-10 rotate-3"></div>
           <img 
-            src="/temi4Ai/images/oldPhotos.webp" 
+            :src="oldPhotos" 
             alt="Старые фотографии" 
             class="rounded-lg shadow-2xl border border-white/10 transition-all duration-700 hover:scale-[1.02] w-full h-auto"
           />
