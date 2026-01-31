@@ -7,6 +7,12 @@ import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/authStore'
 
+// Force manual scroll restoration to prevent browser from restoring position on reload
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual'
+}
+window.scrollTo(0, 0)
+
 const app = createApp(App)
 const pinia = createPinia()
 
