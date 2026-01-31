@@ -47,7 +47,7 @@ const MOCK_FAMILY_DATA: FamilyData = {
       name: 'Елена Смирнова',
       birthDate: '1948-08-25',
       biography: 'Учительница литературы, воспитавшая не одно поколение учеников. Обожает классическую музыку, садоводство и своих троих внуков.',
-      photoUrl: 'https://images.unsplash.com/photo-1545167622-3a6ac156f422?q=80&w=1000&auto=format&fit=crop',
+      photoUrl: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?q=80&w=1000&auto=format&fit=crop',
       photos: [
         'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1000',
         'https://images.unsplash.com/photo-1466027532670-6da472756313?q=80&w=1000'
