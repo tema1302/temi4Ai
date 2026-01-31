@@ -8,6 +8,7 @@ import BentoGrid from '@/components/viewer/BentoGrid.vue'
 import TimelineSection from '@/components/viewer/TimelineSection.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { fetchFamilyData } from '@/services/memoryService'
+import type { FamilyData } from '@/types'
 
 const route = useRoute()
 const store = useMemoryStore()
@@ -16,8 +17,63 @@ const familyId = computed(() => route.params.id as string)
 const isLoading = ref(true)
 const notFound = ref(false)
 
+const MOCK_FAMILY_DATA: FamilyData = {
+  id: 'smith-family',
+  familyName: 'Семья Смирновых',
+  heroImage: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  members: [
+    {
+      id: 'm1',
+      name: 'Александр Смирнов',
+      birthDate: '1945-05-12',
+      deathDate: '2018-11-20',
+      biography: 'Инженер-конструктор, посвятивший жизнь авиации. Любил шахматы, рыбалку и долгие прогулки по лесу. Всегда говорил, что главное в жизни — это честность и трудолюбие.',
+      photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1000&auto=format&fit=crop',
+      photos: [
+        'https://images.unsplash.com/photo-1518175510034-754859737926?q=80&w=1000',
+        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000',
+        'https://images.unsplash.com/photo-1520342868574-5fa3804e551c?q=80&w=1000'
+      ],
+      quotes: [
+        'Никогда не сдавайся, даже если кажется, что выхода нет.',
+        'Семья — это единственное настоящее богатство.',
+        'Делай добро и бросай его в воду.'
+      ]
+    },
+    {
+      id: 'm2',
+      name: 'Елена Смирнова',
+      birthDate: '1948-08-25',
+      biography: 'Учительница литературы, воспитавшая не одно поколение учеников. Обожает классическую музыку, садоводство и своих троих внуков.',
+      photoUrl: 'https://images.unsplash.com/photo-1551843022-4cc718489bed?q=80&w=1000&auto=format&fit=crop',
+      photos: [
+        'https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=1000',
+        'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1000'
+      ],
+      quotes: [
+        'Книга — лучший советчик.',
+        'Любовь спасет мир.'
+      ]
+    }
+  ]
+}
+
 onMounted(async () => {
   isLoading.value = true
+  
+  // Static route for examples/demo
+  if (familyId.value === 'smith-family' || familyId.value === 'example') {
+    // Simulate tiny delay for smoother UX
+    setTimeout(() => {
+      store.setFamily(MOCK_FAMILY_DATA)
+      notFound.value = false
+      isLoading.value = false
+    }, 100)
+    return
+  }
+
   const data = await fetchFamilyData(familyId.value)
   
   if (data) {
@@ -32,7 +88,7 @@ onMounted(async () => {
 
 const setActiveMember = (id: string) => {
   store.setActiveMember(id)
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  window.scrollTo({ top: 0 })
 }
 </script>
 

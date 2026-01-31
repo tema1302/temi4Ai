@@ -11,4 +11,27 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'editor': [
+            './src/pages/EditorDashboard.vue',
+            './src/components/editor/EditorPreview.vue',
+            './src/components/editor/EditorSidebar.vue'
+          ],
+          'auth': [
+            './src/pages/AuthPage.vue',
+            './src/components/auth/AuthForm.vue'
+          ],
+          'viewer': [
+            './src/pages/MemoryViewer.vue',
+            './src/components/viewer/HeroSection.vue',
+            './src/components/viewer/BentoGrid.vue',
+            './src/components/viewer/TimelineSection.vue'
+          ]
+        }
+      }
+    }
+  }
 })
