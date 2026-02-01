@@ -2,32 +2,22 @@
 import BaseButton from './BaseButton.vue'
 import BaseCard from './BaseCard.vue'
 import { Check } from 'lucide-vue-next'
-import { processPayment } from '@/services/paymentService'
-import { useSubscriptionStore } from '@/stores/subscriptionStore'
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useBillingStore } from '@/modules/billing/store/billingStore'
+import { type PlanId } from '@/modules/billing/domain/models'
 
 const props = defineProps<{
   isOpen: boolean
 }>()
 
 const emit = defineEmits(['close'])
-const store = useSubscriptionStore()
-const isProcessing = ref(false)
+const router = useRouter()
+const store = useBillingStore()
 
-const handleUpgrade = async (plan: 'guardian' | 'legacy') => {
-  isProcessing.value = true
-  try {
-    const success = await processPayment(plan)
-    if (success) {
-      await store.fetchSubscription()
-      emit('close')
-      alert('Подписка успешно обновлена! Спасибо за доверие.')
-    } else {
-      alert('Ошибка при оплате. Попробуйте еще раз.')
-    }
-  } finally {
-    isProcessing.value = false
-  }
+const goToBilling = (planId: PlanId) => {
+  store.selectPlan(planId)
+  emit('close')
+  router.push('/billing')
 }
 </script>
 
@@ -58,8 +48,8 @@ const handleUpgrade = async (plan: 'guardian' | 'legacy') => {
             <li class="flex gap-2 text-sm text-gray-300"><Check class="w-4 h-4 text-gold"/> Семейное древо</li>
             <li class="flex gap-2 text-sm text-gray-300"><Check class="w-4 h-4 text-gold"/> Ежегодный бэкап</li>
           </ul>
-          <BaseButton :disabled="isProcessing" full @click="handleUpgrade('guardian')">
-            {{ isProcessing ? 'Обработка...' : 'Выбрать Хранитель' }}
+          <BaseButton full @click="goToBilling('guardian')">
+            Выбрать Хранитель
           </BaseButton>
         </div>
 
@@ -67,15 +57,15 @@ const handleUpgrade = async (plan: 'guardian' | 'legacy') => {
         <div class="p-6 rounded-xl border border-white/10 bg-white/5 flex flex-col opacity-80 hover:opacity-100 transition-opacity">
           <div class="mb-4">
             <h3 class="text-xl font-bold text-silk">Наследие</h3>
-            <div class="text-2xl text-white font-serif mt-1">5 990 ₽ <span class="text-sm text-gray-500">/ год</span></div>
+            <div class="text-2xl text-white font-serif mt-1">3 990 ₽ <span class="text-sm text-gray-500">/ год</span></div>
           </div>
           <ul class="space-y-3 mb-6 flex-1">
             <li class="flex gap-2 text-sm text-gray-300"><Check class="w-4 h-4 text-gold"/> Всё из Хранителя</li>
             <li class="flex gap-2 text-sm text-gray-300"><Check class="w-4 h-4 text-gold"/> Приоритетная поддержка</li>
             <li class="flex gap-2 text-sm text-gray-300"><Check class="w-4 h-4 text-gold"/> Видео и аудио (скоро)</li>
           </ul>
-          <BaseButton variant="secondary" :disabled="isProcessing" full @click="handleUpgrade('legacy')">
-            {{ isProcessing ? 'Обработка...' : 'Выбрать Наследие' }}
+          <BaseButton variant="secondary" full @click="goToBilling('legacy')">
+            Выбрать Наследие
           </BaseButton>
         </div>
       </div>

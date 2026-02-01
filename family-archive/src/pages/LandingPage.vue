@@ -3,8 +3,10 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { onMounted } from 'vue'
 import oldPhotos from '@/assets/oldPhotos.webp'
+import heroImage from '@/assets/hero-1.webp'
+import { useAnalytics } from '@/composables/useAnalytics'
 import { 
   BookOpen, 
   Users, 
@@ -16,26 +18,21 @@ import {
   PenTool,
   Sparkles,
   Check,
-  X
+  X,
+  Play
 } from 'lucide-vue-next'
-import { useAnalytics } from '@/composables/useAnalytics'
 
 const router = useRouter()
 const { trackCtaClick, trackPageScroll } = useAnalytics()
 
-// Simple scroll tracking setup
-import { onMounted, onUnmounted } from 'vue'
-
 onMounted(() => {
-  // Track initial page view with custom dimensions if needed
-  // Setup intersection observer for sections
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        trackPageScroll(entry.target.id, 0) // 0 implies "viewed"
+        trackPageScroll(entry.target.id, 0)
       }
     })
-  }, { threshold: 0.5 })
+  }, { threshold: 0.3 })
 
   document.querySelectorAll('section[id]').forEach(section => {
     observer.observe(section)
@@ -46,6 +43,18 @@ const handleCtaClick = (location: string, label: string, route: string) => {
   trackCtaClick(location, label)
   router.push(route)
 }
+
+// Marquee Images
+const marqueeImages = [
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1474540412665-1cdae210ae6b?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1520342868574-5fa3804e551c?w=400&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1542596594-649edbc13630?w=400&h=500&fit=crop',
+]
 
 // Pricing Data
 const pricingPlans = [
@@ -59,7 +68,6 @@ const pricingPlans = [
       { text: 'До 30 фотографий', included: true },
       { text: 'Семейное древо', included: false },
       { text: 'Ежегодный бэкап', included: false },
-      { text: 'Видео и аудио', included: false },
     ],
     cta: 'Начать бесплатно',
     primary: false
@@ -74,7 +82,6 @@ const pricingPlans = [
       { text: 'Безлимитные фото', included: true },
       { text: 'Семейное древо', included: true },
       { text: 'Ежегодный бэкап', included: true },
-      { text: 'Видео и аудио', included: false },
     ],
     cta: 'Выбрать тариф',
     primary: true
@@ -101,66 +108,139 @@ const pricingPlans = [
   <MainLayout>
     
     <!-- 1. HERO SCREEN -->
-    <!-- Image: Cozy living room / warm light -->
-    <section id="hero" class="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
-      <!-- Background Image with Overlay -->
+    <section id="hero" class="relative min-h-[90vh] flex items-center justify-center px-4 py-20 overflow-hidden bg-obsidian">
+      
+      <!-- Animated Background Blobs -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-20 -left-20 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[100px] opacity-30 animate-pulse-slow"></div>
+        <div class="absolute top-1/2 -right-20 w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px] opacity-40"></div>
+      </div>
+
+      <!-- Hero Image Overlay -->
       <div class="absolute inset-0 z-0">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
         <img 
           src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop" 
           alt="Уютный дом для воспоминаний" 
-          class="w-full h-full object-cover opacity-30"
+          class="w-full h-full object-cover opacity-20 scale-105 animate-slow-zoom"
         />
-        <div class="absolute inset-0 bg-gradient-to-b from-obsidian/80 via-obsidian/60 to-obsidian"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-obsidian/90 via-obsidian/70 to-obsidian"></div>
       </div>
 
-      <div class="relative z-10 max-w-4xl mx-auto text-center">
+      <div class="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
+        
+        <!-- Text Content -->
         <div 
+          class="text-center md:text-left md:flex-1"
           v-motion
-          :initial="{ y: 30, opacity: 0 }"
-          :enter="{ y: 0, opacity: 1, transition: { duration: 800 } }"
+          :initial="{ x: -50, opacity: 0 }"
+          :enter="{ x: 0, opacity: 1, transition: { duration: 800, ease: 'easeOut' } }"
         >
-          <span class="inline-block px-4 py-1.5 mb-6 rounded-full border border-gold/30 bg-gold/10 text-gold text-sm tracking-widest uppercase font-medium">
-            Семейный архив
-          </span>
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-gold/20 bg-gold/5 text-gold text-xs tracking-widest uppercase font-medium backdrop-blur-sm">
+            <Sparkles class="w-3 h-3" /> FamStory
+          </div>
+          
           <h1 class="text-5xl md:text-7xl lg:text-8xl font-serif text-silk leading-tight mb-8">
-            Уютный дом <br/>
-            <span class="italic text-gold">для воспоминаний</span>
+            Сохраните <br/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold via-amber-200 to-gold italic pr-2">историю</span>
+            семьи
           </h1>
-          <p class="text-xl md:text-2xl text-gray-300 mb-6 max-w-2xl mx-auto font-serif">
-            Чтобы истории близких не забылись.
-          </p>
-          <p class="text-lg text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Соберите фотографии, рассказы и важные даты ваших родных на одной красивой странице. 
-            Это как семейный альбом, который невозможно потерять.
+          
+          <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-xl leading-relaxed font-light">
+            Фотографии, голоса и воспоминания ваших близких на одной красивой, вечной странице.
           </p>
           
-          <div class="flex flex-col sm:flex-row gap-5 justify-center items-center">
-            <BaseButton size="lg" @click="handleCtaClick('hero', 'create_archive', '/auth')">
+          <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+            <BaseButton size="lg" class="shadow-lg shadow-gold/10" @click="handleCtaClick('hero', 'create_archive', '/auth')">
               Создать страницу памяти
             </BaseButton>
-            <BaseButton variant="secondary" size="lg" @click="handleCtaClick('hero', 'view_example', '/smith-family')">
-              Посмотреть пример
+            <BaseButton variant="secondary" size="lg" class="backdrop-blur-sm bg-white/5" @click="handleCtaClick('hero', 'view_example', '/smith-family')">
+              <Play class="w-4 h-4 mr-2 fill-current" /> Пример
             </BaseButton>
+          </div>
+          
+          <div class="mt-8 flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
+             <div class="flex -space-x-3">
+               <img v-for="i in 4" :key="i" :src="`https://i.pravatar.cc/100?img=${i+10}`" class="w-8 h-8 rounded-full border-2 border-obsidian" />
+             </div>
+             <p>Более 1,000 семей уже с нами</p>
+          </div>
+        </div>
+
+        <!-- Visual / Floating Card -->
+        <div 
+          class="md:flex-1 relative hidden md:block"
+          v-motion
+          :initial="{ x: 50, opacity: 0 }"
+          :enter="{ x: 0, opacity: 1, transition: { duration: 1000, delay: 200 } }"
+        >
+          <div class="absolute inset-0 bg-gold/20 blur-[60px] rounded-full transform rotate-12"></div>
+          
+          <div class="relative bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-700">
+             <img 
+               :src="heroImage" 
+               class="w-full h-[500px] object-cover rounded-lg filter sepia-[0.2]"
+               alt="Family memory"
+             />
+             <div class="absolute bottom-8 left-8 right-8 bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/10">
+                <p class="text-silk font-serif text-lg">"Дедушка всегда говорил, что счастье любит тишину..."</p>
+                <p class="text-gold text-xs mt-2 uppercase tracking-wider">— 1964 год</p>
+             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 2. WHY IT MATTERS -->
-    <section id="about" class="py-24 px-4 bg-charcoal relative">
-      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+    <!-- 2. INFINITE MARQUEE -->
+    <section class="py-12 bg-charcoal overflow-hidden border-y border-white/5">
+      <div class="relative w-full">
+        <div class="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-charcoal to-transparent z-10"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-charcoal to-transparent z-10"></div>
+        
+        <div class="flex gap-4 animate-scroll-left w-max">
+           <div 
+             v-for="(img, idx) in [...marqueeImages, ...marqueeImages]" 
+             :key="idx"
+             class="relative w-48 h-64 rounded-lg overflow-hidden flex-shrink-0 group grayscale hover:grayscale-0 transition-all duration-500"
+           >
+              <img :src="img" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+              <div class="absolute inset-0 bg-gold/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. WHY IT MATTERS -->
+    <section id="about" class="py-32 px-4 bg-charcoal relative overflow-hidden">
+      <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]"></div>
+
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-20 items-center">
         <div 
           v-motion
           :initial="{ x: -50, opacity: 0 }"
           :visibleOnce="{ x: 0, opacity: 1, transition: { duration: 600 } }"
-          class="order-2 md:order-1 relative"
+          class="order-2 md:order-1 relative group"
         >
-          <div class="absolute -inset-4 bg-gold/5 rounded-2xl -z-10 rotate-3"></div>
+          <div class="absolute top-4 left-4 right-4 bottom-4 bg-white/5 border border-white/10 rounded-xl rotate-6 transition-transform group-hover:rotate-12 duration-500"></div>
+          <div class="absolute top-2 left-2 right-2 bottom-2 bg-white/5 border border-white/10 rounded-xl -rotate-3 transition-transform group-hover:-rotate-6 duration-500"></div>
+          
           <img 
             :src="oldPhotos" 
             alt="Старые фотографии" 
-            class="rounded-lg shadow-2xl border border-white/10 transition-all duration-700 hover:scale-[1.02] w-full h-auto"
+            class="relative z-10 rounded-xl shadow-2xl border border-white/10 transition-all duration-700 hover:scale-[1.02] w-full h-auto grayscale-[0.3] hover:grayscale-0"
           />
+          
+          <div class="absolute -bottom-10 -right-10 z-20 bg-obsidian p-6 rounded-xl border border-gold/20 shadow-xl max-w-xs hidden md:block">
+             <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold">
+                   <Heart class="w-5 h-5 fill-current" />
+                </div>
+                <div>
+                   <p class="text-gray-300 text-sm italic">"Мы думали, эти фото потеряны навсегда..."</p>
+                   <p class="text-gray-500 text-xs mt-2">— Елена, пользователь</p>
+                </div>
+             </div>
+          </div>
         </div>
         
         <div 
@@ -169,295 +249,172 @@ const pricingPlans = [
           :visibleOnce="{ x: 0, opacity: 1, transition: { duration: 600, delay: 200 } }"
           class="order-1 md:order-2"
         >
-          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-8">
-            Когда уходят слова
+          <span class="text-gold text-sm tracking-widest uppercase font-bold mb-4 block">Проблема</span>
+          <h2 class="text-4xl md:text-6xl font-serif text-silk mb-8 leading-tight">
+            Когда уходят <br/> слова
           </h2>
-          <p class="text-gold text-lg mb-6 italic font-serif">
-            Память — это то, что мы передаем детям.
-          </p>
-          <div class="space-y-6 text-gray-400 text-lg leading-relaxed">
+          <div class="h-1 w-20 bg-gold mb-8"></div>
+          
+          <div class="space-y-8 text-gray-400 text-lg leading-relaxed">
             <p>
               Мы часто думаем, что будем помнить всё. Но детали стираются. 
-              Голос бабушки, дедушкины советы, история их знакомства — всё это может исчезнуть.
+              Голос бабушки, дедушкины советы, история их знакомства — без записи всё это исчезает за одно поколение.
             </p>
-            <ul class="space-y-3">
-              <li class="flex items-center gap-3">
-                <span class="w-2 h-2 rounded-full bg-red-500/70"></span>
-                Фотографии лежат в разных телефонах.
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="w-2 h-2 rounded-full bg-red-500/70"></span>
-                Старые снимки пылятся в коробках.
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="w-2 h-2 rounded-full bg-red-500/70"></span>
-                Рассказы забываются.
-              </li>
-            </ul>
-            <p class="pt-4 border-t border-white/10 text-silk">
-              Мы помогли уже 1000 семей собрать эти частички в одно целое.
+            
+            <div class="grid grid-cols-1 gap-4">
+              <div class="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/5">
+                 <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                 <span class="text-gray-300">Фотографии теряются в чатах</span>
+              </div>
+              <div class="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/5">
+                 <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                 <span class="text-gray-300">Альбомы пылятся в шкафах</span>
+              </div>
+            </div>
+
+            <p class="pt-4 text-silk font-serif text-xl italic">
+              "Память — это единственная встреча, из которой нельзя уйти."
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 3. WHAT YOU GET (FEATURES) -->
-    <section id="features" class="py-24 px-4 bg-obsidian">
-      <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-4">Что вы получите</h2>
-          <p class="text-xl text-gray-400">Простая страница о человеке. Всё самое важное в одном месте.</p>
+    <!-- 4. WHAT YOU GET (FEATURES) -->
+    <section id="features" class="py-32 px-4 bg-obsidian relative">
+      <div class="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-charcoal/50 to-transparent pointer-events-none"></div>
+
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-20 max-w-3xl mx-auto">
+          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">Больше, чем просто фото</h2>
+          <p class="text-xl text-gray-400">Мы создаем полноценный цифровой памятник, который рассказывает историю жизни.</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
-          <!-- Feature 1 -->
           <BaseCard 
             v-motion
             :initial="{ y: 50, opacity: 0 }"
             :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500 } }"
-            class="p-8 hover:bg-white/5 transition-colors group"
+            class="p-8 hover:bg-white/5 transition-all duration-300 group border-white/5 hover:border-gold/30 hover:-translate-y-2"
           >
-            <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold mb-6 group-hover:scale-110 transition-transform">
-              <BookOpen class="w-6 h-6" />
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-transparent border border-white/10 flex items-center justify-center text-gold mb-8 group-hover:scale-110 transition-transform">
+              <BookOpen class="w-7 h-7" />
             </div>
-            <h3 class="text-xl font-medium text-silk mb-4">История жизни</h3>
+            <h3 class="text-2xl font-serif text-silk mb-4">История жизни</h3>
             <p class="text-gray-400 leading-relaxed">
-              Простая лента событий: от рождения до главных побед. Хронология, которую интересно читать.
+              Не просто даты. Простая лента событий: от рождения до главных побед. Хронология, которую интересно читать будущим поколениям.
             </p>
           </BaseCard>
 
-          <!-- Feature 2 -->
           <BaseCard 
             v-motion
             :initial="{ y: 50, opacity: 0 }"
             :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 100 } }"
-            class="p-8 hover:bg-white/5 transition-colors group"
+            class="p-8 hover:bg-white/5 transition-all duration-300 group border-white/5 hover:border-gold/30 hover:-translate-y-2"
           >
-            <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold mb-6 group-hover:scale-110 transition-transform">
-              <Users class="w-6 h-6" />
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-transparent border border-white/10 flex items-center justify-center text-gold mb-8 group-hover:scale-110 transition-transform">
+              <Users class="w-7 h-7" />
             </div>
-            <h3 class="text-xl font-medium text-silk mb-4">Галерея лиц</h3>
+            <h3 class="text-2xl font-serif text-silk mb-4">Галерея лиц</h3>
             <p class="text-gray-400 leading-relaxed">
-              Красиво оформленные фотографии, которые приятно листать. Автоматическая обработка и адаптация под любой экран.
+              Умная галерея сама адаптирует фотографии. Загружайте любые снимки — мы сделаем так, чтобы они смотрелись великолепно на любом телефоне.
             </p>
           </BaseCard>
 
-          <!-- Feature 3 -->
           <BaseCard 
             v-motion
             :initial="{ y: 50, opacity: 0 }"
             :visibleOnce="{ y: 0, opacity: 1, transition: { duration: 500, delay: 200 } }"
-            class="p-8 hover:bg-white/5 transition-colors group"
+            class="p-8 hover:bg-white/5 transition-all duration-300 group border-white/5 hover:border-gold/30 hover:-translate-y-2"
           >
-            <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold mb-6 group-hover:scale-110 transition-transform">
-              <Heart class="w-6 h-6" />
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-transparent border border-white/10 flex items-center justify-center text-gold mb-8 group-hover:scale-110 transition-transform">
+              <Heart class="w-7 h-7" />
             </div>
-            <h3 class="text-xl font-medium text-silk mb-4">Слова мудрости</h3>
+            <h3 class="text-2xl font-serif text-silk mb-4">Слова мудрости</h3>
             <p class="text-gray-400 leading-relaxed">
-              Запишите их любимые фразы и советы. Это то, что будет поддерживать вас в трудный момент.
+              Самое ценное — это мысли. Запишите их любимые фразы, шутки и советы. Это живой голос, который останется навсегда.
             </p>
           </BaseCard>
         </div>
       </div>
     </section>
 
-    <!-- 4. FAMILY TREE -->
-    <section class="py-24 px-4 bg-gradient-to-b from-charcoal to-obsidian border-y border-white/5">
-      <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-16">
-        <div class="md:w-1/2">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 text-gold text-xs uppercase tracking-wider mb-6">
-            <GitFork class="w-4 h-4" /> Семейное древо
-          </div>
-          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">
-            Связь поколений
-          </h2>
-          <p class="text-xl text-gray-300 mb-6 italic">Увидьте, откуда вы пришли.</p>
-          <div class="space-y-6 text-gray-400 leading-relaxed">
-            <p>
-              Теперь это не просто список имен. В нашей системе вы можете соединить страницы родственников.
-            </p>
-            <p>
-              Нажимаете на имя — и открывается целая жизнь. Ваши дети увидят не просто схему, а лица и судьбы своих предков.
-            </p>
-          </div>
-        </div>
-        <div 
-          class="md:w-1/2 relative"
-          v-motion
-          :initial="{ scale: 0.9, opacity: 0 }"
-          :visibleOnce="{ scale: 1, opacity: 1, transition: { duration: 800 } }"
-        >
-          <!-- Abstract Tree Visualization -->
-          <div class="aspect-square relative rounded-full border border-white/5 flex items-center justify-center bg-obsidian/50 p-12">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-gold/5 blur-3xl rounded-full"></div>
-            
-            <!-- Connection Lines (SVG) -->
-            <svg class="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 400 400">
-              <path d="M200 60 L200 200 M200 200 L100 320 M200 200 L300 320" stroke="currentColor" class="text-gold" stroke-width="2" fill="none" />
-            </svg>
-
-            <img 
-              src="https://images.unsplash.com/photo-1513159446162-54eb8bdaf2e0?q=80&w=800&auto=format&fit=crop" 
-              class="w-full h-full object-cover rounded-full opacity-40 border-2 border-white/10"
-              alt="Семейное древо"
-            />
-            
-            <!-- Nodes (Professional Silhouette/Icons) -->
-            <div class="absolute top-0 left-1/2 w-20 h-20 bg-charcoal border border-gold/40 rounded-full -translate-x-1/2 -translate-y-1/2 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.2)]">
-               <Users class="w-8 h-8 text-gold" />
-            </div>
-             <div class="absolute bottom-10 right-0 w-16 h-16 bg-charcoal border border-white/20 rounded-full flex items-center justify-center">
-               <Heart class="w-6 h-6 text-silk/50" />
-            </div>
-             <div class="absolute bottom-10 left-0 w-16 h-16 bg-charcoal border border-white/20 rounded-full flex items-center justify-center">
-               <Sparkles class="w-6 h-6 text-silk/50" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5. SECURITY -->
-    <section class="py-24 px-4 bg-charcoal">
-      <div class="max-w-4xl mx-auto text-center">
-        <div class="w-16 h-16 mx-auto bg-green-900/20 text-green-400 rounded-2xl flex items-center justify-center mb-8">
-          <ShieldCheck class="w-8 h-8" />
-        </div>
-        
-        <h2 class="text-3xl md:text-5xl font-serif text-silk mb-8">
-          Ваша безопасность: <br/>
-          <span class="text-gold italic">Память не исчезнет</span>
-        </h2>
-        
-        <p class="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
-          Мы храним данные так, чтобы они остались навсегда.
-        </p>
-
-        <div class="grid md:grid-cols-2 gap-8 text-left">
-          <div class="p-6 bg-white/5 rounded-xl border border-white/5">
-            <h3 class="text-lg font-bold text-silk mb-3">Страх потери</h3>
-            <p class="text-gray-400">
-              Многие боятся: «А что, если сайт закроется?». Это справедливый вопрос для любого сервиса в интернете.
-            </p>
-          </div>
-          <div class="p-6 bg-gold/5 rounded-xl border border-gold/10">
-            <h3 class="text-lg font-bold text-gold mb-3">Наше решение</h3>
-            <p class="text-gray-300">
-              Мы решили эту проблему по-честному. 
-              <span class="text-white font-medium">Раз в год мы присылаем вам на почту полный архив.</span>
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-12 p-8 border border-white/10 rounded-2xl bg-obsidian relative overflow-hidden">
-          <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-center">
-            <Download class="w-10 h-10 text-gold animate-bounce" />
-            <p class="text-gray-400 text-lg">
-              Это обычный файл со всеми фото и текстами. Даже если интернета не будет или наш сервис перестанет работать — 
-              <span class="text-silk">ваша семейная история останется у вас на компьютере.</span> 
-              Вы — хозяин своей памяти.
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-12">
-          <BaseButton variant="secondary" :center="true" @click="handleCtaClick('security', 'create_safe_archive', '/auth')">
-            Создать безопасный архив
-          </BaseButton>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. HOW IT WORKS -->
-    <section class="py-24 px-4 bg-obsidian">
+    <!-- 5. HOW IT WORKS -->
+    <section class="py-32 px-4 bg-charcoal overflow-hidden">
       <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-4">Как всё устроено</h2>
-          <p class="text-xl text-gray-400">Легко и быстро. Справится даже ребенок.</p>
-        </div>
-
-        <div class="grid md:grid-cols-4 gap-6 relative">
-          <!-- Connecting Line (Desktop) -->
-          <div class="hidden md:block absolute top-12 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-
-          <!-- Step 1 -->
-          <div class="relative text-center group">
-            <div class="w-24 h-24 mx-auto bg-charcoal border border-gold/30 rounded-full flex items-center justify-center text-gold text-2xl font-serif mb-6 relative z-10 group-hover:bg-gold group-hover:text-charcoal transition-colors duration-300">
-              1
-            </div>
-            <h3 class="text-lg font-medium text-silk mb-2">Зарегистрируйтесь</h3>
-            <p class="text-gray-500 text-sm">Нужна только почта.</p>
-          </div>
-
-          <!-- Step 2 -->
-          <div class="relative text-center group">
-             <div class="w-24 h-24 mx-auto bg-charcoal border border-gold/30 rounded-full flex items-center justify-center text-gold mb-6 relative z-10 group-hover:bg-gold group-hover:text-charcoal transition-colors duration-300">
-              <Camera class="w-8 h-8" />
-            </div>
-            <h3 class="text-lg font-medium text-silk mb-2">Добавьте фото</h3>
-            <p class="text-gray-500 text-sm">Просто выберите их в телефоне.</p>
-          </div>
-
-          <!-- Step 3 -->
-          <div class="relative text-center group">
-             <div class="w-24 h-24 mx-auto bg-charcoal border border-gold/30 rounded-full flex items-center justify-center text-gold mb-6 relative z-10 group-hover:bg-gold group-hover:text-charcoal transition-colors duration-300">
-              <PenTool class="w-8 h-8" />
-            </div>
-            <h3 class="text-lg font-medium text-silk mb-2">Напишите пару строк</h3>
-            <p class="text-gray-500 text-sm">О том, каким был этот человек.</p>
-          </div>
-
-          <!-- Step 4 -->
-          <div class="relative text-center group">
-             <div class="w-24 h-24 mx-auto bg-charcoal border border-gold/30 rounded-full flex items-center justify-center text-gold mb-6 relative z-10 group-hover:bg-gold group-hover:text-charcoal transition-colors duration-300">
-              <Sparkles class="w-8 h-8" />
-            </div>
-            <h3 class="text-lg font-medium text-silk mb-2">Готово!</h3>
-            <p class="text-gray-500 text-sm">Система сама сделает страницу красивой. Без дизайнеров и сложностей.</p>
-          </div>
-        </div>
-
-        <div class="mt-16 text-center">
-          <BaseButton size="lg" :center="true" @click="handleCtaClick('how_it_works', 'try_free', '/auth')">
-            Попробовать бесплатно
-          </BaseButton>
+        <div class="flex flex-col md:flex-row gap-16 items-center">
+           <div class="md:w-1/2">
+              <h2 class="text-3xl md:text-5xl font-serif text-silk mb-8">Как это работает?</h2>
+              <div class="space-y-12 relative">
+                 <div class="absolute left-6 top-4 bottom-4 w-px bg-gradient-to-b from-gold/50 to-transparent md:hidden"></div>
+                 <div class="flex gap-6 relative" v-motion :visibleOnce="{ x: 0, opacity: 1 }" :initial="{ x: -20, opacity: 0 }">
+                    <div class="w-12 h-12 rounded-full bg-obsidian border border-gold/50 flex items-center justify-center text-gold font-bold z-10 shrink-0">1</div>
+                    <div>
+                       <h3 class="text-xl text-silk font-bold mb-2">Создайте страницу</h3>
+                       <p class="text-gray-400">Зарегистрируйтесь за 30 секунд. Никаких сложных настроек.</p>
+                    </div>
+                 </div>
+                 <div class="flex gap-6 relative" v-motion :visibleOnce="{ x: 0, opacity: 1 }" :initial="{ x: -20, opacity: 0, transition: { delay: 100 } }">
+                    <div class="w-12 h-12 rounded-full bg-obsidian border border-gold/50 flex items-center justify-center text-gold font-bold z-10 shrink-0">2</div>
+                    <div>
+                       <h3 class="text-xl text-silk font-bold mb-2">Наполните памятью</h3>
+                       <p class="text-gray-400">Загрузите фото с телефона, добавьте даты и пару историй.</p>
+                    </div>
+                 </div>
+                 <div class="flex gap-6 relative" v-motion :visibleOnce="{ x: 0, opacity: 1 }" :initial="{ x: -20, opacity: 0, transition: { delay: 200 } }">
+                    <div class="w-12 h-12 rounded-full bg-gold text-charcoal flex items-center justify-center font-bold z-10 shrink-0 shadow-[0_0_15px_rgba(212,175,55,0.5)]">3</div>
+                    <div>
+                       <h3 class="text-xl text-silk font-bold mb-2">Поделитесь с семьей</h3>
+                       <p class="text-gray-400">Отправьте красивую ссылку в семейный чат. Все будут в восторге.</p>
+                    </div>
+                 </div>
+              </div>
+              <div class="mt-12">
+                 <BaseButton @click="handleCtaClick('how_it_works', 'start_now', '/auth')">
+                    Попробовать сейчас
+                 </BaseButton>
+              </div>
+           </div>
+           <div class="md:w-1/2 relative">
+              <div class="relative z-10 grid grid-cols-2 gap-4">
+                 <img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400" class="rounded-lg translate-y-8 shadow-2xl opacity-80" />
+                 <img src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=1000" class="rounded-lg shadow-2xl" />
+              </div>
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gold/10 blur-[80px] rounded-full"></div>
+           </div>
         </div>
       </div>
     </section>
 
-    <!-- 7. PRICING -->
-    <section id="pricing" class="py-24 px-4 bg-charcoal">
+    <!-- 6. PRICING -->
+    <section id="pricing" class="py-32 px-4 bg-obsidian border-t border-white/5">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">Выберите подходящий вариант</h2>
+          <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">Сохраните навсегда</h2>
           <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Мы сделали честные тарифы, чтобы сервис мог работать долгие годы.
+            Честные тарифы для вечной памяти.
           </p>
         </div>
-
         <div class="grid md:grid-cols-3 gap-8 items-start">
           <div 
             v-for="(plan, index) in pricingPlans" 
             :key="index"
-            class="relative flex flex-col p-8 rounded-2xl border transition-all duration-300 hover:-translate-y-2"
+            class="relative flex flex-col p-8 rounded-3xl border transition-all duration-300 hover:-translate-y-2 group"
             :class="[
               plan.primary 
-                ? 'bg-gold/5 border-gold/40 shadow-[0_0_30px_rgba(212,175,55,0.1)] scale-105 z-10' 
-                : 'bg-white/5 border-white/10 hover:border-gold/20'
+                ? 'bg-white/5 border-gold/40 shadow-[0_0_40px_rgba(212,175,55,0.1)] scale-105 z-10' 
+                : 'bg-transparent border-white/10 hover:bg-white/5'
             ]"
           >
-            <div v-if="plan.primary" class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gold text-charcoal text-xs font-bold uppercase tracking-wider rounded-full">
+            <div v-if="plan.primary" class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-gold to-amber-300 text-charcoal text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
               Популярный
             </div>
-
             <h3 class="text-xl font-medium text-silk mb-2">{{ plan.name }}</h3>
-            <div class="flex items-baseline gap-1 mb-4">
+            <div class="flex items-baseline gap-1 mb-6">
               <span class="text-4xl font-serif text-white">{{ plan.price }}</span>
               <span class="text-gray-500 text-sm">{{ plan.period }}</span>
             </div>
-            <p class="text-gray-400 text-sm mb-8 min-h-[40px]">{{ plan.description }}</p>
-
+            <div class="w-full h-px bg-white/10 mb-6"></div>
             <ul class="space-y-4 mb-8 flex-1">
               <li 
                 v-for="(feature, fIndex) in plan.features" 
@@ -470,7 +427,6 @@ const pricingPlans = [
                 <span>{{ feature.text }}</span>
               </li>
             </ul>
-
             <BaseButton 
               :variant="plan.primary ? 'primary' : 'secondary'" 
               :full="true"
@@ -483,27 +439,60 @@ const pricingPlans = [
       </div>
     </section>
 
-    <!-- 8. FOOTER / FINAL CTA -->
-    <section class="py-32 px-4 relative overflow-hidden">
-      <!-- Background texture -->
+    <!-- 7. FOOTER / FINAL CTA -->
+    <section class="py-32 px-4 relative overflow-hidden bg-charcoal">
       <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-      
+      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
       <div class="relative z-10 max-w-4xl mx-auto text-center">
-        <h2 class="text-4xl md:text-6xl font-serif text-silk mb-8">
-          Оставьте след
+        <h2 class="text-4xl md:text-7xl font-serif text-silk mb-8 leading-tight">
+          Оставьте след <br/> в истории
         </h2>
-        <p class="text-2xl text-gold italic font-serif mb-8">
-          Они заслужили, чтобы их помнили.
-        </p>
         <p class="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
           Создать цифровой памятник — это самый простой способ сказать «спасибо» тем, кто был до нас. 
-          Это фундамент вашей семьи.
         </p>
-        
-                <BaseButton :full="true" size="lg" @click="handleCtaClick('footer', 'start_free', '/auth')">
-                      Начать бесплатно за 5 минут
-                    </BaseButton>      </div>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <BaseButton :full="false" size="lg" class="min-w-[200px]" @click="handleCtaClick('footer', 'start_free', '/auth')">
+            Начать бесплатно
+          </BaseButton>
+        </div>
+        <p class="mt-8 text-xs text-gray-600">
+          © 2024 FamStory. Ваша память в надежных руках.
+        </p>
+      </div>
     </section>
 
   </MainLayout>
 </template>
+
+<style scoped>
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.1); }
+}
+@keyframes slow-zoom {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1.15); }
+}
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 8s infinite ease-in-out;
+}
+.animate-slow-zoom {
+  animation: slow-zoom 20s infinite alternate ease-in-out;
+}
+.animate-scroll-left {
+  animation: scroll-left 40s linear infinite;
+}
+.text-silk {
+  color: #f5f5f7;
+}
+.bg-obsidian {
+  background-color: #1a1a23;
+}
+.bg-charcoal {
+  background-color: #24242d;
+}
+</style>

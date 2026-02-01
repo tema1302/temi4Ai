@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
+import Logo from '@/shared/ui/Logo.vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 
@@ -50,9 +51,8 @@ const toggleMobileMenu = () => {
     >
       <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
         <!-- Logo -->
-        <a href="/" class="text-xl font-serif font-bold text-silk flex items-center gap-2 z-50 relative">
-          <span class="text-2xl">🏛️</span>
-          <span>Family<span class="text-gold">Archive</span></span>
+        <a href="/" class="z-50 relative">
+          <Logo />
         </a>
 
         <!-- Desktop Nav -->

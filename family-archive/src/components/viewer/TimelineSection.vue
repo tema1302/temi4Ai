@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FamilyMember } from '@/modules/family/store/memoryStore'
+import type { FamilyMember } from '@/modules/family/domain/models'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 
 interface Props {

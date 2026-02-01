@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import type { FamilyMember } from '@/modules/family/store/memoryStore'
+import type { FamilyMember } from '@/modules/family/domain/models'
 
 interface Props {
   member: FamilyMember

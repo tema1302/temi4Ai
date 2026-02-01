@@ -38,6 +38,18 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/modules/admin/ui/AdminDashboard.vue'),
+    meta: { requiresAuth: true }, // Add role check here in real app
+  },
+  {
+    path: '/billing',
+    name: 'Billing',
+    component: () => import('@/modules/billing/BillingPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/archive/:id',
     name: 'MemoryViewer',
     component: MemoryViewer,

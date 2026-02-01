@@ -11,9 +11,9 @@ export default {
         serif: ['Playfair Display', 'serif'], // Emotional, classic font
       },
       colors: {
-        // Premium palette
-        'obsidian': '#0a0a0b',
-        'charcoal': '#121214',
+        // Premium palette (Updated to deep navy-grey)
+        'obsidian': '#1a1a23',
+        'charcoal': '#24242d',
         'gold': '#d4af37',
         'silk': '#f5f5f7',
       }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useMemoryStore, type FamilyMember } from '@/modules/family/store/memoryStore'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
+import type { FamilyMember } from '@/modules/family/domain/models'
 import BaseInput from '@/shared/ui/BaseInput.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'

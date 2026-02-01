@@ -106,7 +106,7 @@ const setActiveMember = (id: string) => {
       <BaseCard class="p-12 text-center max-w-md">
         <div class="text-6xl mb-6">🕊️</div>
         <h2 class="text-2xl font-serif text-silk mb-4">Архив не найден</h2>
-        <p class="text-gray-400 mb-6">Семейный архив "{{ familyId }}" еще не создан.</p>
+        <p class="text-gray-400 mb-6">Архив FamStory "{{ familyId }}" еще не создан.</p>
         <router-link to="/" class="text-gold hover:underline">← Вернуться на главную</router-link>
       </BaseCard>
     </div>

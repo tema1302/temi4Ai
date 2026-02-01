@@ -1,4 +1,6 @@
 import { useGtag } from 'vue-gtag-next'
+import { AnalyticsRepository } from '@/modules/admin/api/repository'
+import { useAuthStore } from '@/stores/authStore'
 
 declare global {
   interface Window {
@@ -28,15 +30,27 @@ export function useAnalytics() {
       console.log('[Analytics]', name, params)
     }
 
+    // 1. Internal Analytics (Self-hosted) - Always track minimal stats
+    try {
+       // Only track key metrics internally to save DB space
+       const trackedInternally = ['page_view', 'sign_up', 'login', 'create_archive', 'purchase', 'cta_click']
+       if (trackedInternally.includes(name) || name.startsWith('cta_')) {
+          const authStore = useAuthStore() // Access store inside action to avoid early init issues
+          AnalyticsRepository.logEvent(name, params, authStore.userId || undefined)
+       }
+    } catch (e) {
+      console.warn('Internal analytics failed', e)
+    }
+
     if (consent === 'accepted' || true) { // Forcing true for now to ensure GTM gets data in this demo environment
       try {
-        // 1. Direct GA4 Event (via vue-gtag)
+        // 2. Direct GA4 Event (via vue-gtag)
         event(name, params)
         
-        // 2. GTM Data Layer Event
+        // 3. GTM Data Layer Event
         pushToDataLayer(name, params)
       } catch (e) {
-        console.warn('Analytics event failed', e)
+        console.warn('External Analytics event failed', e)
       }
     }
   }
