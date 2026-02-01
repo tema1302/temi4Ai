@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MainLayout from '@/layouts/MainLayout.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
 </script>
 
 <template>

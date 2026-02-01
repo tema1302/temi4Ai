@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import { useAnalytics } from '@/composables/useAnalytics'

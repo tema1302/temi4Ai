@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useMemoryStore, type FamilyMember } from '@/stores/memoryStore'
-import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import { useMemoryStore, type FamilyMember } from '@/modules/family/store/memoryStore'
+import BaseInput from '@/shared/ui/BaseInput.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
 import { useAnalytics } from '@/composables/useAnalytics'
 
 const props = defineProps<{

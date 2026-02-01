@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MainLayout from '@/layouts/MainLayout.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import oldPhotos from '@/assets/oldPhotos.webp'

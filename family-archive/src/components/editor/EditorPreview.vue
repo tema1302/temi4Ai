@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
-import { useMemoryStore } from '@/stores/memoryStore'
+import BaseCard from '@/shared/ui/BaseCard.vue'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
 
 const store = useMemoryStore()
 const member = computed(() => store.activeMember)

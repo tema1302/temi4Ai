@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
-import CookieConsent from '@/components/ui/CookieConsent.vue'
+import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 

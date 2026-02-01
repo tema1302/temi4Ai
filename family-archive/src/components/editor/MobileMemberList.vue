@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useMemoryStore } from '@/stores/memoryStore'
-import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
+import BaseInput from '@/shared/ui/BaseInput.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const store = useMemoryStore()
 const emit = defineEmits<{

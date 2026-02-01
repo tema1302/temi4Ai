@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import { useMemoryStore } from '@/stores/memoryStore'
+import BaseCard from '@/shared/ui/BaseCard.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAnalytics } from '@/composables/useAnalytics'
 
 const emit = defineEmits<{

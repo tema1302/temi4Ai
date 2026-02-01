@@ -2,13 +2,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
 import HeroSection from '@/components/viewer/HeroSection.vue'
 import BentoGrid from '@/components/viewer/BentoGrid.vue'
 import TimelineSection from '@/components/viewer/TimelineSection.vue'
-import { useMemoryStore } from '@/stores/memoryStore'
-import { fetchFamilyData } from '@/services/memoryService'
-import type { FamilyData } from '@/types'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
+import type { FamilyArchive } from '@/modules/family/domain/models'
 
 const route = useRoute()
 const store = useMemoryStore()
@@ -17,9 +16,9 @@ const familyId = computed(() => route.params.id as string)
 const isLoading = ref(true)
 const notFound = ref(false)
 
-const MOCK_FAMILY_DATA: FamilyData = {
+const MOCK_FAMILY_DATA: FamilyArchive = {
   id: 'smith-family',
-  familyName: 'Семья Смирновых',
+  name: 'Семья Смирновых',
   heroImage: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -74,10 +73,10 @@ onMounted(async () => {
     return
   }
 
-  const data = await fetchFamilyData(familyId.value)
+  const data = await store.loadFamilyBySlug(familyId.value)
   
   if (data) {
-    store.setFamily(data)
+    // store.setFamily(data) is handled inside loadFamilyBySlug now
     notFound.value = false
   } else {
     notFound.value = true

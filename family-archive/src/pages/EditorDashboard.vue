@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import MainLayout from '@/layouts/MainLayout.vue'
-import BaseCard from '@/components/ui/BaseCard.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import PricingModal from '@/components/ui/PricingModal.vue'
+import BaseCard from '@/shared/ui/BaseCard.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+import PricingModal from '@/shared/ui/PricingModal.vue'
 import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import MobileMemberList from '@/components/editor/MobileMemberList.vue'
 import MobileMemberEditor from '@/components/editor/MobileMemberEditor.vue'
-import { useMemoryStore } from '@/stores/memoryStore'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useSubscription } from '@/composables/useSubscription'
 import { useAnalytics } from '@/composables/useAnalytics'
-import { createFamilyArchive, saveFamilyData, fetchUserFamilies } from '@/services/memoryService'
 import { useRouter } from 'vue-router'
 
 const store = useMemoryStore()
@@ -25,7 +24,6 @@ const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
 
 const isCreating = ref(false)
 const newFamilyName = ref('')
-const userFamilies = ref<any[]>([])
 const isSaving = ref(false)
 const showPricing = ref(false)
 
@@ -44,7 +42,7 @@ onMounted(async () => {
 
 const refreshFamilies = async () => {
   if (authStore.userId) {
-    userFamilies.value = await fetchUserFamilies(authStore.userId)
+    await store.loadUserFamilies(authStore.userId)
   }
 }
 
@@ -52,25 +50,16 @@ const startNewArchive = async () => {
   if (!newFamilyName.value.trim()) return
   
   // Check subscription limit
-  if (!subscription.canAddFamily(userFamilies.value.length)) {
+  if (!subscription.canAddFamily(store.userFamilies.length)) {
     showPricing.value = true
     return
   }
   
   isCreating.value = true
-  const newFamily = await createFamilyArchive(newFamilyName.value, authStore.userId || undefined)
-  
-  newFamily.members.push({
-    id: crypto.randomUUID(), 
-    name: 'Главный герой', 
-    birthDate: '', 
-    biography: '', 
-    photos: [], 
-    quotes: [], 
-    photoUrl: ''
-  })
+  const newFamily = await store.createArchive(newFamilyName.value, authStore.userId!)
   
   store.setFamily(newFamily)
+  store.addMember() // Add default member
   store.toggleEditing()
   isCreating.value = false
   newFamilyName.value = ''
@@ -101,7 +90,7 @@ const saveChanges = async () => {
   if (store.currentFamily) {
     isSaving.value = true
     try {
-      const success = await saveFamilyData(store.currentFamily, authStore.userId)
+      const success = await store.saveCurrentFamily(authStore.userId)
       if (success) {
         alert('Сохранено успешно!')
         trackEvent('save_family', { 
@@ -268,18 +257,18 @@ const planName = computed(() => {
         <div v-if="!store.currentFamily" class="max-w-2xl mx-auto mt-10">
           
           <!-- Existing Archives -->
-          <div v-if="userFamilies.length > 0" class="mb-10">
+          <div v-if="store.userFamilies.length > 0" class="mb-10">
             <h2 class="text-xl font-serif text-silk mb-4">Ваши архивы</h2>
             <div class="grid gap-4">
               <BaseCard 
-                v-for="family in userFamilies" 
+                v-for="family in store.userFamilies" 
                 :key="family.id"
                 class="p-6 cursor-pointer group relative overflow-hidden"
                 @click="loadFamily(family)"
               >
                 <div class="flex items-center justify-between relative z-10">
                   <div>
-                    <h3 class="text-lg text-silk">{{ family.familyName }}</h3>
+                    <h3 class="text-lg text-silk">{{ family.name }}</h3>
                     <p class="text-sm text-gray-400">{{ family.members.length }} {{ family.members.length === 1 ? 'человек' : 'людей' }}</p>
                   </div>
                   <div class="flex items-center gap-4">
@@ -302,7 +291,7 @@ const planName = computed(() => {
             <div class="text-6xl mb-6">📜</div>
             <h2 class="text-3xl font-serif text-silk mb-4">Создать новый архив</h2>
             
-            <div v-if="subscription.canAddFamily(userFamilies.length)" class="flex flex-col gap-4 max-w-md mx-auto">
+            <div v-if="subscription.canAddFamily(store.userFamilies.length)" class="flex flex-col gap-4 max-w-md mx-auto">
               <input
                 v-model="newFamilyName"
                 type="text"
@@ -376,16 +365,16 @@ const planName = computed(() => {
            <button @click="handleLogout" class="text-xs text-gray-400">Выйти</button>
         </div>
 
-        <div v-if="userFamilies.length > 0" class="space-y-4 mb-8">
+        <div v-if="store.userFamilies.length > 0" class="space-y-4 mb-8">
           <div 
-            v-for="family in userFamilies" 
+            v-for="family in store.userFamilies" 
             :key="family.id"
             class="bg-white/5 p-4 rounded-lg border border-white/5 active:bg-white/10"
             @click="loadFamily(family)"
           >
             <div class="flex justify-between items-start">
               <div>
-                <h3 class="text-lg text-silk font-serif">{{ family.familyName }}</h3>
+                <h3 class="text-lg text-silk font-serif">{{ family.name }}</h3>
                 <p class="text-xs text-gray-400 mt-1">{{ family.members.length }} чел.</p>
               </div>
               <span class="text-gold text-sm">→</span>
