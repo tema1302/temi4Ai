@@ -6,6 +6,8 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import PricingModal from '@/components/ui/PricingModal.vue'
 import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
+import MobileMemberList from '@/components/editor/MobileMemberList.vue'
+import MobileMemberEditor from '@/components/editor/MobileMemberEditor.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
@@ -26,6 +28,9 @@ const newFamilyName = ref('')
 const userFamilies = ref<any[]>([])
 const isSaving = ref(false)
 const showPricing = ref(false)
+
+// Mobile State
+const mobileView = ref<'list' | 'editor'>('list')
 
 // Load user's existing families and subscription on mount
 onMounted(async () => {
@@ -76,6 +81,7 @@ const startNewArchive = async () => {
 const loadFamily = (family: any) => {
   store.setFamily(family)
   store.toggleEditing()
+  mobileView.value = 'list' // Default to list on load
 }
 
 const deleteArchive = async (e: Event, familyId: string, slug: string) => {
@@ -120,6 +126,7 @@ const handleLogout = async () => {
 // Member Management
 const addMember = () => {
   store.addMember()
+  mobileView.value = 'editor'
 }
 
 const selectMember = (id: string) => {
@@ -131,6 +138,21 @@ const deleteActiveMember = async () => {
   if (!confirm(`Удалить ${store.activeMember.name}?`)) return
   
   await store.removeMember(store.activeMember.id)
+}
+
+// Mobile Specific Handlers
+const handleMobileSelect = (id: string) => {
+  store.setActiveMember(id)
+  mobileView.value = 'editor'
+}
+
+const handleMobileDelete = async (id: string) => {
+  await store.removeMember(id)
+  mobileView.value = 'list'
+}
+
+const handleMobileBack = () => {
+  mobileView.value = 'list'
 }
 
 const previewLink = computed(() => {
@@ -154,7 +176,11 @@ const planName = computed(() => {
     <!-- Pricing Modal -->
     <PricingModal :isOpen="showPricing" @close="showPricing = false" />
 
-    <div class="min-h-screen flex">
+    <!-- 
+      DESKTOP LAYOUT (Original) 
+      Hidden on mobile (md:flex)
+    -->
+    <div class="hidden md:flex min-h-screen">
       
       <!-- Sidebar -->
       <aside v-if="store.isEditing && store.currentFamily" class="w-96 bg-charcoal/50 border-r border-white/5 flex flex-col h-screen sticky top-0">
@@ -205,7 +231,7 @@ const planName = computed(() => {
         </div>
       </aside>
 
-      <!-- Main -->
+      <!-- Main Content (Desktop) -->
       <main class="flex-1 p-8">
         
         <!-- Header -->
@@ -234,7 +260,7 @@ const planName = computed(() => {
           </BaseButton>
         </div>
 
-        <!-- No Archive State -->
+        <!-- No Archive State (Desktop) -->
         <div v-if="!store.currentFamily" class="max-w-2xl mx-auto mt-10">
           
           <!-- Existing Archives -->
@@ -302,7 +328,7 @@ const planName = computed(() => {
           </BaseCard>
         </div>
 
-        <!-- Editor View -->
+        <!-- Editor View (Desktop) -->
         <div v-else>
           <div class="flex items-center justify-between mb-8">
             <div>
@@ -330,8 +356,86 @@ const planName = computed(() => {
             Выберите члена семьи слева или добавьте нового
           </div>
         </div>
-
       </main>
+    </div>
+
+    <!-- 
+      MOBILE LAYOUT (New)
+      Visible only on mobile (md:hidden)
+    -->
+    <div class="md:hidden h-[calc(100vh-64px)] overflow-hidden flex flex-col">
+      
+      <!-- No Family Selected State (Mobile) -->
+      <div v-if="!store.currentFamily" class="p-4 overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+           <h1 class="text-xl font-serif text-silk">Ваши архивы</h1>
+           <button @click="handleLogout" class="text-xs text-gray-400">Выйти</button>
+        </div>
+
+        <div v-if="userFamilies.length > 0" class="space-y-4 mb-8">
+          <div 
+            v-for="family in userFamilies" 
+            :key="family.id"
+            class="bg-white/5 p-4 rounded-lg border border-white/5 active:bg-white/10"
+            @click="loadFamily(family)"
+          >
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-lg text-silk font-serif">{{ family.familyName }}</h3>
+                <p class="text-xs text-gray-400 mt-1">{{ family.members.length }} чел.</p>
+              </div>
+              <span class="text-gold text-sm">→</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-obsidian/30 p-6 rounded-lg border border-white/10 text-center">
+          <h3 class="text-silk mb-4 font-serif">Новый архив</h3>
+           <input
+              v-model="newFamilyName"
+              type="text"
+              placeholder="Название семьи"
+              class="w-full px-4 py-3 mb-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50"
+            />
+            <BaseButton 
+              full
+              :disabled="!newFamilyName.trim() || isCreating"
+              @click="startNewArchive"
+            >
+              Создать
+            </BaseButton>
+        </div>
+      </div>
+
+      <!-- Family Editor (Mobile) -->
+      <div v-else class="h-full flex flex-col">
+        
+        <!-- Mobile Header (when in List view) -->
+        <div v-if="mobileView === 'list'" class="p-4 bg-charcoal border-b border-white/10 flex justify-between items-center shrink-0">
+          <button @click="store.resetStore()" class="text-gray-400 text-sm">← Архивы</button>
+          <span class="text-silk font-serif truncate max-w-[150px]">{{ store.familyName }}</span>
+          <button @click="saveChanges" :disabled="isSaving" class="text-gold text-sm font-bold">
+            {{ isSaving ? '...' : 'Сохр.' }}
+          </button>
+        </div>
+
+        <!-- List View -->
+        <MobileMemberList 
+          v-if="mobileView === 'list'"
+          @select="handleMobileSelect"
+          @add="addMember"
+        />
+
+        <!-- Editor View -->
+        <MobileMemberEditor 
+          v-else-if="mobileView === 'editor' && store.activeMemberId"
+          :member-id="store.activeMemberId"
+          @back="handleMobileBack"
+          @save="saveChanges"
+          @delete="handleMobileDelete"
+        />
+
+      </div>
     </div>
   </MainLayout>
 </template>
