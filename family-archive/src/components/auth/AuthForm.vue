@@ -8,7 +8,7 @@ import { useAnalytics } from '@/composables/useAnalytics'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const { trackSignUp } = useAnalytics()
+const { trackSignUp, trackLogin } = useAnalytics()
 
 const isLoginMode = ref(true)
 const email = ref('')
@@ -41,6 +41,9 @@ const handleSubmit = async () => {
     let result
     if (isLoginMode.value) {
       result = await authStore.signIn(email.value, password.value)
+      if (result.success) {
+        trackLogin('email')
+      }
     } else {
       result = await authStore.signUp(email.value, password.value)
       if (result.success) {

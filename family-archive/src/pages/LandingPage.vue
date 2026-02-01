@@ -18,8 +18,34 @@ import {
   Check,
   X
 } from 'lucide-vue-next'
+import { useAnalytics } from '@/composables/useAnalytics'
 
 const router = useRouter()
+const { trackCtaClick, trackPageScroll } = useAnalytics()
+
+// Simple scroll tracking setup
+import { onMounted, onUnmounted } from 'vue'
+
+onMounted(() => {
+  // Track initial page view with custom dimensions if needed
+  // Setup intersection observer for sections
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        trackPageScroll(entry.target.id, 0) // 0 implies "viewed"
+      }
+    })
+  }, { threshold: 0.5 })
+
+  document.querySelectorAll('section[id]').forEach(section => {
+    observer.observe(section)
+  })
+})
+
+const handleCtaClick = (location: string, label: string, route: string) => {
+  trackCtaClick(location, label)
+  router.push(route)
+}
 
 // Pricing Data
 const pricingPlans = [
@@ -109,10 +135,10 @@ const pricingPlans = [
           </p>
           
           <div class="flex flex-col sm:flex-row gap-5 justify-center items-center">
-            <BaseButton size="lg" @click="router.push('/auth')">
+            <BaseButton size="lg" @click="handleCtaClick('hero', 'create_archive', '/auth')">
               Создать страницу памяти
             </BaseButton>
-            <BaseButton variant="secondary" size="lg" @click="router.push('/smith-family')">
+            <BaseButton variant="secondary" size="lg" @click="handleCtaClick('hero', 'view_example', '/smith-family')">
               Посмотреть пример
             </BaseButton>
           </div>
@@ -336,7 +362,7 @@ const pricingPlans = [
         </div>
 
         <div class="mt-12">
-          <BaseButton variant="secondary" :center="true" @click="router.push('/auth')">
+          <BaseButton variant="secondary" :center="true" @click="handleCtaClick('security', 'create_safe_archive', '/auth')">
             Создать безопасный архив
           </BaseButton>
         </div>
@@ -393,7 +419,7 @@ const pricingPlans = [
         </div>
 
         <div class="mt-16 text-center">
-          <BaseButton size="lg" :center="true" @click="router.push('/auth')">
+          <BaseButton size="lg" :center="true" @click="handleCtaClick('how_it_works', 'try_free', '/auth')">
             Попробовать бесплатно
           </BaseButton>
         </div>
@@ -448,7 +474,7 @@ const pricingPlans = [
             <BaseButton 
               :variant="plan.primary ? 'primary' : 'secondary'" 
               :full="true"
-              @click="router.push('/auth')"
+              @click="handleCtaClick('pricing', `select_plan_${plan.name}`, '/auth')"
             >
               {{ plan.cta }}
             </BaseButton>
@@ -474,10 +500,9 @@ const pricingPlans = [
           Это фундамент вашей семьи.
         </p>
         
-        <BaseButton :full="true" size="lg" @click="router.push('/auth')">
-          Начать бесплатно за 5 минут
-        </BaseButton>
-      </div>
+                <BaseButton :full="true" size="lg" @click="handleCtaClick('footer', 'start_free', '/auth')">
+                      Начать бесплатно за 5 минут
+                    </BaseButton>      </div>
     </section>
 
   </MainLayout>

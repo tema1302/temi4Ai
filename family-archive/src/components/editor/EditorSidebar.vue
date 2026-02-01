@@ -3,12 +3,14 @@ import { computed } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useMemoryStore } from '@/stores/memoryStore'
+import { useAnalytics } from '@/composables/useAnalytics'
 
 const emit = defineEmits<{
   save: []
 }>()
 
 const store = useMemoryStore()
+const { trackEvent } = useAnalytics()
 const currentMember = computed(() => store.activeMember)
 
 const updateField = (field: string, value: string) => {
@@ -19,6 +21,7 @@ const updateField = (field: string, value: string) => {
 
 const addQuote = () => {
   if (currentMember.value) {
+    trackEvent('add_quote', { member_id: currentMember.value.id })
     const updatedQuotes = [...(currentMember.value.quotes || []), '']
     store.updateMember(currentMember.value.id, { quotes: updatedQuotes })
   }
@@ -42,6 +45,7 @@ const removeQuote = (index: number) => {
 const addPhoto = () => {
   const url = prompt('Введите URL фотографии:')
   if (url && currentMember.value) {
+    trackEvent('add_photo', { member_id: currentMember.value.id })
     const updatedPhotos = [...currentMember.value.photos, url]
     store.updateMember(currentMember.value.id, { photos: updatedPhotos })
   }

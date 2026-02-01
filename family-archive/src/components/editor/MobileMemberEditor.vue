@@ -4,6 +4,7 @@ import { useMemoryStore, type FamilyMember } from '@/stores/memoryStore'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
+import { useAnalytics } from '@/composables/useAnalytics'
 
 const props = defineProps<{
   memberId: string
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useMemoryStore()
+const { trackEvent } = useAnalytics()
 
 // Local state for editing to allow validation before commit (optional)
 // But to keep it simple and consistent with store, we'll edit store directly 
@@ -79,6 +81,7 @@ const addPhoto = () => {
 
 const handleSave = () => {
   if (validate()) {
+    trackEvent('update_member', { member_id: props.memberId })
     emit('save')
   } else {
     // Scroll to top or show toast
@@ -88,6 +91,7 @@ const handleSave = () => {
 
 const handleDelete = () => {
   if (confirm('Вы уверены? Это действие необратимо.')) {
+    trackEvent('delete_member', { member_id: props.memberId })
     emit('delete', props.memberId)
   }
 }

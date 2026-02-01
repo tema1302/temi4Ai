@@ -21,7 +21,7 @@ const authStore = useAuthStore()
 const subStore = useSubscriptionStore()
 const subscription = useSubscription()
 const router = useRouter()
-const { trackArchiveCreation, trackUpgrade } = useAnalytics()
+const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
 
 const isCreating = ref(false)
 const newFamilyName = ref('')
@@ -104,6 +104,10 @@ const saveChanges = async () => {
       const success = await saveFamilyData(store.currentFamily, authStore.userId)
       if (success) {
         alert('Сохранено успешно!')
+        trackEvent('save_family', { 
+          family_id: store.currentFamily.id,
+          member_count: store.currentFamily.members.length
+        })
         await refreshFamilies()
       } else {
         alert('Ошибка при сохранении.')
