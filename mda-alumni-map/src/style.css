@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mda-blue: #1a365d;
+  --color-mda-gold: #d4af37;
+}
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overscroll-behavior-y: none;
+  display: block; /* Overriding previous flex center */
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+}
+
+/* Global Pointer Cursor */
+button, 
+a, 
+[role="button"] {
+  cursor: pointer !important;
+}
+
+/* Fix for Leaflet zoom button (if still used) or any similar spans */
+.leaflet-control-zoom-in span,
+.leaflet-control-zoom-out span {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1 !important;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  font-family: inherit !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+  background-color: white !important;
+  color: #1e293b !important;
+  border: none !important;
+  font-weight: bold !important;
+}

@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+}
+
+model Alumni {
+  id              Int      @id @default(autoincrement())
+  originalId      Int?     // Link to the original record if this is an edit suggestion
+  fullName        String
+  rank            String
+  church          String
+  address         String
+  lat             Float
+  lon             Float
+  contact         String?
+  graduationYear  Int?
+  photoUrl        String?
+  isVerified      Boolean  @default(false)
+  status          String   @default("pending") // pending, approved, rejected
+  consentAccepted Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

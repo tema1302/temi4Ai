@@ -8,6 +8,7 @@ import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import MobileMemberList from '@/components/editor/MobileMemberList.vue'
 import MobileMemberEditor from '@/components/editor/MobileMemberEditor.vue'
+import Skeleton from '@/shared/ui/Skeleton.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
@@ -256,8 +257,22 @@ const planName = computed(() => {
         <!-- No Archive State (Desktop) -->
         <div v-if="!store.currentFamily" class="max-w-2xl mx-auto mt-10">
           
+          <!-- Loading State -->
+          <div v-if="store.isLoading" class="mb-10 space-y-4">
+             <Skeleton className="h-7 w-48 mb-4" />
+             <BaseCard v-for="i in 2" :key="i" class="p-6">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-3">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-4 w-24 bg-white/5" />
+                  </div>
+                  <Skeleton className="h-4 w-20 bg-white/5" />
+                </div>
+             </BaseCard>
+          </div>
+
           <!-- Existing Archives -->
-          <div v-if="store.userFamilies.length > 0" class="mb-10">
+          <div v-else-if="store.userFamilies.length > 0" class="mb-10">
             <h2 class="text-xl font-serif text-silk mb-4">Ваши архивы</h2>
             <div class="grid gap-4">
               <BaseCard 
@@ -365,7 +380,20 @@ const planName = computed(() => {
            <button @click="handleLogout" class="text-xs text-gray-400">Выйти</button>
         </div>
 
-        <div v-if="store.userFamilies.length > 0" class="space-y-4 mb-8">
+        <!-- Mobile Loading State -->
+        <div v-if="store.isLoading" class="space-y-4 mb-8">
+           <div v-for="i in 2" :key="i" class="bg-white/5 p-4 rounded-lg border border-white/5">
+              <div class="flex justify-between items-start">
+                <div class="space-y-2">
+                   <Skeleton className="h-5 w-32" />
+                   <Skeleton className="h-3 w-16 bg-white/5" />
+                </div>
+                <Skeleton className="h-4 w-4 bg-white/5" />
+              </div>
+           </div>
+        </div>
+
+        <div v-else-if="store.userFamilies.length > 0" class="space-y-4 mb-8">
           <div 
             v-for="family in store.userFamilies" 
             :key="family.id"

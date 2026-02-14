@@ -6,8 +6,10 @@ import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import Logo from '@/shared/ui/Logo.vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -35,6 +37,12 @@ const scrollToSection = (id: string) => {
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+const handleLogout = async () => {
+  await authStore.signOut()
+  router.push('/')
+  isMobileMenuOpen.value = false
 }
 </script>
 
@@ -64,15 +72,28 @@ const toggleMobileMenu = () => {
 
         <!-- CTA (Desktop) -->
         <div class="hidden md:flex items-center gap-4">
-          <button 
-            class="text-sm text-silk hover:text-gold transition-colors font-medium"
-            @click="router.push('/auth')"
-          >
-            Войти
-          </button>
-          <BaseButton size="sm" @click="router.push('/auth')">
-            Создать архив
-          </BaseButton>
+          <template v-if="!authStore.isAuthenticated">
+            <button 
+              class="text-sm text-silk hover:text-gold transition-colors font-medium"
+              @click="router.push('/auth')"
+            >
+              Войти
+            </button>
+            <BaseButton size="sm" @click="router.push('/auth')">
+              Создать архив
+            </BaseButton>
+          </template>
+          <template v-else>
+            <button 
+              class="text-sm text-silk hover:text-gold transition-colors font-medium"
+              @click="handleLogout"
+            >
+              Выйти
+            </button>
+            <BaseButton size="sm" @click="router.push('/editor')">
+              Мой архив
+            </BaseButton>
+          </template>
         </div>
 
         <!-- Mobile Menu Button -->
@@ -105,15 +126,28 @@ const toggleMobileMenu = () => {
           <button @click="scrollToSection('pricing')" class="text-3xl font-serif text-silk hover:text-gold transition-colors">Тарифы</button>
           
           <div class="flex flex-col gap-6 mt-12 w-full max-w-xs px-4">
-            <BaseButton :full="true" size="lg" @click="router.push('/auth')">
-              Создать архив
-            </BaseButton>
-            <button 
-              class="text-silk hover:text-gold transition-colors text-xl font-medium"
-              @click="router.push('/auth')"
-            >
-              Войти
-            </button>
+            <template v-if="!authStore.isAuthenticated">
+              <BaseButton :full="true" size="lg" @click="router.push('/auth')">
+                Создать архив
+              </BaseButton>
+              <button 
+                class="text-silk hover:text-gold transition-colors text-xl font-medium"
+                @click="router.push('/auth')"
+              >
+                Войти
+              </button>
+            </template>
+            <template v-else>
+              <BaseButton :full="true" size="lg" @click="router.push('/editor')">
+                Мой архив
+              </BaseButton>
+              <button 
+                class="text-silk hover:text-gold transition-colors text-xl font-medium"
+                @click="handleLogout"
+              >
+                Выйти
+              </button>
+            </template>
           </div>
         </div>
       </transition>
