@@ -15,6 +15,9 @@ const { trackEvent } = useAnalytics()
 const currentMember = computed(() => store.activeMember)
 const isDragging = ref(false)
 
+const mainPhotoInput = ref<HTMLInputElement | null>(null)
+const galleryInput = ref<HTMLInputElement | null>(null)
+
 const updateField = (field: string, value: string) => {
   if (currentMember.value) {
     store.updateMember(currentMember.value.id, { [field]: value })
@@ -49,6 +52,20 @@ const onDrop = async (e: DragEvent, isGallery: boolean = false) => {
       }
     }
   }
+}
+
+const onFileChange = async (e: Event, isGallery: boolean = false) => {
+  const target = e.target as HTMLInputElement
+  const files = target.files
+  if (files && files.length > 0) {
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].type.startsWith('image/')) {
+        await handleFileUpload(files[i], isGallery)
+      }
+    }
+  }
+  // Reset input value so the same file can be uploaded again
+  target.value = ''
 }
 
 const addQuote = () => {
@@ -177,26 +194,33 @@ const removeLifeEvent = (index: number) => {
       <!-- Photo URL -->
       <div>
         <label class="block text-sm text-gray-400 mb-2">Основное фото</label>
+        <div class="flex gap-2 mb-2">
+           <input
+             :value="currentMember.photoUrl"
+             @input="updateField('photoUrl', ($event.target as HTMLInputElement).value)"
+             type="url"
+             placeholder="Введите URL фотографии"
+             class="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
+           />
+           <input 
+             type="file" 
+             ref="mainPhotoInput" 
+             class="hidden" 
+             accept="image/*"
+             @change="(e) => onFileChange(e, false)" 
+           />
+           <BaseButton variant="secondary" size="sm" @click="mainPhotoInput?.click()">
+             📁 Загрузить
+           </BaseButton>
+        </div>
         <div 
           @dragover.prevent="isDragging = true"
           @dragleave.prevent="isDragging = false"
           @drop.prevent="onDrop($event, false)"
-          class="relative group"
+          class="relative group h-20 border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center text-gray-500 text-xs hover:border-gold/30 hover:bg-gold/5 transition-all"
+          :class="{ 'border-gold bg-gold/5 ring-1 ring-gold/20': isDragging }"
         >
-          <input
-            :value="currentMember.photoUrl"
-            @input="updateField('photoUrl', ($event.target as HTMLInputElement).value)"
-            type="url"
-            placeholder="URL или перетащите файл сюда"
-            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-600 focus:outline-none focus:border-gold/50 transition-all"
-            :class="{ 'border-gold bg-gold/5 ring-1 ring-gold/20': isDragging }"
-          />
-          <div 
-            v-if="isDragging" 
-            class="absolute inset-0 flex items-center justify-center bg-gold/10 backdrop-blur-[2px] rounded-lg border-2 border-dashed border-gold pointer-events-none"
-          >
-            <span class="text-gold text-xs font-bold uppercase tracking-widest">Отпустите для загрузки</span>
-          </div>
+           {{ isDragging ? 'Отпустите для загрузки' : 'Или перетащите файл сюда' }}
         </div>
       </div>
 
@@ -274,7 +298,10 @@ const removeLifeEvent = (index: number) => {
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Медиатека</h3>
           <div class="flex gap-2">
-             <button @click="addPhoto" class="text-gold text-xs hover:underline">Фото</button>
+             <button @click="addPhoto" class="text-gold text-xs hover:underline">URL фото</button>
+             <span class="text-gray-700">|</span>
+             <input type="file" ref="galleryInput" class="hidden" accept="image/*" multiple @change="(e) => onFileChange(e, true)" />
+             <button @click="galleryInput?.click()" class="text-gold text-xs hover:underline">Загрузить с ПК</button>
              <span class="text-gray-700">|</span>
              <button @click="addVideo" class="text-gold text-xs hover:underline">Видео</button>
           </div>

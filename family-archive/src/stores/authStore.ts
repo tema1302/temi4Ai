@@ -86,6 +86,41 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
+  // Password recovery
+  async function resetPassword(email: string) {
+    error.value = null
+    isLoading.value = true
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
+      })
+      if (resetError) throw resetError
+      return { success: true }
+    } catch (err: any) {
+      error.value = err.message || 'Failed to send reset email'
+      return { success: false, error: error.value }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function updatePassword(password: string) {
+    error.value = null
+    isLoading.value = true
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      })
+      if (updateError) throw updateError
+      return { success: true }
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update password'
+      return { success: false, error: error.value }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     // State
     user,
@@ -100,5 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    updatePassword,
   }
 })

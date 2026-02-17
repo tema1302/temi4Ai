@@ -96,8 +96,7 @@ export class FamilyRepository {
 
     const results: FamilyArchive[] = []
     
-    // N+1 problem here, but acceptable for MVP with low family count. 
-    // Optimization: fetch all members for all families in one go if needed.
+    // Fetch all members for all families in one go if needed.
     for (const f of families) {
       const { data: members } = await supabase
         .from('members')

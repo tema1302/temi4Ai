@@ -7,9 +7,18 @@ import Logo from '@/shared/ui/Logo.vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
+import { useMemoryStore } from '@/modules/family/store/memoryStore'
+interface Props {
+  fullHeight?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  fullHeight: false
+})
 
 const router = useRouter()
 const authStore = useAuthStore()
+const memoryStore = useMemoryStore()
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -41,19 +50,23 @@ const toggleMobileMenu = () => {
 
 const handleLogout = async () => {
   await authStore.signOut()
+  memoryStore.resetStore()
   router.push('/')
   isMobileMenuOpen.value = false
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col">
+  <div 
+    class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col" 
+    :class="{ 'h-screen overflow-hidden': props.fullHeight }"
+  >
     
     <!-- Navigation Header -->
     <header 
       class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent"
       :class="[
-        isScrolled ? 'bg-obsidian/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6',
+        (isScrolled || props.fullHeight) ? 'bg-obsidian/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6',
         isMobileMenuOpen ? 'bg-obsidian border-white/10' : ''
       ]"
     >
@@ -64,7 +77,7 @@ const handleLogout = async () => {
         </a>
 
         <!-- Desktop Nav -->
-        <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+        <nav v-if="!props.fullHeight" class="hidden md:flex items-center gap-8 text-sm font-medium">
           <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
           <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
           <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
@@ -158,12 +171,17 @@ const handleLogout = async () => {
     <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-50"></div>
 
     <!-- Content Slot -->
-    <main class="flex-1 pt-20 md:pt-20">
+    <main 
+      class="flex-1"
+      :class="[
+        props.fullHeight ? 'pt-[64px] overflow-hidden' : 'pt-20 md:pt-20'
+      ]"
+    >
       <slot />
     </main>
 
     <!-- Footer -->
-    <TheFooter />
+    <TheFooter v-if="!props.fullHeight" />
 
     <!-- Analytics Consent -->
     <CookieConsent />

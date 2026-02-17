@@ -136,13 +136,9 @@ const pricingPlans = [
           :initial="{ x: -50, opacity: 0 }"
           :enter="{ x: 0, opacity: 1, transition: { duration: 800, ease: 'easeOut' } }"
         >
-          <div class="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-gold/20 bg-gold/5 text-gold text-xs tracking-widest uppercase font-medium backdrop-blur-sm">
-            <Sparkles class="w-3 h-3" /> FamStory
-          </div>
-          
           <h1 class="text-5xl md:text-7xl lg:text-8xl font-serif text-silk leading-tight mb-8">
-            Сохраните <br/>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold via-amber-200 to-gold italic pr-2">историю</span>
+            Храним историю <br/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold via-amber-200 to-gold italic pr-2">вашей</span>
             семьи
           </h1>
           
@@ -157,13 +153,6 @@ const pricingPlans = [
             <BaseButton variant="secondary" size="lg" class="backdrop-blur-sm bg-white/5" @click="handleCtaClick('hero', 'view_example', '/smith-family')">
               <Play class="w-4 h-4 mr-2 fill-current" /> Пример
             </BaseButton>
-          </div>
-          
-          <div class="mt-8 flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
-             <div class="flex -space-x-3">
-               <img v-for="i in 4" :key="i" :src="`https://i.pravatar.cc/100?img=${i+10}`" class="w-8 h-8 rounded-full border-2 border-obsidian" />
-             </div>
-             <p>Более 1,000 семей уже с нами</p>
           </div>
         </div>
 
@@ -287,7 +276,7 @@ const pricingPlans = [
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-20 max-w-3xl mx-auto">
           <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">Больше, чем просто фото</h2>
-          <p class="text-xl text-gray-400">Мы создаем полноценный цифровой памятник, который рассказывает историю жизни.</p>
+          <p class="text-xl text-gray-400">Мы создаем полноценный цифровой памятник, который рассказывает историю жизни Ваших близких.</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
@@ -313,9 +302,9 @@ const pricingPlans = [
             class="p-8 hover:bg-white/5 transition-all duration-300 group border-white/5 hover:border-gold/30 hover:-translate-y-2"
           >
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-transparent border border-white/10 flex items-center justify-center text-gold mb-8 group-hover:scale-110 transition-transform">
-              <Users class="w-7 h-7" />
+              <Camera class="w-7 h-7" />
             </div>
-            <h3 class="text-2xl font-serif text-silk mb-4">Галерея лиц</h3>
+            <h3 class="text-2xl font-serif text-silk mb-4">Фотографии</h3>
             <p class="text-gray-400 leading-relaxed">
               Умная галерея сама адаптирует фотографии. Загружайте любые снимки — мы сделаем так, чтобы они смотрелись великолепно на любом телефоне.
             </p>
@@ -335,6 +324,15 @@ const pricingPlans = [
               Самое ценное — это мысли. Запишите их любимые фразы, шутки и советы. Это живой голос, который останется навсегда.
             </p>
           </BaseCard>
+        </div>
+
+        <div class="mt-16 flex flex-col sm:flex-row gap-4 justify-center">
+          <BaseButton size="lg" class="shadow-lg shadow-gold/10" @click="handleCtaClick('features', 'try_free', '/auth')">
+            Попробовать бесплатно
+          </BaseButton>
+          <BaseButton variant="secondary" size="lg" class="backdrop-blur-sm bg-white/5" @click="handleCtaClick('features', 'view_example', '/smith-family')">
+            <Play class="w-4 h-4 mr-2 fill-current" /> Смотреть пример
+          </BaseButton>
         </div>
       </div>
     </section>

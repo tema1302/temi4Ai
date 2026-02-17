@@ -139,7 +139,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // Guest-only routes (like login page)
-  if (to.meta.guestOnly && isAuthenticated) {
+  if (to.meta.guestOnly && isAuthenticated && to.query.type !== 'recovery') {
     next({ name: 'Editor' })
     return
   }
