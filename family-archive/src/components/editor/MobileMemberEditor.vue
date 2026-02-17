@@ -23,7 +23,32 @@ const { trackEvent } = useAnalytics()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadType = ref<'main' | 'gallery'>('main')
 
-// ... (existing code) ...
+const currentMember = computed(() => store.activeMember)
+const errors = ref({ name: '' })
+
+const updateField = (field: string, value: any) => {
+  store.updateMember(props.memberId, { [field]: value })
+}
+
+const updateQuote = (index: number, value: string) => {
+  if (currentMember.value) {
+    const updatedQuotes = [...currentMember.value.quotes]
+    updatedQuotes[index] = value
+    store.updateMember(props.memberId, { quotes: updatedQuotes })
+  }
+}
+
+const removeQuote = (index: number) => {
+  if (currentMember.value) {
+    const updatedQuotes = currentMember.value.quotes.filter((_, i) => i !== index)
+    store.updateMember(props.memberId, { quotes: updatedQuotes })
+  }
+}
+
+const validate = () => {
+  errors.value.name = currentMember.value?.name ? '' : 'Имя обязательно'
+  return !errors.value.name
+}
 
 const addPhoto = () => {
   uploadType.value = 'gallery'
