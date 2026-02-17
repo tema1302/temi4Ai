@@ -84,7 +84,7 @@ const pricingPlans = [
       { text: 'Ежегодный бэкап', included: true },
     ],
     cta: 'Выбрать тариф',
-    primary: true
+    primary: false
   },
   {
     name: 'Наследие',
@@ -251,7 +251,7 @@ const pricingPlans = [
         >
           <span class="text-gold text-sm tracking-widest uppercase font-bold mb-4 block">Проблема</span>
           <h2 class="text-4xl md:text-6xl font-serif text-silk mb-8 leading-tight">
-            Когда уходят <br/> слова
+            Когда уходят <br/> воспоминания
           </h2>
           <div class="h-1 w-20 bg-gold mb-8"></div>
           
@@ -430,9 +430,11 @@ const pricingPlans = [
             <BaseButton 
               :variant="plan.primary ? 'primary' : 'secondary'" 
               :full="true"
+              :disabled="plan.name !== 'Базовый'"
+              :class="plan.name !== 'Базовый' ? 'opacity-50 cursor-not-allowed' : ''"
               @click="handleCtaClick('pricing', `select_plan_${plan.name}`, '/auth')"
             >
-              {{ plan.cta }}
+              {{ plan.name === 'Базовый' ? plan.cta : 'Скоро' }}
             </BaseButton>
           </div>
         </div>
@@ -455,9 +457,6 @@ const pricingPlans = [
             Начать бесплатно
           </BaseButton>
         </div>
-        <p class="mt-8 text-xs text-gray-600">
-          © 2024 FamStory. Ваша память в надежных руках.
-        </p>
       </div>
     </section>
 

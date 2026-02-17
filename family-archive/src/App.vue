@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import Lenis from 'lenis'
+import CookieConsent from '@/shared/ui/CookieConsent.vue'
 
 let lenis: Lenis | null = null
 
@@ -32,6 +33,7 @@ onUnmounted(() => {
       <component :is="Component" />
     </transition>
   </router-view>
+  <CookieConsent />
 </template>
 
 <style>

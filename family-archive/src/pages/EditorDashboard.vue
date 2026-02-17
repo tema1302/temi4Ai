@@ -27,19 +27,12 @@ const isCreating = ref(false)
 const newFamilyName = ref('')
 const isSaving = ref(false)
 const showPricing = ref(false)
+const isShowingMemberList = ref(false)
 
 // Mobile State
 const mobileView = ref<'list' | 'editor'>('list')
 
-// Load user's existing families and subscription on mount
-onMounted(async () => {
-  if (authStore.userId) {
-    await Promise.all([
-      refreshFamilies(),
-      subStore.fetchSubscription()
-    ])
-  }
-})
+// ... (onMounted and refreshFamilies) ...
 
 const refreshFamilies = async () => {
   if (authStore.userId) {
@@ -61,7 +54,7 @@ const startNewArchive = async () => {
   
   store.setFamily(newFamily)
   store.addMember() // Add default member
-  store.toggleEditing()
+  isShowingMemberList.value = true
   isCreating.value = false
   newFamilyName.value = ''
   await refreshFamilies()
@@ -69,9 +62,27 @@ const startNewArchive = async () => {
 }
 
 const loadFamily = (family: any) => {
+  // Ensure we have all fields from the database version
   store.setFamily(family)
-  store.toggleEditing()
+  isShowingMemberList.value = true
   mobileView.value = 'list' // Default to list on load
+}
+
+const selectMemberForPreview = (id: string) => {
+  store.setActiveMember(id)
+  isShowingMemberList.value = false
+}
+
+const backToMemberList = () => {
+  isShowingMemberList.value = true
+  if (store.isEditing) {
+    store.toggleEditing()
+  }
+}
+
+const resetToArchives = () => {
+  store.resetStore()
+  isShowingMemberList.value = false
 }
 
 const deleteArchive = async (e: Event, familyId: string, slug: string) => {
@@ -119,6 +130,10 @@ const handleLogout = async () => {
 
 // Member Management
 const addMember = () => {
+  if (store.isEditing) {
+     store.toggleEditing()
+  }
+  isShowingMemberList.value = true
   store.addMember()
   mobileView.value = 'editor'
 }
@@ -231,7 +246,7 @@ const planName = computed(() => {
         <!-- Header -->
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
           <div>
-            <h1 class="text-2xl font-serif text-silk">Панель управления</h1>
+            <h1 class="text-2xl font-serif text-silk">Мои архивы</h1>
             <div class="flex items-center gap-3 text-sm mt-1">
               <p class="text-gray-400">
                 Вы вошли как <span class="text-gold">{{ authStore.userEmail }}</span>
@@ -273,7 +288,7 @@ const planName = computed(() => {
 
           <!-- Existing Archives -->
           <div v-else-if="store.userFamilies.length > 0" class="mb-10">
-            <h2 class="text-xl font-serif text-silk mb-4">Ваши архивы</h2>
+            <h2 class="text-xl font-serif text-silk mb-4">Мои архивы</h2>
             <div class="grid gap-4">
               <BaseCard 
                 v-for="family in store.userFamilies" 
@@ -294,7 +309,7 @@ const planName = computed(() => {
                     >
                       🗑️
                     </button>
-                    <span class="text-gold">Редактировать →</span>
+                    <span class="text-gold">Смотреть →</span>
                   </div>
                 </div>
               </BaseCard>
@@ -338,7 +353,7 @@ const planName = computed(() => {
 
         <!-- Editor View (Desktop) -->
         <div v-else>
-          <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
             <div>
               <h2 class="text-2xl font-serif text-silk">{{ store.familyName }}</h2>
               <p class="text-gray-400 text-sm mt-1">
@@ -346,10 +361,10 @@ const planName = computed(() => {
               </p>
             </div>
             <div class="flex gap-3">
-              <BaseButton variant="ghost" @click="store.resetStore()">
-                ← Назад
+              <BaseButton variant="ghost" @click="isShowingMemberList ? resetToArchives() : backToMemberList()">
+                ← {{ isShowingMemberList ? 'К архивам' : 'Все люди' }}
               </BaseButton>
-              <BaseButton variant="secondary" @click="store.toggleEditing">
+              <BaseButton v-if="!isShowingMemberList" variant="secondary" @click="store.toggleEditing">
                 {{ store.isEditing ? 'Закрыть редактор' : 'Редактировать' }}
               </BaseButton>
               <BaseButton v-if="store.isEditing" @click="saveChanges" :disabled="isSaving">
@@ -358,10 +373,62 @@ const planName = computed(() => {
             </div>
           </div>
 
-          <!-- Active Member Preview -->
-          <EditorPreview v-if="store.activeMember" :key="store.activeMember.id" />
-          <div v-else class="text-center py-20 text-gray-500">
-            Выберите члена семьи слева или добавьте нового
+          <!-- Member List View -->
+          <div v-if="isShowingMemberList">
+             <div class="flex items-center justify-between mb-8">
+                <h3 class="text-xl font-serif text-silk">Члены семьи</h3>
+                <BaseButton size="sm" variant="ghost" @click="addMember" class="text-gold">
+                  + Добавить человека
+                </BaseButton>
+             </div>
+             
+             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                <div 
+                  v-for="member in store.members" 
+                  :key="member.id"
+                  @click="selectMemberForPreview(member.id)"
+                  class="group cursor-pointer"
+                >
+                   <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
+                      <img v-if="member.photoUrl" :src="member.photoUrl" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">
+                        {{ member.name[0] || '?' }}
+                      </div>
+                      <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                      <div class="absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                         <span class="px-4 py-2 bg-gold text-charcoal text-[10px] font-bold uppercase tracking-[0.2em] rounded-full shadow-xl">
+                           Смотреть
+                         </span>
+                      </div>
+                   </div>
+                   <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors text-lg">{{ member.name }}</h4>
+                   <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.relationship || 'Член семьи' }}</p>
+                </div>
+                
+                <!-- Add Card -->
+                <button 
+                  @click="addMember"
+                  class="aspect-[3/4] rounded-2xl border-2 border-dashed border-white/10 hover:border-gold/30 hover:bg-gold/5 transition-all flex flex-col items-center justify-center gap-4 group"
+                >
+                   <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-gray-500 group-hover:text-gold group-hover:scale-110 transition-all">
+                      <span class="text-3xl">+</span>
+                   </div>
+                   <span class="text-[10px] text-gray-500 group-hover:text-gold transition-colors font-bold uppercase tracking-[0.2em]">Добавить</span>
+                </button>
+             </div>
+          </div>
+
+          <!-- Active Member Preview / Editor -->
+          <div v-else>
+            <div v-if="!store.isEditing" class="mb-6 flex justify-center">
+               <BaseButton variant="primary" @click="store.toggleEditing" class="shadow-xl shadow-gold/10">
+                 ✏️ Редактировать профиль
+               </BaseButton>
+            </div>
+            <EditorPreview v-if="store.activeMember" :key="store.activeMember.id" />
+            <div v-else class="text-center py-20 text-gray-500">
+              Выберите члена семьи или добавьте нового
+            </div>
           </div>
         </div>
       </main>
@@ -376,7 +443,7 @@ const planName = computed(() => {
       <!-- No Family Selected State (Mobile) -->
       <div v-if="!store.currentFamily" class="p-4 overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
-           <h1 class="text-xl font-serif text-silk">Ваши архивы</h1>
+           <h1 class="text-xl font-serif text-silk">Мои архивы</h1>
            <button @click="handleLogout" class="text-xs text-gray-400">Выйти</button>
         </div>
 

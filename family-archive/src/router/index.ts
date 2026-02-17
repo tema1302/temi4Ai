@@ -8,6 +8,11 @@ const EditorDashboard = () => import('@/pages/EditorDashboard.vue')
 const AuthPage = () => import('@/pages/AuthPage.vue')
 const PrivacyPolicy = () => import('@/pages/legal/PrivacyPolicy.vue')
 const TermsOfService = () => import('@/pages/legal/TermsOfService.vue')
+const Offer = () => import('@/pages/legal/Offer.vue')
+const PersonalDataPolicy = () => import('@/pages/legal/PersonalDataPolicy.vue')
+const PersonalDataConsent = () => import('@/pages/legal/PersonalDataConsent.vue')
+const NewsletterConsent = () => import('@/pages/legal/NewsletterConsent.vue')
+const CookieRules = () => import('@/pages/legal/CookieRules.vue')
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -24,6 +29,31 @@ const routes: Array<RouteRecordRaw> = [
     path: '/terms',
     name: 'Terms',
     component: TermsOfService,
+  },
+  {
+    path: '/offer',
+    name: 'Offer',
+    component: Offer,
+  },
+  {
+    path: '/pd-policy',
+    name: 'PersonalDataPolicy',
+    component: PersonalDataPolicy,
+  },
+  {
+    path: '/pd-consent',
+    name: 'PersonalDataConsent',
+    component: PersonalDataConsent,
+  },
+  {
+    path: '/newsletter-consent',
+    name: 'NewsletterConsent',
+    component: NewsletterConsent,
+  },
+  {
+    path: '/cookie-rules',
+    name: 'CookieRules',
+    component: CookieRules,
   },
   {
     path: '/auth',
