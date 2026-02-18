@@ -62,7 +62,7 @@
 *   **Routing:** Vue Router 4 (с защитой маршрутов и восстановлением скролла)
 *   **Styling:** Tailwind CSS 3 (кастомная конфигурация, Glassmorphism утилиты)
 *   **Animations:** Motion One (`@vueuse/motion`) + CSS Transitions
-*   **UX/UI:** Lucide Icons, Google Fonts (Playfair Display/Inter), Lenis (инерционный скролл)
+*   **UX/UI:** Lucide Icons, Google Fonts (Playfair Display/Inter)
 *   **Backend (BaaS):** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
 
 ---
@@ -143,4 +143,4 @@ src/
 
 *   **Dynamic Imports:** Маршруты загружаются лениво (Lazy Loading) для ускорения первой отрисовки.
 *   **Mock Mode:** При переходе на `/smith-family` загружаются статические моковые данные для демонстрации возможностей без обращения к БД.
-*   **Optimized Scroll:** Использование библиотеки `Lenis` для плавного скролла и кастомная логика в роутере для сохранения позиции скролла при навигации "Назад".
+*   **Optimized Scroll:** Кастомная логика в роутере для сохранения позиции скролла при навигации "Назад".

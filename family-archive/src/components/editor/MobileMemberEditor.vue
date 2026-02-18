@@ -176,12 +176,12 @@ const handleDelete = () => {
     </div>
 
     <!-- Mode: PREVIEW -->
-    <div v-if="viewMode === 'preview'" class="p-4 animate-fade-in">
+    <div v-if="viewMode === 'preview'" class="p-4 overflow-y-auto animate-fade-in">
        <EditorPreview />
     </div>
 
     <!-- Mode: EDIT -->
-    <div v-else class="p-4 space-y-6 animate-fade-in">
+    <div v-else class="p-4 overflow-y-auto space-y-6 animate-fade-in">
       
       <!-- Hidden File Input -->
       <input 

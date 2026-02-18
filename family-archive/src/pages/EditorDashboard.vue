@@ -230,7 +230,7 @@ const planName = computed(() => {
       </aside>
 
       <!-- Main Content (Desktop) -->
-      <main class="flex-1 h-screen overflow-y-auto p-8 scrollbar-thin">
+      <main class="flex-1 overflow-y-auto p-8 scrollbar-thin">
         
         <!-- Header -->
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
