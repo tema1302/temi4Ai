@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { FamilyArchive, FamilyMember } from '../domain/models'
-import type { Family, Member } from '@/types/supabase'
+import type { Family, Member, MemberInsert } from '@/types/supabase'
+
+const STORAGE_BUCKET = 'photos'
 
 // DTO Mapping Helpers
 function mapToDomain(family: Family, members: Member[]): FamilyArchive {
@@ -13,14 +15,14 @@ function mapToDomain(family: Family, members: Member[]): FamilyArchive {
     members: members.map(m => ({
       id: m.id,
       name: m.name,
-      relationship: (m as any).relationship || '',
+      relationship: m.relationship || '',
       birthDate: m.birth_date || '',
       deathDate: m.death_date || '',
       biography: m.biography || '',
-      lifePath: (m as any).life_path || [],
+      lifePath: (m.life_path as any) || [],
       photoUrl: m.photo_url || '',
       photos: m.photos || [],
-      videos: (m as any).videos || [],
+      videos: (m.videos as any) || [],
       quotes: m.quotes || [],
     }))
   }
@@ -38,7 +40,7 @@ export class FamilyRepository {
     const filePath = `${path}/${fileName}`
 
     const { error } = await supabase.storage
-      .from('photos')
+      .from(STORAGE_BUCKET)
       .upload(filePath, file)
 
     if (error) {
@@ -47,7 +49,7 @@ export class FamilyRepository {
     }
 
     const { data } = supabase.storage
-      .from('photos')
+      .from(STORAGE_BUCKET)
       .getPublicUrl(filePath)
 
     return data.publicUrl
@@ -96,7 +98,6 @@ export class FamilyRepository {
 
     const results: FamilyArchive[] = []
     
-    // Fetch all members for all families in one go if needed.
     for (const f of families) {
       const { data: members } = await supabase
         .from('members')
@@ -152,7 +153,7 @@ export class FamilyRepository {
 
       // 2. Upsert Members
       for (const m of archive.members) {
-        const payload = {
+        const payload: MemberInsert = {
           id: m.id,
           family_id: dbId,
           name: m.name,
@@ -160,10 +161,10 @@ export class FamilyRepository {
           birth_date: m.birthDate || null,
           death_date: m.deathDate || null,
           biography: m.biography || null,
-          life_path: m.lifePath || [],
+          life_path: m.lifePath as any,
           photo_url: m.photoUrl || null,
           photos: m.photos || [],
-          videos: m.videos || [],
+          videos: m.videos as any,
           quotes: m.quotes || [],
         }
         

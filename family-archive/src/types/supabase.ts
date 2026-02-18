@@ -45,37 +45,49 @@ export interface Database {
           id: string
           family_id: string
           name: string
+          relationship: string | null
           birth_date: string | null
           death_date: string | null
           biography: string | null
+          life_path: Json
           photo_url: string | null
           photos: string[]
+          videos: Json
           quotes: string[]
           order_index: number
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           family_id: string
           name: string
+          relationship?: string | null
           birth_date?: string | null
           death_date?: string | null
           biography?: string | null
+          life_path?: Json
           photo_url?: string | null
           photos?: string[]
+          videos?: Json
           quotes?: string[]
           order_index?: number
           created_at?: string
+          updated_at?: string
         }
         Update: {
           name?: string
+          relationship?: string | null
           birth_date?: string | null
           death_date?: string | null
           biography?: string | null
+          life_path?: Json
           photo_url?: string | null
           photos?: string[]
+          videos?: Json
           quotes?: string[]
           order_index?: number
+          updated_at?: string
         }
       }
     }

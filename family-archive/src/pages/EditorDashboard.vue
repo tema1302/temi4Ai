@@ -56,9 +56,12 @@ const startNewArchive = async () => {
   
   store.setFamily(newFamily)
   store.addMember() // Add default member
-  isShowingMemberList.value = true
   isCreating.value = false
   newFamilyName.value = ''
+  
+  // Редирект на онбординг вместо редактора
+  router.push(`/archive/${newFamily.id}/onboarding`)
+  
   await refreshFamilies()
   trackArchiveCreation(newFamily.id)
 }

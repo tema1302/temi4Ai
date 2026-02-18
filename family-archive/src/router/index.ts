@@ -6,6 +6,7 @@ const LandingPage = () => import('@/pages/LandingPage.vue')
 const MemoryViewer = () => import('@/pages/MemoryViewer.vue')
 const EditorDashboard = () => import('@/pages/EditorDashboard.vue')
 const AuthPage = () => import('@/pages/AuthPage.vue')
+const ArchiveOnboardingView = () => import('@/pages/ArchiveOnboardingView.vue')
 const PrivacyPolicy = () => import('@/pages/legal/PrivacyPolicy.vue')
 const TermsOfService = () => import('@/pages/legal/TermsOfService.vue')
 const Offer = () => import('@/pages/legal/Offer.vue')
@@ -19,6 +20,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/',
     name: 'Landing',
     component: LandingPage,
+  },
+  {
+    path: '/archive/:id/onboarding',
+    name: 'ArchiveOnboarding',
+    component: ArchiveOnboardingView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/privacy',

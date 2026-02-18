@@ -235,7 +235,7 @@ const handleSuccessContinue = () => {
             <input 
               v-model="acceptOffer"
               type="checkbox" 
-              class="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50"
+              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
             <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
               Я ознакомлен с условиями 
@@ -247,7 +247,7 @@ const handleSuccessContinue = () => {
             <input 
               v-model="acceptPD"
               type="checkbox" 
-              class="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50"
+              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
             <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
               Я даю согласие на 
@@ -261,7 +261,7 @@ const handleSuccessContinue = () => {
             <input 
               v-model="acceptNewsletter"
               type="checkbox" 
-              class="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50"
+              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
             <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
               Я даю 

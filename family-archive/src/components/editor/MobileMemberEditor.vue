@@ -5,8 +5,10 @@ import type { FamilyMember } from '@/modules/family/domain/models'
 import BaseInput from '@/shared/ui/BaseInput.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
+import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
+import { Eye, Edit2, Trash2, Plus, ArrowLeft } from 'lucide-vue-next'
 
 const props = defineProps<{
   memberId: string
@@ -22,6 +24,7 @@ const store = useMemoryStore()
 const { trackEvent } = useAnalytics()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadType = ref<'main' | 'gallery'>('main')
+const viewMode = ref<'edit' | 'preview'>('edit')
 
 const currentMember = computed(() => store.activeMember)
 const errors = ref({ name: '' })
@@ -50,7 +53,22 @@ const validate = () => {
   return !errors.value.name
 }
 
+const addQuote = () => {
+  if (currentMember.value) {
+    const updatedQuotes = [...(currentMember.value.quotes || []), '']
+    store.updateMember(props.memberId, { quotes: updatedQuotes })
+  }
+}
+
 const addPhoto = () => {
+  const url = prompt('Введите URL фотографии:')
+  if (url && currentMember.value) {
+    const updatedPhotos = [...currentMember.value.photos, url]
+    store.updateMember(props.memberId, { photos: updatedPhotos })
+  }
+}
+
+const triggerPCGalleryUpload = () => {
   uploadType.value = 'gallery'
   fileInput.value?.click()
 }
@@ -61,7 +79,8 @@ const triggerMainPhotoUpload = () => {
 }
 
 const handleFileChange = async (e: Event) => {
-  const file = (e.target as HTMLInputElement).files?.[0]
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file || !currentMember.value) return
 
   const path = `${store.currentFamily?.id || 'general'}/${currentMember.value.id}`
@@ -75,6 +94,7 @@ const handleFileChange = async (e: Event) => {
       store.updateMember(props.memberId, { photoUrl: url })
     }
   }
+  target.value = ''
 }
 
 const addLifeEvent = () => {
@@ -112,7 +132,6 @@ const handleSave = () => {
     trackEvent('update_member', { member_id: props.memberId })
     emit('save')
   } else {
-    // Scroll to top or show toast
     alert('Пожалуйста, исправьте ошибки.')
   }
 }
@@ -129,18 +148,40 @@ const handleDelete = () => {
   <div v-if="currentMember" class="bg-charcoal min-h-screen flex flex-col pb-20">
     
     <!-- Sticky Header -->
-    <div class="sticky top-0 z-20 bg-charcoal/90 backdrop-blur border-b border-white/10 p-4 flex justify-between items-center shadow-lg">
-      <button @click="emit('back')" class="text-gray-400 flex items-center gap-1 text-sm">
-        ← Назад
-      </button>
-      <h2 class="text-silk font-medium">Редактирование</h2>
-      <button @click="handleSave" class="text-gold font-bold text-sm">
-        Сохранить
-      </button>
+    <div class="sticky top-0 z-30 bg-charcoal/95 backdrop-blur border-b border-white/10 p-4 flex justify-between items-center shadow-lg">
+      <div class="flex items-center gap-3">
+        <button @click="emit('back')" class="text-gray-400 p-1">
+          <ArrowLeft class="w-6 h-6" />
+        </button>
+        <div>
+          <h2 class="text-silk font-serif leading-none">{{ currentMember.name || 'Новый профиль' }}</h2>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
+            {{ viewMode === 'edit' ? 'Редактирование' : 'Предпросмотр' }}
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button 
+          @click="viewMode = viewMode === 'edit' ? 'preview' : 'edit'"
+          class="p-2 rounded-full bg-white/5 border border-white/10 text-gold"
+        >
+          <Eye v-if="viewMode === 'edit'" class="w-5 h-5" />
+          <Edit2 v-else class="w-5 h-5" />
+        </button>
+        <BaseButton v-if="viewMode === 'edit'" size="sm" @click="handleSave">
+          Сохранить
+        </BaseButton>
+      </div>
     </div>
 
-    <!-- Form Content -->
-    <div class="p-4 space-y-6">
+    <!-- Mode: PREVIEW -->
+    <div v-if="viewMode === 'preview'" class="p-4 animate-fade-in">
+       <EditorPreview />
+    </div>
+
+    <!-- Mode: EDIT -->
+    <div v-else class="p-4 space-y-6 animate-fade-in">
       
       <!-- Hidden File Input -->
       <input 
@@ -155,38 +196,36 @@ const handleDelete = () => {
       <div class="flex flex-col items-center gap-4">
         <div 
           @click="triggerMainPhotoUpload"
-          class="w-24 h-24 rounded-full border-2 border-white/10 overflow-hidden bg-white/5 relative group cursor-pointer"
+          class="w-28 h-28 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 relative group cursor-pointer shadow-xl shadow-gold/5"
         >
           <img 
             v-if="currentMember.photoUrl" 
             :src="currentMember.photoUrl" 
             class="w-full h-full object-cover"
           >
-          <div v-else class="w-full h-full flex items-center justify-center text-3xl text-gray-600">
-            {{ currentMember.name[0] }}
+          <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600 font-serif">
+            {{ currentMember.name ? currentMember.name[0] : '?' }}
           </div>
-          <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <span class="text-[10px] text-white font-bold uppercase">Сменить</span>
+          <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <Edit2 class="w-6 h-6 text-white/70" />
           </div>
         </div>
         
-        <div class="w-full">
+        <div class="w-full space-y-4">
           <BaseInput
             :modelValue="currentMember.name"
             @update:modelValue="updateField('name', $event)"
-            label="Имя *"
-            placeholder="ФИО"
+            label="Полное имя *"
+            placeholder="Напр: Иванов Иван Иванович"
           />
-          <p v-if="errors.name" class="text-red-400 text-xs mt-1">{{ errors.name }}</p>
+          <p v-if="errors.name" class="text-red-400 text-[10px] uppercase font-bold mt-1 tracking-wider">{{ errors.name }}</p>
           
-          <div class="mt-4">
-             <BaseInput
-                :modelValue="currentMember.relationship || ''"
-                @update:modelValue="updateField('relationship', $event)"
-                label="Родственность"
-                placeholder="Напр: Дедушка, Основатель..."
-              />
-          </div>
+          <BaseInput
+            :modelValue="currentMember.relationship || ''"
+            @update:modelValue="updateField('relationship', $event)"
+            label="Кем приходится (роль)"
+            placeholder="Напр: Основатель рода, Дедушка..."
+          />
         </div>
       </div>
 
@@ -196,24 +235,32 @@ const handleDelete = () => {
           :modelValue="currentMember.birthDate"
           @update:modelValue="updateField('birthDate', $event)"
           type="date"
-          label="Рождение"
+          label="Дата рождения"
         />
         <BaseInput
           :modelValue="currentMember.deathDate || ''"
           @update:modelValue="updateField('deathDate', $event)"
           type="date"
-          label="Уход"
+          label="Дата ухода"
         />
       </div>
 
       <!-- Photo URL -->
-      <BaseInput
-        :modelValue="currentMember.photoUrl"
-        @update:modelValue="updateField('photoUrl', $event)"
-        type="url"
-        label="Ссылка на фото"
-        placeholder="https://example.com/photo.jpg"
-      />
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest">Основное фото</label>
+        <div class="flex gap-2">
+          <input
+            :value="currentMember.photoUrl"
+            @input="updateField('photoUrl', ($event.target as HTMLInputElement).value)"
+            type="url"
+            placeholder="URL фотографии"
+            class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
+          />
+          <button @click="triggerMainPhotoUpload" class="px-4 bg-white/5 border border-white/10 rounded-lg text-gold">
+            <Plus class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
       <!-- Biography -->
       <BaseInput
@@ -222,105 +269,127 @@ const handleDelete = () => {
         type="textarea"
         :rows="6"
         label="Биография"
-        placeholder="История жизни..."
+        placeholder="Расскажите историю жизни..."
       />
 
       <!-- Life Path -->
-      <div class="space-y-3">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-sm text-gray-400">Жизненный путь</label>
-          <button @click="addLifeEvent" class="text-gold text-xs border border-gold/30 px-2 py-1 rounded hover:bg-gold/10">
-            + Добавить
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Жизненный путь</label>
+          <button @click="addLifeEvent" class="text-gold text-xs flex items-center gap-1">
+            <Plus class="w-3 h-3" /> Добавить событие
           </button>
         </div>
         
-        <div v-for="(event, index) in currentMember.lifePath" :key="index" class="p-4 bg-white/5 rounded-lg border border-white/5 relative">
-          <button @click="removeLifeEvent(index)" class="absolute top-2 right-2 text-red-500">✕</button>
-          <input 
-            :value="event.year" 
-            @input="updateLifeEvent(index, 'year', ($event.target as HTMLInputElement).value)"
-            placeholder="Год" 
-            class="w-20 mb-2 px-3 py-1 bg-white/10 border border-white/10 rounded text-silk text-sm" 
-          />
-          <input 
-            :value="event.title" 
-            @input="updateLifeEvent(index, 'title', ($event.target as HTMLInputElement).value)"
-            placeholder="Событие" 
-            class="w-full mb-2 px-3 py-1 bg-white/10 border border-white/10 rounded text-silk text-sm font-bold" 
-          />
+        <div v-for="(event, index) in currentMember.lifePath" :key="index" class="p-4 bg-white/5 rounded-2xl border border-white/5 relative">
+          <button @click="removeLifeEvent(index)" class="absolute top-2 right-2 text-gray-600 hover:text-red-400">
+            <Trash2 class="w-4 h-4" />
+          </button>
+          <div class="grid grid-cols-4 gap-3 mb-2">
+            <input 
+              :value="event.year" 
+              @input="updateLifeEvent(index, 'year', ($event.target as HTMLInputElement).value)"
+              placeholder="Год" 
+              class="col-span-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-silk text-sm" 
+            />
+            <input 
+              :value="event.title" 
+              @input="updateLifeEvent(index, 'title', ($event.target as HTMLInputElement).value)"
+              placeholder="Событие" 
+              class="col-span-3 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-silk text-sm font-bold" 
+            />
+          </div>
           <textarea 
             :value="event.description" 
             @input="updateLifeEvent(index, 'description', ($event.target as HTMLTextAreaElement).value)"
-            placeholder="Описание" 
-            class="w-full px-3 py-1 bg-white/10 border border-white/10 rounded text-silk text-sm resize-none"
+            placeholder="Описание..." 
+            class="w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-silk text-sm resize-none"
+            rows="2"
           ></textarea>
         </div>
       </div>
 
       <!-- Quotes -->
-      <div class="space-y-3">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-sm text-gray-400">Цитаты</label>
-          <button @click="addQuote" class="text-gold text-xs border border-gold/30 px-2 py-1 rounded hover:bg-gold/10">
-            + Добавить
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Цитаты</label>
+          <button @click="addQuote" class="text-gold text-xs flex items-center gap-1">
+            <Plus class="w-3 h-3" /> Добавить
           </button>
         </div>
         
         <div v-for="(quote, index) in currentMember.quotes" :key="index" class="flex gap-2">
-          <input
+          <textarea
             :value="quote"
             @input="updateQuote(index, ($event.target as HTMLInputElement).value)"
-            class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-silk text-sm focus:outline-none focus:border-gold/50"
-            placeholder="Цитата..."
-          />
-          <button @click="removeQuote(index)" class="text-red-400 px-2">✕</button>
+            class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-silk text-sm focus:outline-none focus:border-gold/50 resize-none"
+            placeholder="«Их мудрые слова...»"
+            rows="2"
+          ></textarea>
+          <button @click="removeQuote(index)" class="p-2 self-start text-gray-600 hover:text-red-400">
+            <Trash2 class="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       <!-- Media (Photos & Videos) -->
-      <div class="space-y-3">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-sm text-gray-400">Медиатека</label>
-          <div class="flex gap-2">
-            <button @click="addPhoto" class="text-gold text-xs border border-gold/30 px-2 py-1 rounded hover:bg-gold/10">
-              + Фото
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Медиатека</label>
+          <div class="flex gap-3">
+            <button @click="triggerPCGalleryUpload" class="text-gold text-xs flex items-center gap-1">
+              <Plus class="w-3 h-3" /> Фото
             </button>
-            <button @click="addVideo" class="text-gold text-xs border border-gold/30 px-2 py-1 rounded hover:bg-gold/10">
-              + Видео
+            <button @click="addVideo" class="text-gold text-xs flex items-center gap-1">
+              <Plus class="w-3 h-3" /> Видео
             </button>
           </div>
         </div>
         
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-3 gap-3">
           <div 
             v-for="(photo, index) in currentMember.photos" 
             :key="`ph-${index}`"
-            class="aspect-square rounded overflow-hidden bg-white/5 border border-white/10"
+            class="aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10"
           >
             <img :src="photo" class="w-full h-full object-cover" />
           </div>
           <div 
             v-for="(video, index) in currentMember.videos" 
             :key="`vid-${index}`"
-            class="aspect-square rounded overflow-hidden bg-obsidian flex items-center justify-center border border-white/10"
+            class="aspect-square rounded-xl overflow-hidden bg-obsidian flex items-center justify-center border border-white/10"
           >
             <span class="text-gold text-xs">▶</span>
           </div>
+          <button 
+            @click="triggerPCGalleryUpload"
+            class="aspect-square rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-gray-600"
+          >
+            <Plus class="w-6 h-6" />
+          </button>
         </div>
       </div>
 
       <!-- Delete Zone -->
-      <div class="pt-8 border-t border-white/5 mt-8">
-        <BaseButton 
-          variant="ghost" 
-          full 
-          class="!text-red-400 hover:!bg-red-900/20"
+      <div class="pt-10 pb-10 border-t border-white/5 mt-10">
+        <button 
+          class="w-full py-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"
           @click="handleDelete"
         >
-          Удалить человека
-        </BaseButton>
+          <Trash2 class="w-4 h-4" /> Удалить профиль
+        </button>
       </div>
 
     </div>
   </div>
 </template>
+
+<style scoped>
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
