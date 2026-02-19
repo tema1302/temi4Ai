@@ -113,6 +113,8 @@ const saveChanges = async () => {
           member_count: store.currentFamily.members.length
         })
         await refreshFamilies()
+        // Redirect back to the interactive tree
+        router.push(`/archive/${store.currentFamily.id}/onboarding`)
       } else {
         alert('Ошибка при сохранении.')
       }
@@ -235,7 +237,9 @@ const planName = computed(() => {
         <!-- Header -->
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
           <div>
-            <h1 class="text-2xl font-serif text-silk">Архив: {{ store.familyName || '...' }}</h1>
+            <h1 class="text-2xl font-serif text-silk">
+              {{ store.currentFamily ? 'Архив: ' + store.familyName : 'Мои архивы' }}
+            </h1>
             <div class="flex items-center gap-3 text-sm mt-1">
               <p class="text-gray-400">
                 Пользователь: <span class="text-gold">{{ authStore.userEmail }}</span>
@@ -245,7 +249,7 @@ const planName = computed(() => {
             </div>
           </div>
           <div class="flex gap-4">
-             <BaseButton variant="ghost" size="sm" @click="resetToArchives">
+             <BaseButton v-if="store.currentFamily" variant="ghost" size="sm" @click="resetToArchives">
                ← К моим архивам
              </BaseButton>
           </div>
@@ -374,7 +378,7 @@ const planName = computed(() => {
                   </BaseButton>
                 </div>
              </div>
-             <div v-else class="bg-obsidian rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+             <div v-else class="p-4 overflow-hidden shadow-2xl">
                 <EditorPreview v-if="store.activeMember" :key="store.activeMember.id" :member="store.activeMember" :familyName="store.familyName" />
              </div>
           </div>
