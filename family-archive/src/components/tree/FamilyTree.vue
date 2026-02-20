@@ -33,6 +33,8 @@ const safeMembers = () => props.members || []
 const safeRelations = () => props.relations || []
 
 // Calculate generations for layout
+// Старшие поколения (родители, дедушки) сверху = поколение 0
+// Дети и внуки ниже = поколение 1, 2, ...
 const calculateGenerations = () => {
   const generationMap = new Map<string, number>()
   const members = safeMembers()
@@ -40,13 +42,42 @@ const calculateGenerations = () => {
 
   if (members.length === 0) return generationMap
 
-  // Find root member
-  const rootMember = members.find(m => m.id === props.rootMemberId) || members[0]
-  if (!rootMember) return generationMap
+  // Строим граф родительских связей
+  // parentOf[A] = [B, C] означает A является родителем B и C
+  // childOf[A] = [B] означает B является родителем A
+  const parentOf = new Map<string, string[]>()
+  const childOf = new Map<string, string[]>()
 
-  // BFS for generation calculation
-  const queue = [{ id: rootMember.id, gen: 0 }]
+  relations.forEach(r => {
+    if (r.relationType === 'parent') {
+      // fromMemberId = родитель, toMemberId = ребёнок
+      if (!parentOf.has(r.fromMemberId)) parentOf.set(r.fromMemberId, [])
+      parentOf.get(r.fromMemberId)!.push(r.toMemberId)
+
+      if (!childOf.has(r.toMemberId)) childOf.set(r.toMemberId, [])
+      childOf.get(r.toMemberId)!.push(r.fromMemberId)
+    }
+  })
+
+  // Находим всех, у кого НЕТ родителей в базе (самые старшие)
+  const oldestMembers = members.filter(m => !childOf.has(m.id) || childOf.get(m.id)!.length === 0)
+
+  if (oldestMembers.length === 0 && members.length > 0) {
+    oldestMembers.push(members[0])
+  }
+
+  // BFS от старших к младшим
+  const queue: { id: string; gen: number }[] = oldestMembers.map(m => ({ id: m.id, gen: 0 }))
   const visited = new Set<string>()
+
+  // Строим связи супругов
+  const spouseOf = new Map<string, string>()
+  relations.forEach(r => {
+    if (r.relationType === 'spouse') {
+      spouseOf.set(r.fromMemberId, r.toMemberId)
+      spouseOf.set(r.toMemberId, r.fromMemberId)
+    }
+  })
 
   while (queue.length > 0) {
     const { id, gen } = queue.shift()!
@@ -54,115 +85,115 @@ const calculateGenerations = () => {
     visited.add(id)
     generationMap.set(id, gen)
 
-    // Parents (gen - 1)
-    relations
-      .filter(r => r.toMemberId === id && r.relationType === 'parent')
-      .forEach(r => {
-        if (!visited.has(r.fromMemberId)) {
-          queue.push({ id: r.fromMemberId, gen: gen - 1 })
-        }
-      })
+    // Сначала супруги (то же поколение)
+    const spouseId = spouseOf.get(id)
+    if (spouseId && !visited.has(spouseId)) {
+      queue.unshift({ id: spouseId, gen })
+    }
 
-    // Children (gen + 1)
-    relations
-      .filter(r => r.fromMemberId === id && r.relationType === 'parent')
-      .forEach(r => {
-        if (!visited.has(r.toMemberId)) {
-          queue.push({ id: r.toMemberId, gen: gen + 1 })
-        }
-      })
-
-    // Spouses (same gen)
-    relations
-      .filter(r => r.relationType === 'spouse' && (r.fromMemberId === id || r.toMemberId === id))
-      .forEach(r => {
-        const spouseId = r.fromMemberId === id ? r.toMemberId : r.fromMemberId
-        if (!visited.has(spouseId)) {
-          queue.push({ id: spouseId, gen })
-        }
-      })
-
-    // Siblings (same gen)
-    relations
-      .filter(r => r.relationType === 'sibling' && (r.fromMemberId === id || r.toMemberId === id))
-      .forEach(r => {
-        const siblingId = r.fromMemberId === id ? r.toMemberId : r.fromMemberId
-        if (!visited.has(siblingId)) {
-          queue.push({ id: siblingId, gen })
-        }
-      })
+    // Дети (поколение + 1)
+    const children = parentOf.get(id) || []
+    children.forEach(childId => {
+      if (!visited.has(childId)) {
+        queue.push({ id: childId, gen: gen + 1 })
+      }
+    })
   }
 
-  // Handle members without relations
+  // Члены без связей
   members.forEach(m => {
     if (!generationMap.has(m.id)) {
-      generationMap.set(m.id, m.generation || 0)
+      generationMap.set(m.id, 0)
     }
   })
+
+  console.log('Generation map:', Object.fromEntries(generationMap))
+  console.log('Oldest members:', oldestMembers.map(m => m.name))
 
   return generationMap
 }
 
 // Layout function using dagre
-const layoutNodes = (nodesList: any[], edgesList: any[]) => {
+const layoutNodes = (nodesList: any[], edgesList: any[], generationMap: Map<string, number>) => {
   if (nodesList.length === 0) return []
 
-  const g = new dagre.graphlib.Graph()
-  g.setGraph({
-    rankdir: 'TB',
-    nodesep: 120,
-    ranksep: 180,
-    align: 'CENTER'
-  })
-  g.setDefaultEdgeLabel(() => ({}))
-
-  // Собираем все ID узлов
-  const nodeIds = new Set(nodesList.map(n => n.id))
-
-  // Сначала добавляем все узлы
-  nodesList.forEach((node) => {
-    g.setNode(node.id, { width: 180, height: 100 })
+  // Группируем узлы по поколениям
+  const genGroups = new Map<number, string[]>()
+  nodesList.forEach(node => {
+    const gen = generationMap.get(node.id) ?? 0
+    if (!genGroups.has(gen)) genGroups.set(gen, [])
+    genGroups.get(gen)!.push(node.id)
   })
 
-  // Добавляем только те рёбра, которые ссылаются на существующие узлы
-  const validEdges: any[] = []
-  edgesList.forEach((edge) => {
-    if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
-      g.setEdge(edge.source, edge.target)
-      validEdges.push(edge)
+  // Находим связи супругов для сортировки
+  const spousePairs = new Map<string, string>()
+  edgesList.forEach(edge => {
+    const isSpouse = edge.style?.stroke === '#ec4899'
+    if (isSpouse) {
+      spousePairs.set(edge.source, edge.target)
+      spousePairs.set(edge.target, edge.source)
     }
   })
 
-  try {
-    dagre.layout(g)
-  } catch (e) {
-    console.warn('Dagre layout error:', e)
-    // Возвращаем узлы без позиционирования dagre
-    return nodesList.map((node, index) => ({
-      ...node,
-      targetPosition: Position.Top,
-      sourcePosition: Position.Bottom,
-      position: { x: (index % 5) * 200, y: Math.floor(index / 5) * 200 },
-    }))
-  }
+  // Сортируем узлы внутри каждого поколения: супруги рядом
+  genGroups.forEach((ids, gen) => {
+    const sorted: string[] = []
+    const used = new Set<string>()
 
-  return nodesList.map((node) => {
-    const nodeWithPosition = g.node(node.id)
-    if (!nodeWithPosition) {
-      // Fallback позиция если dagre не смог позиционировать
-      const index = nodesList.findIndex(n => n.id === node.id)
-      return {
-        ...node,
-        targetPosition: Position.Top,
-        sourcePosition: Position.Bottom,
-        position: { x: (index % 5) * 200, y: Math.floor(index / 5) * 200 },
+    ids.forEach(id => {
+      if (used.has(id)) return
+
+      sorted.push(id)
+      used.add(id)
+
+      // Если есть супруг, добавляем сразу после
+      const spouseId = spousePairs.get(id)
+      if (spouseId && !used.has(spouseId) && ids.includes(spouseId)) {
+        sorted.push(spouseId)
+        used.add(spouseId)
       }
-    }
+    })
+
+    genGroups.set(gen, sorted)
+  })
+
+  // Вычисляем позиции вручную для полного контроля
+  const nodeWidth = 180
+  const nodeHeight = 100
+  const horizontalGap = 40
+  const verticalGap = 80
+
+  const positions = new Map<string, { x: number; y: number }>()
+
+  // Находим максимальную ширину для центрирования
+  let maxWidth = 0
+  genGroups.forEach(ids => {
+    const width = ids.length * nodeWidth + (ids.length - 1) * horizontalGap
+    if (width > maxWidth) maxWidth = width
+  })
+
+  // Расставляем узлы
+  const sortedGens = Array.from(genGroups.keys()).sort((a, b) => a - b)
+  sortedGens.forEach((gen, genIndex) => {
+    const ids = genGroups.get(gen)!
+    const totalWidth = ids.length * nodeWidth + (ids.length - 1) * horizontalGap
+    const startX = (maxWidth - totalWidth) / 2
+    const y = genIndex * (nodeHeight + verticalGap)
+
+    ids.forEach((id, posIndex) => {
+      const x = startX + posIndex * (nodeWidth + horizontalGap)
+      positions.set(id, { x, y })
+    })
+  })
+
+  // Создаём итоговый массив узлов с позициями
+  return nodesList.map(node => {
+    const pos = positions.get(node.id) || { x: 0, y: 0 }
     return {
       ...node,
       targetPosition: Position.Top,
       sourcePosition: Position.Bottom,
-      position: { x: nodeWithPosition.x - 90, y: nodeWithPosition.y - 50 },
+      position: { x: pos.x, y: pos.y },
     }
   })
 }
@@ -234,7 +265,7 @@ const buildTree = () => {
     })
   }
 
-  nodes.value = layoutNodes(newNodes, newEdges)
+  nodes.value = layoutNodes(newNodes, newEdges, generationMap)
   edges.value = newEdges
 }
 

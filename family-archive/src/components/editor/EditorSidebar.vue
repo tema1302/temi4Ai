@@ -19,6 +19,7 @@ const isDragging = ref(false)
 const mainPhotoInput = ref<HTMLInputElement | null>(null)
 const galleryInput = ref<HTMLInputElement | null>(null)
 const replacePhotoIndex = ref<number | null>(null)
+const showGalleryModal = ref(false)
 
 const updateField = (field: string, value: string) => {
   if (currentMember.value) {
@@ -391,17 +392,27 @@ const removeLifeEvent = (index: number) => {
         <div class="mb-4">
            <div class="flex items-center justify-between mb-2">
               <p class="text-[10px] text-gray-500 uppercase tracking-widest">Фотографии ({{ currentMember.photos.length }})</p>
-              <span v-if="isDragging" class="text-gold text-[8px] font-bold animate-pulse">ПЕРЕТАЩИТЕ СЮДА</span>
+              <div class="flex items-center gap-2">
+                <span v-if="isDragging" class="text-gold text-[8px] font-bold animate-pulse">ПЕРЕТАЩИТЕ СЮДА</span>
+                <button
+                  v-if="currentMember.photos.length > 0"
+                  @click="showGalleryModal = true"
+                  class="text-gold text-[10px] hover:underline"
+                >
+                  Показать все
+                </button>
+              </div>
            </div>
            <div class="grid grid-cols-4 gap-2">
               <div
                 v-for="(photo, index) in currentMember.photos.slice(0, 3)"
                 :key="index"
-                class="aspect-square rounded border border-white/10 overflow-hidden bg-charcoal relative group"
+                class="aspect-square rounded border border-white/10 overflow-hidden bg-charcoal relative group cursor-pointer"
+                @click="showGalleryModal = true"
               >
                 <img :src="photo" class="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity" />
                 <!-- Hover overlay with actions -->
-                <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" @click.stop>
                   <button
                     @click="replaceGalleryPhoto(index)"
                     class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
@@ -431,7 +442,11 @@ const removeLifeEvent = (index: number) => {
                   </button>
                 </div>
               </div>
-              <button v-if="currentMember.photos.length > 3" class="aspect-square rounded border border-white/10 bg-white/5 flex flex-col items-center justify-center hover:bg-white/10 transition-colors">
+              <button
+                v-if="currentMember.photos.length > 3"
+                @click="showGalleryModal = true"
+                class="aspect-square rounded border border-white/10 bg-white/5 flex flex-col items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+              >
                  <span class="text-gold text-[10px] font-bold">+{{ currentMember.photos.length - 3 }}</span>
                  <span class="text-[8px] text-gray-500 uppercase">все</span>
               </button>
@@ -462,4 +477,105 @@ const removeLifeEvent = (index: number) => {
 
     </div>
   </div>
+
+  <!-- Gallery Modal -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="showGalleryModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+        @click.self="showGalleryModal = false"
+      >
+        <div class="bg-charcoal rounded-2xl border border-white/10 p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-serif text-silk">Все фотографии ({{ currentMember?.photos?.length || 0 }})</h3>
+            <button
+              @click="showGalleryModal = false"
+              class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <svg class="w-4 h-4 text-silk" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Photo Grid -->
+          <div class="flex-1 overflow-y-auto">
+            <div class="grid grid-cols-3 md:grid-cols-4 gap-3">
+              <div
+                v-for="(photo, index) in currentMember?.photos"
+                :key="index"
+                class="aspect-square rounded-xl border border-white/10 overflow-hidden bg-obsidian relative group"
+              >
+                <img :src="photo" class="w-full h-full object-cover" />
+                <!-- Hover overlay with actions -->
+                <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    @click="replaceGalleryPhoto(index); showGalleryModal = false"
+                    class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                    title="Заменить файлом"
+                  >
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                  <button
+                    @click="replaceGalleryPhotoByUrl(index); showGalleryModal = false"
+                    class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                    title="Заменить по URL"
+                  >
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </button>
+                  <button
+                    @click="removeGalleryPhoto(index)"
+                    class="w-10 h-10 bg-red-500/80 rounded-full flex items-center justify-center hover:bg-red-500"
+                    title="Удалить"
+                  >
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div v-if="!currentMember?.photos?.length" class="text-center py-12 text-gray-500">
+              Нет фотографий
+            </div>
+          </div>
+
+          <!-- Footer actions -->
+          <div class="mt-4 pt-4 border-t border-white/10 flex gap-3 justify-end">
+            <BaseButton variant="secondary" @click="addPhoto">
+              Добавить по URL
+            </BaseButton>
+            <BaseButton @click="galleryInput?.click()">
+              Загрузить фото
+            </BaseButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from > div,
+.modal-leave-to > div {
+  transform: scale(0.95);
+}
+</style>

@@ -29,6 +29,7 @@ const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
 const isCreating = ref(false)
 const newFamilyName = ref('')
 const isSaving = ref(false)
+const showSaved = ref(false)
 const showPricing = ref(false)
 const isShowingMemberList = ref(false)
 
@@ -144,7 +145,19 @@ const saveChanges = async () => {
           member_count: store.currentFamily.members.length
         })
         await refreshFamilies()
-        // Просто обновляем список, без редиректа
+
+        // Показываем "Сохранено"
+        showSaved.value = true
+        setTimeout(() => {
+          showSaved.value = false
+        }, 2000)
+
+        // Переключаем на древо
+        store.setViewMode('tree')
+        // На мобильной - список (где древо)
+        mobileView.value = 'list'
+        // На десктопе - показываем список членов
+        isShowingMemberList.value = true
       } else {
         alert('Ошибка при сохранении.')
       }
@@ -210,6 +223,8 @@ const handleTreeMemberSelect = (memberId: string) => {
   store.setActiveMember(memberId)
   // На мобильной версии переключаем на редактор
   mobileView.value = 'editor'
+  // На десктопе переключаем на редактор (скрываем список)
+  isShowingMemberList.value = false
   if (!store.isEditing) store.toggleEditing()
 }
 
@@ -223,6 +238,8 @@ const handleAssignOnTree = (memberId: string) => {
   store.setViewMode('tree')
   // На мобильной версии переключаем на список (где показывается древо)
   mobileView.value = 'list'
+  // На десктопе показываем список членов (где древо)
+  isShowingMemberList.value = true
 }
 
 // Подтверждение связи - показываем модальное окно
@@ -312,6 +329,19 @@ const planName = computed(() => {
 
 <template>
   <MainLayout :fullHeight="true">
+    <!-- Saved Toast -->
+    <Transition name="toast">
+      <div
+        v-if="showSaved"
+        class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-500/90 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Сохранено
+      </div>
+    </Transition>
+
     <!-- Pricing Modal -->
     <PricingModal :isOpen="showPricing" @close="showPricing = false" />
 
@@ -769,3 +799,16 @@ const planName = computed(() => {
     />
   </MainLayout>
 </template>
+
+<style scoped>
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -20px);
+}
+</style>
