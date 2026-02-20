@@ -2,17 +2,18 @@
 import MainLayout from '@/layouts/MainLayout.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
+import LandingFamilyTreeDemo from '@/components/landing/LandingFamilyTreeDemo.vue'
 import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
 import oldPhotos from '@/assets/oldPhotos.webp'
 import heroImage from '@/assets/hero-1.webp'
 import { useAnalytics } from '@/composables/useAnalytics'
-import { 
-  BookOpen, 
-  Users, 
-  Heart, 
-  GitFork, 
-  ShieldCheck, 
+import {
+  BookOpen,
+  Users,
+  Heart,
+  GitFork,
+  ShieldCheck,
   Download,
   Camera,
   PenTool,
@@ -384,7 +385,10 @@ const pricingPlans = [
       </div>
     </section>
 
-    <!-- 6. PRICING -->
+    <!-- 6. FAMILY TREE DEMO (RURIKOVICHI) -->
+    <LandingFamilyTreeDemo />
+
+    <!-- 7. PRICING -->
     <section id="pricing" class="py-32 px-4 bg-obsidian border-t border-white/5">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">

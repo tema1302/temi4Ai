@@ -8,6 +8,9 @@ import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import MobileMemberList from '@/components/editor/MobileMemberList.vue'
 import MobileMemberEditor from '@/components/editor/MobileMemberEditor.vue'
+import ViewToggle from '@/components/shared/ViewToggle.vue'
+import FamilyTree from '@/components/tree/FamilyTree.vue'
+import AssignRoleModal from '@/components/tree/AssignRoleModal.vue'
 import Skeleton from '@/shared/ui/Skeleton.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -28,6 +31,35 @@ const newFamilyName = ref('')
 const isSaving = ref(false)
 const showPricing = ref(false)
 const isShowingMemberList = ref(false)
+
+// Assign role modal
+const showAssignModal = ref(false)
+const assignTargetMemberId = ref<string | null>(null)
+
+// Family name editing
+const isEditingFamilyName = ref(false)
+const editingFamilyName = ref('')
+
+const startEditFamilyName = () => {
+  editingFamilyName.value = store.familyName
+  isEditingFamilyName.value = true
+}
+
+const saveFamilyName = async () => {
+  if (editingFamilyName.value.trim()) {
+    store.updateFamilyName(editingFamilyName.value.trim())
+    // Сохраняем изменения на сервере
+    const authStore = useAuthStore()
+    if (authStore.user?.id && store.currentFamily) {
+      await store.saveCurrentFamily(authStore.user.id)
+    }
+  }
+  isEditingFamilyName.value = false
+}
+
+const cancelEditFamilyName = () => {
+  isEditingFamilyName.value = false
+}
 
 // Mobile State
 const mobileView = ref<'list' | 'editor'>('list')
@@ -107,14 +139,12 @@ const saveChanges = async () => {
     try {
       const success = await store.saveCurrentFamily(authStore.userId)
       if (success) {
-        alert('Сохранено успешно!')
-        trackEvent('save_family', { 
+        trackEvent('save_family', {
           family_id: store.currentFamily.id,
           member_count: store.currentFamily.members.length
         })
         await refreshFamilies()
-        // Redirect back to the interactive tree
-        router.push(`/archive/${store.currentFamily.id}/onboarding`)
+        // Просто обновляем список, без редиректа
       } else {
         alert('Ошибка при сохранении.')
       }
@@ -167,6 +197,101 @@ const handleMobileDelete = async (id: string) => {
 
 const handleMobileBack = () => {
   mobileView.value = 'list'
+}
+
+// Tree View Handlers
+const handleTreeMemberSelect = (memberId: string) => {
+  // Если есть ожидаемая связь - показываем модалку подтверждения
+  if (store.pendingRelation) {
+    showRelationConfirm(memberId)
+    return
+  }
+
+  store.setActiveMember(memberId)
+  // На мобильной версии переключаем на редактор
+  mobileView.value = 'editor'
+  if (!store.isEditing) store.toggleEditing()
+}
+
+// Обработчик назначения на древе
+const handleAssignOnTree = (memberId: string) => {
+  store.pendingRelation = {
+    memberId,
+    suggestedRole: 'parent'
+  }
+  // Переключаем на режим древа
+  store.setViewMode('tree')
+  // На мобильной версии переключаем на список (где показывается древо)
+  mobileView.value = 'list'
+}
+
+// Подтверждение связи - показываем модальное окно
+const showRelationConfirm = (targetMemberId: string) => {
+  if (!store.pendingRelation) return
+
+  const sourceMember = store.members.find(m => m.id === store.pendingRelation!.memberId)
+  const targetMember = store.members.find(m => m.id === targetMemberId)
+
+  if (!sourceMember || !targetMember) {
+    store.pendingRelation = null
+    return
+  }
+
+  // Сохраняем target ID и показываем модалку
+  assignTargetMemberId.value = targetMemberId
+  showAssignModal.value = true
+}
+
+// Обработка подтверждения из модалки
+const handleRelationConfirm = (relationType: 'parent' | 'spouse' | 'sibling' | 'child') => {
+  if (!store.pendingRelation || !assignTargetMemberId.value) return
+
+  const sourceId = store.pendingRelation.memberId
+  const targetId = assignTargetMemberId.value
+
+  // Если выбран "ребёнок", инвертируем направление связи
+  if (relationType === 'child') {
+    store.addRelation({
+      fromMemberId: targetId,
+      toMemberId: sourceId,
+      relationType: 'parent'
+    })
+  } else {
+    store.addRelation({
+      fromMemberId: sourceId,
+      toMemberId: targetId,
+      relationType
+    })
+  }
+
+  // Закрываем модалку и сбрасываем состояние
+  showAssignModal.value = false
+  assignTargetMemberId.value = null
+  store.pendingRelation = null
+
+  // Возвращаемся к карточкам и редактору
+  store.setViewMode('cards')
+  mobileView.value = 'editor'
+}
+
+// Отмена назначения
+const handleRelationCancel = () => {
+  showAssignModal.value = false
+  assignTargetMemberId.value = null
+  store.pendingRelation = null
+}
+
+const handleTreeAddRelation = (data: { memberId: string; relationType: string }) => {
+  // Create new member with relation
+  const newMember = store.addMemberWithRelation(
+    data.memberId,
+    data.relationType as 'parent' | 'spouse' | 'sibling',
+    { name: 'Новый родственник' }
+  )
+  if (newMember) {
+    mobileView.value = 'editor'
+    if (!store.isEditing) store.toggleEditing()
+  }
 }
 
 const previewLink = computed(() => {
@@ -237,9 +362,31 @@ const planName = computed(() => {
         <!-- Header -->
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
           <div>
-            <h1 class="text-2xl font-serif text-silk">
-              {{ store.currentFamily ? 'Архив: ' + store.familyName : 'Мои архивы' }}
-            </h1>
+            <div class="flex items-center gap-3">
+              <span class="text-gray-400 text-2xl font-serif">Архив:</span>
+              <!-- Edit mode -->
+              <input
+                v-if="isEditingFamilyName"
+                v-model="editingFamilyName"
+                @keyup.enter="saveFamilyName"
+                @keyup.escape="cancelEditFamilyName"
+                @blur="saveFamilyName"
+                ref="familyNameInput"
+                type="text"
+                class="text-2xl font-serif text-silk bg-transparent border-b-2 border-gold focus:outline-none px-1"
+                placeholder="Название семьи"
+              />
+              <!-- View mode -->
+              <h1
+                v-else
+                @click="startEditFamilyName"
+                class="text-2xl font-serif text-silk cursor-pointer hover:text-gold transition-colors group"
+                title="Нажмите для редактирования"
+              >
+                {{ store.familyName || 'Без названия' }}
+                <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">✏️</span>
+              </h1>
+            </div>
             <div class="flex items-center gap-3 text-sm mt-1">
               <p class="text-gray-400">
                 Пользователь: <span class="text-gold">{{ authStore.userEmail }}</span>
@@ -364,7 +511,7 @@ const planName = computed(() => {
           <!-- Content Area -->
           <div class="max-w-4xl mx-auto">
              <div v-if="store.isEditing" class="bg-charcoal/30 p-8 rounded-2xl border border-white/5 shadow-2xl">
-                <EditorSidebar @save="saveChanges" />
+                <EditorSidebar @save="saveChanges" @assign-on-tree="handleAssignOnTree" />
                 <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
                   <button 
                     v-if="store.members.length > 1"
@@ -387,15 +534,16 @@ const planName = computed(() => {
         <!-- Member List View (Desktop) -->
         <div v-else>
           <div class="flex items-center justify-between mb-8">
-             <h3 class="text-xl font-serif text-silk">Члены семьи</h3>
+             <ViewToggle v-model="store.viewMode" />
              <BaseButton size="sm" variant="ghost" @click="addMember" class="text-gold">
                + Добавить человека
              </BaseButton>
           </div>
-          
-          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-             <div 
-               v-for="member in store.members" 
+
+          <!-- Cards View -->
+          <div v-if="store.viewMode === 'cards'" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+             <div
+               v-for="member in store.members"
                :key="member.id"
                @click="selectMemberForPreview(member.id)"
                class="group cursor-pointer"
@@ -413,11 +561,11 @@ const planName = computed(() => {
                    </div>
                 </div>
                 <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors text-lg">{{ member.name }}</h4>
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.relationship || 'Член семьи' }}</p>
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.displayRole || member.relationship || 'Член семьи' }}</p>
              </div>
-             
+
              <!-- Add Card -->
-             <button 
+             <button
                @click="addMember"
                class="aspect-[3/4] rounded-2xl border-2 border-dashed border-white/10 hover:border-gold/30 hover:bg-gold/5 transition-all flex flex-col items-center justify-center gap-4 group"
              >
@@ -426,6 +574,34 @@ const planName = computed(() => {
                 </div>
                 <span class="text-[10px] text-gray-500 group-hover:text-gold transition-colors font-bold uppercase tracking-[0.2em]">Добавить</span>
              </button>
+          </div>
+
+          <!-- Tree View -->
+          <div v-else class="h-[600px] bg-charcoal/30 rounded-2xl border border-white/5 overflow-hidden relative">
+            <!-- Hint when assigning relation -->
+            <div
+              v-if="store.pendingRelation"
+              class="absolute top-0 left-0 right-0 bg-gold/20 backdrop-blur-sm z-10 py-3 px-4 text-center"
+            >
+              <p class="text-silk text-sm">
+                Нажмите на члена семьи, чтобы установить связь с
+                <span class="text-gold font-bold">{{ store.members.find(m => m.id === store.pendingRelation?.memberId)?.name }}</span>
+              </p>
+              <button
+                @click="store.pendingRelation = null"
+                class="text-xs text-gray-400 hover:text-silk mt-1 underline"
+              >
+                Отмена
+              </button>
+            </div>
+            <FamilyTree
+              :members="store.members"
+              :relations="store.relations"
+              :family-name="store.familyName"
+              :root-member-id="store.currentFamily?.rootMemberId"
+              @select-member="handleTreeMemberSelect"
+              @add-relation="handleTreeAddRelation"
+            />
           </div>
         </div>
       </main>
@@ -493,33 +669,103 @@ const planName = computed(() => {
 
       <!-- Family Editor (Mobile) -->
       <div v-else class="h-full flex flex-col">
-        
-        <!-- Mobile Header (when in List view) -->
-        <div v-if="mobileView === 'list'" class="p-4 bg-charcoal border-b border-white/10 flex justify-between items-center shrink-0">
-          <button @click="store.resetStore()" class="text-gray-400 text-sm">← Архивы</button>
-          <span class="text-silk font-serif truncate max-w-[150px]">{{ store.familyName }}</span>
-          <button @click="saveChanges" :disabled="isSaving" class="text-gold text-sm font-bold">
-            {{ isSaving ? '...' : 'Сохр.' }}
-          </button>
+
+        <!-- Mobile Header -->
+        <div v-if="mobileView === 'list'" class="p-4 bg-charcoal border-b border-white/10 shrink-0">
+          <div class="flex justify-between items-center mb-3">
+            <button @click="store.resetStore()" class="text-gray-400 text-sm">← Архивы</button>
+            <!-- Editable family name -->
+            <input
+              v-if="isEditingFamilyName"
+              v-model="editingFamilyName"
+              @keyup.enter="saveFamilyName"
+              @keyup.escape="cancelEditFamilyName"
+              @blur="saveFamilyName"
+              type="text"
+              class="text-silk font-serif text-center bg-transparent border-b border-gold focus:outline-none max-w-[150px] text-sm"
+              placeholder="Название"
+            />
+            <span
+              v-else
+              @click="startEditFamilyName"
+              class="text-silk font-serif truncate max-w-[150px] cursor-pointer hover:text-gold transition-colors"
+            >
+              {{ store.familyName }}
+            </span>
+            <button @click="saveChanges" :disabled="isSaving" class="text-gold text-sm font-bold">
+              {{ isSaving ? '...' : 'Сохр.' }}
+            </button>
+          </div>
+          <!-- View Toggle for Mobile -->
+          <div class="flex justify-center">
+            <ViewToggle v-model="store.viewMode" />
+          </div>
         </div>
 
-        <!-- List View -->
-        <MobileMemberList 
-          v-if="mobileView === 'list'"
+        <!-- Cards/List View -->
+        <MobileMemberList
+          v-if="mobileView === 'list' && store.viewMode === 'cards'"
           @select="handleMobileSelect"
           @add="addMember"
         />
 
+        <!-- Tree View (Mobile) -->
+        <div v-else-if="mobileView === 'list' && store.viewMode === 'tree'" class="flex-1 overflow-hidden relative">
+          <!-- Hint when assigning relation -->
+          <div
+            v-if="store.pendingRelation"
+            class="absolute top-0 left-0 right-0 bg-gold/20 backdrop-blur-sm z-10 py-3 px-4 text-center"
+          >
+            <p class="text-silk text-sm">
+              Нажмите на члена семьи для связи с
+              <span class="text-gold font-bold">{{ store.members.find(m => m.id === store.pendingRelation?.memberId)?.name }}</span>
+            </p>
+            <button
+              @click="store.pendingRelation = null"
+              class="text-xs text-gray-400 hover:text-silk mt-1 underline"
+            >
+              Отмена
+            </button>
+          </div>
+          <FamilyTree
+            :members="store.members"
+            :relations="store.relations"
+            :family-name="store.familyName"
+            :root-member-id="store.currentFamily?.rootMemberId"
+            @select-member="handleTreeMemberSelect"
+            @add-relation="handleTreeAddRelation"
+          />
+          <!-- FAB for adding -->
+          <button
+            @click="addMember"
+            class="absolute bottom-20 right-4 w-14 h-14 rounded-full bg-gold text-charcoal shadow-lg flex items-center justify-center text-2xl font-bold z-20"
+          >
+            +
+          </button>
+        </div>
+
         <!-- Editor View -->
-        <MobileMemberEditor 
-          v-else-if="mobileView === 'editor' && store.activeMemberId"
-          :member-id="store.activeMemberId"
+        <MobileMemberEditor
+          v-else-if="mobileView === 'editor'"
+          :key="store.activeMemberId"
+          :member-id="store.activeMemberId || ''"
           @back="handleMobileBack"
           @save="saveChanges"
           @delete="handleMobileDelete"
+          @assign-on-tree="handleAssignOnTree"
         />
 
       </div>
     </div>
+
+    <!-- Assign Role Modal -->
+    <AssignRoleModal
+      :is-open="showAssignModal"
+      :member="store.members.find(m => m.id === store.pendingRelation?.memberId) || null"
+      :target-member-name="store.members.find(m => m.id === assignTargetMemberId)?.name"
+      :suggested-role="store.pendingRelation?.suggestedRole"
+      @confirm="handleRelationConfirm"
+      @cancel="handleRelationCancel"
+    />
   </MainLayout>
 </template>

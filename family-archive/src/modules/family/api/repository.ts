@@ -1,21 +1,29 @@
 import { supabase } from '@/lib/supabase'
-import type { FamilyArchive, FamilyMember } from '../domain/models'
-import type { Family, Member, MemberInsert } from '@/types/supabase'
+import type { FamilyArchive, FamilyMember, FamilyRelation } from '../domain/models'
+import type { Family, Member, MemberInsert, FamilyRelation as DbRelation, FamilyRelationInsert } from '@/types/supabase'
 
 const STORAGE_BUCKET = 'photos'
 
 // DTO Mapping Helpers
-function mapToDomain(family: Family, members: Member[]): FamilyArchive {
+function mapToDomain(
+  family: Family,
+  members: Member[],
+  relations: DbRelation[]
+): FamilyArchive {
   return {
     id: family.slug,
     name: family.name,
     heroImage: family.hero_image || '',
     createdAt: family.created_at,
     updatedAt: family.updated_at,
+    rootMemberId: family.root_member_id || undefined,
     members: members.map(m => ({
       id: m.id,
       name: m.name,
       relationship: m.relationship || '',
+      gender: m.gender as 'male' | 'female' | 'unknown' | undefined,
+      generation: m.generation,
+      displayRole: m.display_role || undefined,
       birthDate: m.birth_date || '',
       deathDate: m.death_date || '',
       biography: m.biography || '',
@@ -24,6 +32,13 @@ function mapToDomain(family: Family, members: Member[]): FamilyArchive {
       photos: m.photos || [],
       videos: (m.videos as any) || [],
       quotes: m.quotes || [],
+    })),
+    relations: relations.map(r => ({
+      id: r.id,
+      fromMemberId: r.from_member_id,
+      toMemberId: r.to_member_id,
+      relationType: r.relation_type as 'parent' | 'spouse' | 'sibling',
+      createdAt: r.created_at,
     }))
   }
 }
@@ -54,7 +69,7 @@ export class FamilyRepository {
 
     return data.publicUrl
   }
-  
+
   /**
    * Загрузить семью по слагу (slug)
    */
@@ -81,7 +96,18 @@ export class FamilyRepository {
       return null
     }
 
-    return mapToDomain(family, members || [])
+    // Загружаем связи
+    const { data: relations, error: relationsError } = await supabase
+      .from('family_relations')
+      .select('*')
+      .eq('family_id', family.id)
+
+    if (relationsError) {
+      console.error('Repository: Relations fetch error', relationsError)
+      // Не прерываем, связи могут отсутствовать
+    }
+
+    return mapToDomain(family, members || [], relations || [])
   }
 
   /**
@@ -97,14 +123,19 @@ export class FamilyRepository {
     if (error || !families) return []
 
     const results: FamilyArchive[] = []
-    
+
     for (const f of families) {
       const { data: members } = await supabase
         .from('members')
         .select('*')
         .eq('family_id', f.id)
-      
-      results.push(mapToDomain(f, members || []))
+
+      const { data: relations } = await supabase
+        .from('family_relations')
+        .select('*')
+        .eq('family_id', f.id)
+
+      results.push(mapToDomain(f, members || [], relations || []))
     }
 
     return results
@@ -130,6 +161,7 @@ export class FamilyRepository {
           .update({
             name: archive.name,
             hero_image: archive.heroImage,
+            root_member_id: archive.rootMemberId || null,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id)
@@ -140,11 +172,12 @@ export class FamilyRepository {
             slug: archive.id,
             name: archive.name,
             hero_image: archive.heroImage,
+            root_member_id: archive.rootMemberId || null,
             user_id: userId
           })
           .select('id')
           .single()
-        
+
         if (error || !newFamily) throw error
         dbId = newFamily.id
       }
@@ -158,6 +191,9 @@ export class FamilyRepository {
           family_id: dbId,
           name: m.name,
           relationship: m.relationship || null,
+          gender: m.gender || null,
+          generation: m.generation || 0,
+          display_role: m.displayRole || null,
           birth_date: m.birthDate || null,
           death_date: m.deathDate || null,
           biography: m.biography || null,
@@ -167,8 +203,21 @@ export class FamilyRepository {
           videos: m.videos as any,
           quotes: m.quotes || [],
         }
-        
+
         await supabase.from('members').upsert(payload)
+      }
+
+      // 3. Upsert Relations
+      for (const r of archive.relations) {
+        const relationPayload: FamilyRelationInsert = {
+          id: r.id,
+          family_id: dbId,
+          from_member_id: r.fromMemberId,
+          to_member_id: r.toMemberId,
+          relation_type: r.relationType,
+        }
+
+        await supabase.from('family_relations').upsert(relationPayload)
       }
 
       return true
@@ -185,6 +234,11 @@ export class FamilyRepository {
 
   static async deleteMember(id: string): Promise<boolean> {
     const { error } = await supabase.from('members').delete().eq('id', id)
+    return !error
+  }
+
+  static async deleteRelation(id: string): Promise<boolean> {
+    const { error } = await supabase.from('family_relations').delete().eq('id', id)
     return !error
   }
 }

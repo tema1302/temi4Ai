@@ -19,6 +19,7 @@ export interface Database {
           name: string
           hero_image: string | null
           user_id: string
+          root_member_id: string | null
           created_at: string
           updated_at: string
         }
@@ -28,6 +29,7 @@ export interface Database {
           name: string
           hero_image?: string | null
           user_id: string
+          root_member_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +39,7 @@ export interface Database {
           name?: string
           hero_image?: string | null
           user_id?: string
+          root_member_id?: string | null
           updated_at?: string
         }
       }
@@ -46,6 +49,9 @@ export interface Database {
           family_id: string
           name: string
           relationship: string | null
+          gender: string | null
+          generation: number
+          display_role: string | null
           birth_date: string | null
           death_date: string | null
           biography: string | null
@@ -63,6 +69,9 @@ export interface Database {
           family_id: string
           name: string
           relationship?: string | null
+          gender?: string | null
+          generation?: number
+          display_role?: string | null
           birth_date?: string | null
           death_date?: string | null
           biography?: string | null
@@ -78,6 +87,9 @@ export interface Database {
         Update: {
           name?: string
           relationship?: string | null
+          gender?: string | null
+          generation?: number
+          display_role?: string | null
           birth_date?: string | null
           death_date?: string | null
           biography?: string | null
@@ -90,6 +102,27 @@ export interface Database {
           updated_at?: string
         }
       }
+      family_relations: {
+        Row: {
+          id: string
+          family_id: string
+          from_member_id: string
+          to_member_id: string
+          relation_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          from_member_id: string
+          to_member_id: string
+          relation_type: string
+          created_at?: string
+        }
+        Update: {
+          relation_type?: string
+        }
+      }
     }
   }
 }
@@ -99,3 +132,5 @@ export type Family = Database['public']['Tables']['families']['Row']
 export type FamilyInsert = Database['public']['Tables']['families']['Insert']
 export type Member = Database['public']['Tables']['members']['Row']
 export type MemberInsert = Database['public']['Tables']['members']['Insert']
+export type FamilyRelation = Database['public']['Tables']['family_relations']['Row']
+export type FamilyRelationInsert = Database['public']['Tables']['family_relations']['Insert']

@@ -8,6 +8,7 @@ import { FamilyRepository } from '@/modules/family/api/repository'
 
 const emit = defineEmits<{
   save: []
+  assignOnTree: [memberId: string]
 }>()
 
 const store = useMemoryStore()
@@ -222,6 +223,15 @@ const removeLifeEvent = (index: number) => {
           placeholder="Например: Основатель рода, Дедушка..."
           class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50 transition-colors"
         />
+        <button
+          @click="emit('assignOnTree', currentMember.id)"
+          class="mt-2 w-full py-2 px-4 bg-gold/10 hover:bg-gold/20 border border-gold/30 rounded-lg text-gold text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+          </svg>
+          Назначить на древе
+        </button>
       </div>
 
       <div class="grid grid-cols-2 gap-4">

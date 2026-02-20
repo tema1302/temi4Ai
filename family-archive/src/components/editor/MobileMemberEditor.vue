@@ -16,6 +16,7 @@ const emit = defineEmits<{
   save: []
   back: []
   delete: [id: string]
+  assignOnTree: [memberId: string]
 }>()
 
 const store = useMemoryStore()
@@ -25,7 +26,9 @@ const uploadType = ref<'main' | 'gallery'>('main')
 const viewMode = ref<'edit' | 'preview'>('edit')
 const replacePhotoIndex = ref<number | null>(null)
 
-const currentMember = computed(() => store.activeMember)
+const currentMember = computed(() => {
+  return store.members.find(m => m.id === props.memberId) || store.activeMember
+})
 const errors = ref({ name: '' })
 
 const updateField = (field: string, value: any) => {
@@ -232,18 +235,25 @@ const handleDelete = () => {
 
     <!-- Mode: EDIT -->
     <div v-else class="p-4 overflow-y-auto space-y-6 animate-fade-in">
-      
-      <!-- Hidden File Input -->
-      <input 
-        ref="fileInput"
-        type="file" 
-        accept="image/*" 
-        class="hidden" 
-        @change="handleFileChange"
-      />
 
-      <!-- Avatar & Basic Info -->
-      <div class="flex flex-col items-center gap-4">
+      <!-- No member selected -->
+      <div v-if="!currentMember" class="text-center py-8">
+        <p class="text-gray-400">Выберите члена семьи для редактирования</p>
+      </div>
+
+      <!-- Member editor form -->
+      <template v-else>
+        <!-- Hidden File Input -->
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="handleFileChange"
+        />
+
+        <!-- Avatar & Basic Info -->
+        <div class="flex flex-col items-center gap-4">
         <div class="relative group">
           <div
             @click="triggerMainPhotoUpload"
@@ -286,6 +296,33 @@ const handleDelete = () => {
             label="Кем приходится (роль)"
             placeholder="Напр: Основатель рода, Дедушка..."
           />
+
+          <!-- Assign on Tree Button -->
+          <button
+            @click="emit('assignOnTree', props.memberId)"
+            class="w-full p-4 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between hover:bg-white/10 transition-colors"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-gold/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 3v12"/>
+                  <circle cx="18" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <path d="M6 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                  <path d="M18 9a9 9 0 0 1-9 9"/>
+                </svg>
+              </div>
+              <div class="text-left">
+                <p class="text-silk text-sm font-medium">
+                  {{ currentMember?.displayRole || 'Назначить на древе' }}
+                </p>
+                <p class="text-gray-500 text-xs">
+                  Выбрать место на семейном древе
+                </p>
+              </div>
+            </div>
+            <span class="text-gold">→</span>
+          </button>
         </div>
       </div>
 
@@ -462,13 +499,14 @@ const handleDelete = () => {
 
       <!-- Delete Zone -->
       <div class="pt-10 pb-10 border-t border-white/5 mt-10">
-        <button 
+        <button
           class="w-full py-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"
           @click="handleDelete"
         >
           <Trash2 class="w-4 h-4" /> Удалить профиль
         </button>
       </div>
+      </template>
 
     </div>
   </div>
