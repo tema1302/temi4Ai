@@ -17,6 +17,7 @@ const isDragging = ref(false)
 
 const mainPhotoInput = ref<HTMLInputElement | null>(null)
 const galleryInput = ref<HTMLInputElement | null>(null)
+const replacePhotoIndex = ref<number | null>(null)
 
 const updateField = (field: string, value: string) => {
   if (currentMember.value) {
@@ -60,7 +61,20 @@ const onFileChange = async (e: Event, isGallery: boolean = false) => {
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       if (files[i].type.startsWith('image/')) {
-        await handleFileUpload(files[i], isGallery)
+        // If replacing a specific photo
+        if (isGallery && replacePhotoIndex.value !== null) {
+          const path = `${store.currentFamily?.id || 'general'}/${currentMember.value?.id}`
+          const url = await FamilyRepository.uploadFile(files[i], path)
+          if (url && currentMember.value) {
+            const updatedPhotos = [...currentMember.value.photos]
+            updatedPhotos[replacePhotoIndex.value] = url
+            store.updateMember(currentMember.value.id, { photos: updatedPhotos })
+            trackEvent('replace_gallery_photo', { member_id: currentMember.value.id })
+          }
+          replacePhotoIndex.value = null
+        } else {
+          await handleFileUpload(files[i], isGallery)
+        }
       }
     }
   }
@@ -97,6 +111,49 @@ const addPhoto = () => {
     trackEvent('add_photo', { member_id: currentMember.value.id })
     const updatedPhotos = [...currentMember.value.photos, url]
     store.updateMember(currentMember.value.id, { photos: updatedPhotos })
+  }
+}
+
+// Remove photo from gallery
+const removeGalleryPhoto = (index: number) => {
+  if (currentMember.value) {
+    const updatedPhotos = currentMember.value.photos.filter((_, i) => i !== index)
+    store.updateMember(currentMember.value.id, { photos: updatedPhotos })
+    trackEvent('remove_gallery_photo', { member_id: currentMember.value.id })
+  }
+}
+
+// Replace photo in gallery - trigger file upload
+const replaceGalleryPhoto = (index: number) => {
+  replacePhotoIndex.value = index
+  galleryInput.value?.click()
+}
+
+// Replace photo in gallery by URL
+const replaceGalleryPhotoByUrl = (index: number) => {
+  const url = prompt('Введите новый URL фотографии:')
+  if (url && currentMember.value) {
+    const updatedPhotos = [...currentMember.value.photos]
+    updatedPhotos[index] = url
+    store.updateMember(currentMember.value.id, { photos: updatedPhotos })
+    trackEvent('replace_gallery_photo_url', { member_id: currentMember.value.id })
+  }
+}
+
+// Remove main photo
+const removeMainPhoto = () => {
+  if (currentMember.value) {
+    store.updateMember(currentMember.value.id, { photoUrl: '' })
+    trackEvent('remove_main_photo', { member_id: currentMember.value.id })
+  }
+}
+
+// Set main photo from URL
+const setMainPhotoByUrl = () => {
+  const url = prompt('Введите URL фотографии:')
+  if (url && currentMember.value) {
+    store.updateMember(currentMember.value.id, { photoUrl: url })
+    trackEvent('set_main_photo_url', { member_id: currentMember.value.id })
   }
 }
 
@@ -202,18 +259,31 @@ const removeLifeEvent = (index: number) => {
              placeholder="Введите URL фотографии"
              class="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
            />
-           <input 
-             type="file" 
-             ref="mainPhotoInput" 
-             class="hidden" 
+           <input
+             type="file"
+             ref="mainPhotoInput"
+             class="hidden"
              accept="image/*"
-             @change="(e) => onFileChange(e, false)" 
+             @change="(e) => onFileChange(e, false)"
            />
+           <BaseButton variant="secondary" size="sm" @click="setMainPhotoByUrl" title="Добавить по ссылке">
+             🔗
+           </BaseButton>
            <BaseButton variant="secondary" size="sm" @click="mainPhotoInput?.click()">
              📁 Загрузить
            </BaseButton>
+           <BaseButton
+             v-if="currentMember.photoUrl"
+             variant="secondary"
+             size="sm"
+             @click="removeMainPhoto"
+             class="!border-red-500/30 !text-red-400 hover:!bg-red-500/10"
+             title="Удалить фото"
+           >
+             ✕
+           </BaseButton>
         </div>
-        <div 
+        <div
           @dragover.prevent="isDragging = true"
           @dragleave.prevent="isDragging = false"
           @drop.prevent="onDrop($event, false)"
@@ -288,7 +358,7 @@ const removeLifeEvent = (index: number) => {
       </BaseCard>
 
       <!-- Media (Photos & Videos) -->
-      <BaseCard 
+      <BaseCard
         class="p-4 border-white/5 transition-all"
         :class="{ 'border-gold bg-gold/5': isDragging }"
         @dragover.prevent="isDragging = true"
@@ -301,12 +371,12 @@ const removeLifeEvent = (index: number) => {
              <button @click="addPhoto" class="text-gold text-xs hover:underline">URL фото</button>
              <span class="text-gray-700">|</span>
              <input type="file" ref="galleryInput" class="hidden" accept="image/*" multiple @change="(e) => onFileChange(e, true)" />
-             <button @click="galleryInput?.click()" class="text-gold text-xs hover:underline">Загрузить с ПК</button>
+             <button @click="replacePhotoIndex = null; galleryInput?.click()" class="text-gold text-xs hover:underline">Загрузить с ПК</button>
              <span class="text-gray-700">|</span>
              <button @click="addVideo" class="text-gold text-xs hover:underline">Видео</button>
           </div>
         </div>
-        
+
         <!-- Photos Mini Grid -->
         <div class="mb-4">
            <div class="flex items-center justify-between mb-2">
@@ -314,14 +384,44 @@ const removeLifeEvent = (index: number) => {
               <span v-if="isDragging" class="text-gold text-[8px] font-bold animate-pulse">ПЕРЕТАЩИТЕ СЮДА</span>
            </div>
            <div class="grid grid-cols-4 gap-2">
-              <div 
-                v-for="(photo, index) in currentMember.photos.slice(0, 3)" 
+              <div
+                v-for="(photo, index) in currentMember.photos.slice(0, 3)"
                 :key="index"
-                class="aspect-square rounded border border-white/10 overflow-hidden bg-charcoal"
+                class="aspect-square rounded border border-white/10 overflow-hidden bg-charcoal relative group"
               >
-                <img :src="photo" class="w-full h-full object-cover opacity-50 hover:opacity-100 transition-opacity" />
+                <img :src="photo" class="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity" />
+                <!-- Hover overlay with actions -->
+                <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    @click="replaceGalleryPhoto(index)"
+                    class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                    title="Заменить файлом"
+                  >
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                  <button
+                    @click="replaceGalleryPhotoByUrl(index)"
+                    class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                    title="Заменить по URL"
+                  >
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </button>
+                  <button
+                    @click="removeGalleryPhoto(index)"
+                    class="w-6 h-6 bg-red-500/80 rounded-full flex items-center justify-center hover:bg-red-500"
+                    title="Удалить"
+                  >
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <button v-if="currentMember.photos.length > 3" class="aspect-square rounded border border-white/10 bg-white/5 flex flex-col items-center justify-center">
+              <button v-if="currentMember.photos.length > 3" class="aspect-square rounded border border-white/10 bg-white/5 flex flex-col items-center justify-center hover:bg-white/10 transition-colors">
                  <span class="text-gold text-[10px] font-bold">+{{ currentMember.photos.length - 3 }}</span>
                  <span class="text-[8px] text-gray-500 uppercase">все</span>
               </button>
@@ -335,8 +435,8 @@ const removeLifeEvent = (index: number) => {
         <div>
            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Видео ({{ currentMember.videos?.length || 0 }})</p>
            <div class="grid grid-cols-4 gap-2">
-              <div 
-                v-for="(video, index) in (currentMember.videos || []).slice(0, 3)" 
+              <div
+                v-for="(video, index) in (currentMember.videos || []).slice(0, 3)"
                 :key="index"
                 class="aspect-square rounded border border-white/10 overflow-hidden bg-obsidian flex items-center justify-center"
               >

@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
-import type { FamilyMember } from '@/modules/family/domain/models'
 import BaseInput from '@/shared/ui/BaseInput.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
-import BaseCard from '@/shared/ui/BaseCard.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
-import { Eye, Edit2, Trash2, Plus, ArrowLeft } from 'lucide-vue-next'
+import { Eye, Edit2, Trash2, Plus, ArrowLeft, X, RefreshCw, Link } from 'lucide-vue-next'
 
 const props = defineProps<{
   memberId: string
@@ -25,6 +23,7 @@ const { trackEvent } = useAnalytics()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadType = ref<'main' | 'gallery'>('main')
 const viewMode = ref<'edit' | 'preview'>('edit')
+const replacePhotoIndex = ref<number | null>(null)
 
 const currentMember = computed(() => store.activeMember)
 const errors = ref({ name: '' })
@@ -60,14 +59,6 @@ const addQuote = () => {
   }
 }
 
-const addPhoto = () => {
-  const url = prompt('Введите URL фотографии:')
-  if (url && currentMember.value) {
-    const updatedPhotos = [...currentMember.value.photos, url]
-    store.updateMember(props.memberId, { photos: updatedPhotos })
-  }
-}
-
 const triggerPCGalleryUpload = () => {
   uploadType.value = 'gallery'
   fileInput.value?.click()
@@ -75,6 +66,7 @@ const triggerPCGalleryUpload = () => {
 
 const triggerMainPhotoUpload = () => {
   uploadType.value = 'main'
+  replacePhotoIndex.value = null
   fileInput.value?.click()
 }
 
@@ -85,16 +77,74 @@ const handleFileChange = async (e: Event) => {
 
   const path = `${store.currentFamily?.id || 'general'}/${currentMember.value.id}`
   const url = await FamilyRepository.uploadFile(file, path)
-  
+
   if (url) {
     if (uploadType.value === 'gallery') {
-      const updatedPhotos = [...currentMember.value.photos, url]
-      store.updateMember(props.memberId, { photos: updatedPhotos })
+      if (replacePhotoIndex.value !== null) {
+        // Replace existing photo
+        const updatedPhotos = [...currentMember.value.photos]
+        updatedPhotos[replacePhotoIndex.value] = url
+        store.updateMember(props.memberId, { photos: updatedPhotos })
+        replacePhotoIndex.value = null
+      } else {
+        // Add new photo
+        const updatedPhotos = [...currentMember.value.photos, url]
+        store.updateMember(props.memberId, { photos: updatedPhotos })
+      }
     } else {
       store.updateMember(props.memberId, { photoUrl: url })
     }
   }
   target.value = ''
+}
+
+// Remove photo from gallery
+const removeGalleryPhoto = (index: number) => {
+  if (currentMember.value) {
+    const updatedPhotos = currentMember.value.photos.filter((_, i) => i !== index)
+    store.updateMember(props.memberId, { photos: updatedPhotos })
+  }
+}
+
+// Replace photo in gallery - trigger file upload
+const replaceGalleryPhoto = (index: number) => {
+  uploadType.value = 'gallery'
+  replacePhotoIndex.value = index
+  fileInput.value?.click()
+}
+
+// Add photo by URL to gallery
+const addPhotoByUrl = () => {
+  const url = prompt('Введите URL фотографии:')
+  if (url && currentMember.value) {
+    const updatedPhotos = [...currentMember.value.photos, url]
+    store.updateMember(props.memberId, { photos: updatedPhotos })
+    trackEvent('add_photo_url', { member_id: props.memberId })
+  }
+}
+
+// Replace photo in gallery by URL
+const replaceGalleryPhotoByUrl = (index: number) => {
+  const url = prompt('Введите новый URL фотографии:')
+  if (url && currentMember.value) {
+    const updatedPhotos = [...currentMember.value.photos]
+    updatedPhotos[index] = url
+    store.updateMember(props.memberId, { photos: updatedPhotos })
+  }
+}
+
+// Remove main photo
+const removeMainPhoto = () => {
+  store.updateMember(props.memberId, { photoUrl: '' })
+}
+
+// Set main photo from URL
+const setMainPhotoByUrl = () => {
+  const url = prompt('Введите URL фотографии:')
+  if (url) {
+    store.updateMember(props.memberId, { photoUrl: url })
+    trackEvent('set_main_photo_url', { member_id: props.memberId })
+  }
 }
 
 const addLifeEvent = () => {
@@ -194,21 +244,31 @@ const handleDelete = () => {
 
       <!-- Avatar & Basic Info -->
       <div class="flex flex-col items-center gap-4">
-        <div 
-          @click="triggerMainPhotoUpload"
-          class="w-28 h-28 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 relative group cursor-pointer shadow-xl shadow-gold/5"
-        >
-          <img 
-            v-if="currentMember.photoUrl" 
-            :src="currentMember.photoUrl" 
-            class="w-full h-full object-cover"
+        <div class="relative group">
+          <div
+            @click="triggerMainPhotoUpload"
+            class="w-28 h-28 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 cursor-pointer shadow-xl shadow-gold/5"
           >
-          <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600 font-serif">
-            {{ currentMember.name ? currentMember.name[0] : '?' }}
+            <img
+              v-if="currentMember.photoUrl"
+              :src="currentMember.photoUrl"
+              class="w-full h-full object-cover"
+            >
+            <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600 font-serif">
+              {{ currentMember.name ? currentMember.name[0] : '?' }}
+            </div>
+            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Edit2 class="w-6 h-6 text-white/70" />
+            </div>
           </div>
-          <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <Edit2 class="w-6 h-6 text-white/70" />
-          </div>
+          <!-- Remove main photo button -->
+          <button
+            v-if="currentMember.photoUrl"
+            @click.stop="removeMainPhoto"
+            class="absolute -top-1 -right-1 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <X class="w-4 h-4 text-white" />
+          </button>
         </div>
         
         <div class="w-full space-y-4">
@@ -256,7 +316,10 @@ const handleDelete = () => {
             placeholder="URL фотографии"
             class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
           />
-          <button @click="triggerMainPhotoUpload" class="px-4 bg-white/5 border border-white/10 rounded-lg text-gold">
+          <button @click="setMainPhotoByUrl" class="px-3 bg-white/5 border border-white/10 rounded-lg text-gold" title="Добавить по ссылке">
+            <Link class="w-5 h-5" />
+          </button>
+          <button @click="triggerMainPhotoUpload" class="px-3 bg-white/5 border border-white/10 rounded-lg text-gold" title="Загрузить файл">
             <Plus class="w-5 h-5" />
           </button>
         </div>
@@ -337,6 +400,9 @@ const handleDelete = () => {
         <div class="flex justify-between items-center">
           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Медиатека</label>
           <div class="flex gap-3">
+            <button @click="addPhotoByUrl" class="text-gold text-xs flex items-center gap-1">
+              <Link class="w-3 h-3" /> URL
+            </button>
             <button @click="triggerPCGalleryUpload" class="text-gold text-xs flex items-center gap-1">
               <Plus class="w-3 h-3" /> Фото
             </button>
@@ -345,23 +411,47 @@ const handleDelete = () => {
             </button>
           </div>
         </div>
-        
+
         <div class="grid grid-cols-3 gap-3">
-          <div 
-            v-for="(photo, index) in currentMember.photos" 
+          <div
+            v-for="(photo, index) in currentMember.photos"
             :key="`ph-${index}`"
-            class="aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10"
+            class="aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10 relative group"
           >
             <img :src="photo" class="w-full h-full object-cover" />
+            <!-- Hover overlay with actions -->
+            <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                @click="replaceGalleryPhoto(index)"
+                class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                title="Заменить файлом"
+              >
+                <RefreshCw class="w-4 h-4 text-white" />
+              </button>
+              <button
+                @click="replaceGalleryPhotoByUrl(index)"
+                class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30"
+                title="Заменить по URL"
+              >
+                <Link class="w-4 h-4 text-white" />
+              </button>
+              <button
+                @click="removeGalleryPhoto(index)"
+                class="w-8 h-8 bg-red-500/80 rounded-full flex items-center justify-center hover:bg-red-500"
+                title="Удалить"
+              >
+                <Trash2 class="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
-          <div 
-            v-for="(video, index) in currentMember.videos" 
+          <div
+            v-for="(video, index) in currentMember.videos"
             :key="`vid-${index}`"
             class="aspect-square rounded-xl overflow-hidden bg-obsidian flex items-center justify-center border border-white/10"
           >
             <span class="text-gold text-xs">▶</span>
           </div>
-          <button 
+          <button
             @click="triggerPCGalleryUpload"
             class="aspect-square rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-gray-600"
           >
