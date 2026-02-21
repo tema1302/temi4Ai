@@ -63,7 +63,13 @@ const displayPhoto = computed(() => {
     <div v-if="data.isFilled" class="flex flex-col gap-2">
       <!-- Avatar -->
       <div v-if="displayPhoto" class="w-12 h-12 mx-auto rounded-full overflow-hidden border border-white/20">
-        <img :src="displayPhoto" class="w-full h-full object-cover" alt="" />
+        <img
+          :src="displayPhoto"
+          loading="lazy"
+          decoding="async"
+          class="w-full h-full object-cover"
+          alt=""
+        />
       </div>
       <div v-else class="w-12 h-12 mx-auto rounded-full bg-gold/10 flex items-center justify-center text-xl text-gold font-serif">
         {{ displayName.charAt(0) }}

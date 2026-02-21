@@ -262,6 +262,8 @@ const handleDelete = () => {
             <img
               v-if="currentMember.photoUrl"
               :src="currentMember.photoUrl"
+              loading="lazy"
+              decoding="async"
               class="w-full h-full object-cover"
             >
             <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600 font-serif">

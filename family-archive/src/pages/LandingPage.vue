@@ -8,6 +8,7 @@ import { onMounted } from 'vue'
 import oldPhotos from '@/assets/oldPhotos.webp'
 import heroImage from '@/assets/hero-1.webp'
 import { useAnalytics } from '@/composables/useAnalytics'
+import { preloadCriticalImages } from '@/shared/utils/imagePreload'
 import {
   BookOpen,
   Users,
@@ -26,7 +27,25 @@ import {
 const router = useRouter()
 const { trackCtaClick, trackPageScroll } = useAnalytics()
 
+// Предзагрузка критичных изображений для LCP
+const HERO_BG_URL = 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop'
+
 onMounted(() => {
+  // Предзагрузка hero изображений через link preload
+  const preloadHeroBg = document.createElement('link')
+  preloadHeroBg.rel = 'preload'
+  preloadHeroBg.as = 'image'
+  preloadHeroBg.href = HERO_BG_URL
+  document.head.appendChild(preloadHeroBg)
+
+  // Предзагрузка изображений marquee после загрузки страницы
+  setTimeout(() => {
+    preloadCriticalImages([
+      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400',
+      'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=1000'
+    ])
+  }, 2000)
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -120,9 +139,12 @@ const pricingPlans = [
       <!-- Hero Image Overlay -->
       <div class="absolute inset-0 z-0">
         <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
-        <img 
-          src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop" 
-          alt="Уютный дом для воспоминаний" 
+        <img
+          :src="HERO_BG_URL"
+          alt="Уютный дом для воспоминаний"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
           class="w-full h-full object-cover opacity-20 scale-105 animate-slow-zoom"
         />
         <div class="absolute inset-0 bg-gradient-to-b from-obsidian/90 via-obsidian/70 to-obsidian"></div>
@@ -167,10 +189,12 @@ const pricingPlans = [
           <div class="absolute inset-0 bg-gold/20 blur-[60px] rounded-full transform rotate-12"></div>
           
           <div class="relative bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-700">
-             <img 
-               :src="heroImage" 
+             <img
+               :src="heroImage"
                class="w-full h-[500px] object-cover rounded-lg filter sepia-[0.2]"
                alt="Family memory"
+               loading="eager"
+               fetchpriority="high"
              />
              <div class="absolute bottom-8 left-8 right-8 bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/10">
                 <p class="text-silk font-serif text-lg">"Дедушка всегда говорил, что счастье любит тишину..."</p>
@@ -188,12 +212,17 @@ const pricingPlans = [
         <div class="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-charcoal to-transparent z-10"></div>
         
         <div class="flex gap-4 animate-scroll-left w-max">
-           <div 
-             v-for="(img, idx) in [...marqueeImages, ...marqueeImages]" 
+           <div
+             v-for="(img, idx) in [...marqueeImages, ...marqueeImages]"
              :key="idx"
              class="relative w-48 h-64 rounded-lg overflow-hidden flex-shrink-0 group grayscale hover:grayscale-0 transition-all duration-500"
            >
-              <img :src="img" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+              <img
+                :src="img"
+                loading="lazy"
+                decoding="async"
+                class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+              />
               <div class="absolute inset-0 bg-gold/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            </div>
         </div>
@@ -214,9 +243,11 @@ const pricingPlans = [
           <div class="absolute top-4 left-4 right-4 bottom-4 bg-white/5 border border-white/10 rounded-xl rotate-6 transition-transform group-hover:rotate-12 duration-500"></div>
           <div class="absolute top-2 left-2 right-2 bottom-2 bg-white/5 border border-white/10 rounded-xl -rotate-3 transition-transform group-hover:-rotate-6 duration-500"></div>
           
-          <img 
-            :src="oldPhotos" 
-            alt="Старые фотографии" 
+          <img
+            :src="oldPhotos"
+            alt="Старые фотографии"
+            loading="lazy"
+            decoding="async"
             class="relative z-10 rounded-xl shadow-2xl border border-white/10 transition-all duration-700 hover:scale-[1.02] w-full h-auto grayscale-[0.3] hover:grayscale-0"
           />
           
@@ -376,8 +407,18 @@ const pricingPlans = [
            </div>
            <div class="md:w-1/2 relative">
               <div class="relative z-10 grid grid-cols-2 gap-4">
-                 <img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400" class="rounded-lg translate-y-8 shadow-2xl opacity-80" />
-                 <img src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=1000" class="rounded-lg shadow-2xl" />
+                 <img
+                   src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400"
+                   loading="lazy"
+                   decoding="async"
+                   class="rounded-lg translate-y-8 shadow-2xl opacity-80"
+                 />
+                 <img
+                   src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=1000"
+                   loading="lazy"
+                   decoding="async"
+                   class="rounded-lg shadow-2xl"
+                 />
               </div>
               <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gold/10 blur-[80px] rounded-full"></div>
            </div>

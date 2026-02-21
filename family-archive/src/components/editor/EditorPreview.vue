@@ -25,10 +25,12 @@ const formatDate = (dateStr: string) => {
     <!-- Hero Preview -->
     <BaseCard class="overflow-hidden">
       <div class="aspect-[16/9] relative bg-charcoal">
-        <img 
+        <img
           v-if="member?.photoUrl"
           :src="member.photoUrl"
           :alt="member?.name"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover opacity-50"
         />
         <div class="absolute inset-0 bg-gradient-to-t from-obsidian to-transparent"></div>
@@ -87,15 +89,20 @@ const formatDate = (dateStr: string) => {
     <!-- Media Gallery Preview -->
     <div v-if="member?.photos?.length || member?.videos?.length" class="space-y-6">
       <h3 class="text-xs text-gray-500 uppercase tracking-widest font-bold">Медиагалерея</h3>
-      
+
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <!-- Photos -->
-        <div 
-          v-for="(photo, index) in member.photos.slice(0, 6)" 
+        <div
+          v-for="(photo, index) in member.photos.slice(0, 6)"
           :key="`photo-${index}`"
           class="aspect-square rounded-xl overflow-hidden group relative cursor-pointer shadow-xl"
         >
-          <img :src="photo" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          <img
+            :src="photo"
+            loading="lazy"
+            decoding="async"
+            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+          />
           <div class="absolute inset-0 bg-gold/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         </div>
 

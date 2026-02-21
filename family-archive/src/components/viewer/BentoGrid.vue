@@ -47,6 +47,8 @@ const getCellClass = (index: number) => {
       <img
         :src="photo"
         :alt="`Воспоминание ${index + 1}`"
+        loading="lazy"
+        decoding="async"
         class="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
         :class="{ 'opacity-0': !loadedImages.has(index), 'opacity-100': loadedImages.has(index) }"
         @load="onImageLoad(index)"

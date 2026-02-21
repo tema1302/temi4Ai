@@ -137,9 +137,11 @@ const setActiveMember = (id: string) => {
               : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-silk'"
           >
             <div class="w-6 h-6 rounded-full overflow-hidden bg-charcoal">
-              <img 
-                v-if="member.photoUrl" 
-                :src="member.photoUrl" 
+              <img
+                v-if="member.photoUrl"
+                :src="member.photoUrl"
+                loading="lazy"
+                decoding="async"
                 class="w-full h-full object-cover"
               />
               <div v-else class="w-full h-full flex items-center justify-center text-[10px] text-gray-500">

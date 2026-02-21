@@ -61,6 +61,7 @@ export interface Database {
           videos: Json
           quotes: string[]
           order_index: number
+          tree_position: Json | null  // { x: number, y: number }
           created_at: string
           updated_at: string
         }
@@ -81,6 +82,7 @@ export interface Database {
           videos?: Json
           quotes?: string[]
           order_index?: number
+          tree_position?: Json | null  // { x: number, y: number }
           created_at?: string
           updated_at?: string
         }
@@ -99,6 +101,7 @@ export interface Database {
           videos?: Json
           quotes?: string[]
           order_index?: number
+          tree_position?: Json | null  // { x: number, y: number }
           updated_at?: string
         }
       }

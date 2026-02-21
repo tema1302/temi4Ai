@@ -73,9 +73,11 @@ const onSelect = (id: string) => {
       >
         <!-- Avatar -->
         <div class="w-12 h-12 rounded-full overflow-hidden bg-charcoal flex-shrink-0 border border-white/10">
-          <img 
-            v-if="member.photoUrl" 
-            :src="member.photoUrl" 
+          <img
+            v-if="member.photoUrl"
+            :src="member.photoUrl"
+            loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover"
           >
           <div v-else class="w-full h-full flex items-center justify-center text-gray-500 font-bold">

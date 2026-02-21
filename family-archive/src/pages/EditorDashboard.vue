@@ -136,6 +136,12 @@ const saveChanges = async () => {
   }
 
   if (store.currentFamily) {
+    // Debug: log members with treePosition before saving
+    console.log('[EditorDashboard] Saving family, members:', store.members.map(m => ({
+      name: m.name,
+      treePosition: m.treePosition
+    })))
+
     isSaving.value = true
     try {
       const success = await store.saveCurrentFamily(authStore.userId)
@@ -311,6 +317,29 @@ const handleTreeAddRelation = (data: { memberId: string; relationType: string })
   }
 }
 
+// Обработчик обновления позиции узла на древе
+const handleUpdatePosition = (data: { memberId: string; position: { x: number; y: number } }) => {
+  console.log('[EditorDashboard] Update position:', data)
+  store.updateMemberPosition(data.memberId, data.position)
+
+  // Проверяем что позиция сохранилась
+  const member = store.members.find(m => m.id === data.memberId)
+  console.log('[EditorDashboard] Member after update:', member?.name, member?.treePosition)
+
+  // Автоматически сохраняем в базу данных (fire and forget с обработкой ошибок)
+  if (authStore.userId && store.currentFamily) {
+    console.log('[EditorDashboard] Auto-saving position to database...')
+    store.saveCurrentFamily(authStore.userId)
+      .then(() => console.log('[EditorDashboard] Position saved to database successfully'))
+      .catch(e => console.error('[EditorDashboard] Error saving position:', e))
+  }
+}
+
+// Обработчик сброса layout
+const handleResetLayout = () => {
+  store.resetAllPositions()
+}
+
 const previewLink = computed(() => {
   if (store.currentFamily) {
     return `/${store.currentFamily.id}`
@@ -359,13 +388,15 @@ const planName = computed(() => {
           class="flex-shrink-0 cursor-pointer relative group"
           @click="selectMemberForPreview(member.id)"
         >
-          <div 
+          <div
             class="w-12 h-12 rounded-full border-2 overflow-hidden transition-all duration-300"
             :class="store.activeMemberId === member.id ? 'border-gold shadow-[0_0_15px_rgba(212,175,55,0.3)]' : 'border-white/10 hover:border-gold/50'"
           >
-            <img 
-              v-if="member.photoUrl" 
-              :src="member.photoUrl" 
+            <img
+              v-if="member.photoUrl"
+              :src="member.photoUrl"
+              loading="lazy"
+              decoding="async"
               class="w-full h-full object-cover"
             >
             <div v-else class="w-full h-full bg-white/10 flex items-center justify-center text-xs text-gray-400">
@@ -579,7 +610,13 @@ const planName = computed(() => {
                class="group cursor-pointer"
              >
                 <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
-                   <img v-if="member.photoUrl" :src="member.photoUrl" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                   <img
+                     v-if="member.photoUrl"
+                     :src="member.photoUrl"
+                     loading="lazy"
+                     decoding="async"
+                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                   />
                    <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">
                      {{ member.name[0] || '?' }}
                    </div>
@@ -631,6 +668,8 @@ const planName = computed(() => {
               :root-member-id="store.currentFamily?.rootMemberId"
               @select-member="handleTreeMemberSelect"
               @add-relation="handleTreeAddRelation"
+              @update-position="handleUpdatePosition"
+              @reset-layout="handleResetLayout"
             />
           </div>
         </div>

@@ -10,6 +10,9 @@ import {
   createEmptyRelation
 } from '../domain/models'
 
+// Пустой массив как константа для избежания создания новых ссылок
+const EMPTY_ARRAY: any[] = []
+
 export const useMemoryStore = defineStore('memory', () => {
   // State
   const currentFamily = ref<FamilyArchive | null>(null)
@@ -20,10 +23,10 @@ export const useMemoryStore = defineStore('memory', () => {
   const pendingRelation = ref<{ memberId: string; suggestedRole: string } | null>(null)
   const viewMode = ref<'cards' | 'tree'>('cards')
 
-  // Getters
+  // Getters - используем стабильные ссылки на пустой массив
   const familyName = computed(() => currentFamily.value?.name ?? '')
-  const members = computed(() => currentFamily.value?.members ?? [])
-  const relations = computed(() => currentFamily.value?.relations ?? [])
+  const members = computed(() => currentFamily.value?.members ?? EMPTY_ARRAY as FamilyMember[])
+  const relations = computed(() => currentFamily.value?.relations ?? EMPTY_ARRAY as FamilyRelation[])
 
   const activeMember = computed(() => {
     if (!currentFamily.value?.members.length) return null
@@ -77,6 +80,40 @@ export const useMemoryStore = defineStore('memory', () => {
       }
       currentFamily.value.updatedAt = new Date().toISOString()
     }
+  }
+
+  // Обновление позиции члена на древе
+  function updateMemberPosition(memberId: string, position: { x: number; y: number }) {
+    if (!currentFamily.value) {
+      console.warn('[Store] updateMemberPosition: no currentFamily')
+      return
+    }
+
+    const index = currentFamily.value.members.findIndex(m => m.id === memberId)
+    console.log(`[Store] updateMemberPosition: member ${memberId}, index ${index}, position`, position)
+
+    if (index !== -1) {
+      const member = currentFamily.value.members[index]
+      currentFamily.value.members[index] = {
+        ...member,
+        treePosition: position
+      }
+      currentFamily.value.updatedAt = new Date().toISOString()
+      console.log(`[Store] Updated member ${member.name} treePosition:`, currentFamily.value.members[index].treePosition)
+    } else {
+      console.warn(`[Store] Member ${memberId} not found`)
+    }
+  }
+
+  // Сброс всех позиций (вернуться к автоматическому layout)
+  function resetAllPositions() {
+    if (!currentFamily.value) return
+
+    currentFamily.value.members = currentFamily.value.members.map(member => ({
+      ...member,
+      treePosition: undefined
+    }))
+    currentFamily.value.updatedAt = new Date().toISOString()
   }
 
   function updateFamilyName(name: string) {
@@ -283,6 +320,8 @@ export const useMemoryStore = defineStore('memory', () => {
     setFamily,
     setActiveMember,
     updateMember,
+    updateMemberPosition,
+    resetAllPositions,
     updateFamilyName,
     addMember,
     addMemberWithRelation,

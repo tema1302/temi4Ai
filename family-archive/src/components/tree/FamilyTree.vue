@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, markRaw } from 'vue'
+import { onMounted, watch, markRaw, shallowRef, ref } from 'vue'
 import { VueFlow, useVueFlow, Position } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import dagre from 'dagre'
 import FamilyNode from './FamilyNode.vue'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 
-// markRaw чтобы Vue не делал компонент реактивным
-const nodeTypes = markRaw({ family: FamilyNode })
+// Node types для VueFlow (используем any для обхода проблемы с типами VueFlow)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const nodeTypes: any = markRaw({ family: FamilyNode })
+
+// Debounce utility
+function useDebounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  return ((...args: any[]) => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
+
+// Shallow refs for better performance with large arrays
+const nodes = shallowRef<any[]>([])
+const edges = shallowRef<any[]>([])
+
+// Режим перетаскивания (активируется кнопкой)
+const isDragMode = ref(false)
 
 interface Props {
   members: FamilyMember[]
@@ -21,12 +37,15 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   selectMember: [memberId: string]
   addRelation: [data: { memberId: string; relationType: RelationType }]
+  updatePosition: [data: { memberId: string; position: { x: number; y: number } }]
+  resetLayout: []
 }>()
 
 const { onNodeClick, fitView } = useVueFlow()
 
-const nodes = ref<any[]>([])
-const edges = ref<any[]>([])
+// Кеш для отслеживания изменений (только ID и структура связей)
+let lastMembersSignature = ''
+let lastRelationsSignature = ''
 
 // Безопасный доступ к данным
 const safeMembers = () => props.members || []
@@ -107,16 +126,44 @@ const calculateGenerations = () => {
     }
   })
 
-  console.log('Generation map:', Object.fromEntries(generationMap))
-  console.log('Oldest members:', oldestMembers.map(m => m.name))
-
   return generationMap
 }
 
-// Layout function using dagre
-const layoutNodes = (nodesList: any[], edgesList: any[], generationMap: Map<string, number>) => {
+// Layout function - использует сохранённые позиции или вычисляет новые
+const layoutNodes = (
+  nodesList: any[],
+  edgesList: any[],
+  generationMap: Map<string, number>,
+  members: FamilyMember[]
+) => {
   if (nodesList.length === 0) return []
 
+  // Создаём Map сохранённых позиций из members
+  const savedPositions = new Map<string, { x: number; y: number }>()
+  members.forEach(member => {
+    if (member.treePosition) {
+      console.log(`[FamilyTree] Found saved position for ${member.name}:`, member.treePosition)
+      savedPositions.set(member.id, member.treePosition)
+    }
+  })
+
+  console.log(`[FamilyTree] Total saved positions: ${savedPositions.size} / ${members.length}`)
+
+  // Если у всех членов есть сохранённые позиции - используем их
+  const allHavePositions = nodesList.every(node => savedPositions.has(node.id))
+  if (allHavePositions) {
+    return nodesList.map(node => {
+      const pos = savedPositions.get(node.id)!
+      return {
+        ...node,
+        targetPosition: Position.Top,
+        sourcePosition: Position.Bottom,
+        position: pos,
+      }
+    })
+  }
+
+  // Иначе вычисляем позиции автоматически
   // Группируем узлы по поколениям
   const genGroups = new Map<number, string[]>()
   nodesList.forEach(node => {
@@ -187,24 +234,40 @@ const layoutNodes = (nodesList: any[], edgesList: any[], generationMap: Map<stri
   })
 
   // Создаём итоговый массив узлов с позициями
+  // Используем сохранённые позиции где они есть
   return nodesList.map(node => {
-    const pos = positions.get(node.id) || { x: 0, y: 0 }
+    // Приоритет: сохранённая позиция > вычисленная
+    const pos = savedPositions.get(node.id) || positions.get(node.id) || { x: 0, y: 0 }
     return {
       ...node,
       targetPosition: Position.Top,
       sourcePosition: Position.Bottom,
-      position: { x: pos.x, y: pos.y },
+      position: pos,
     }
   })
 }
 
 // Build tree from relations
-const buildTree = () => {
+const buildTree = (force = false) => {
+  const members = safeMembers()
+  const relations = safeRelations()
+
+  // Создаём сигнатуру для определения реальных изменений структуры
+  // Включаем только ID и типы связей, игнорируем остальные данные
+  const membersSignature = members.map(m => m.id).sort().join(',')
+  const relationsSignature = relations.map(r => `${r.fromMemberId}-${r.toMemberId}-${r.relationType}`).sort().join(',')
+
+  // Если структура не изменилась и не принудительный пересчёт - пропускаем
+  if (!force && membersSignature === lastMembersSignature && relationsSignature === lastRelationsSignature) {
+    return
+  }
+
+  lastMembersSignature = membersSignature
+  lastRelationsSignature = relationsSignature
+
   const newNodes: any[] = []
   const newEdges: any[] = []
   const generationMap = calculateGenerations()
-  const members = safeMembers()
-  const relations = safeRelations()
 
   // Create nodes for all members
   members.forEach(member => {
@@ -232,7 +295,7 @@ const buildTree = () => {
       return
     }
 
-    let edgeStyle = { stroke: '#d4af37', strokeWidth: 2 }
+    let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2 }
     let animated = true
 
     if (relation.relationType === 'spouse') {
@@ -265,22 +328,67 @@ const buildTree = () => {
     })
   }
 
-  nodes.value = layoutNodes(newNodes, newEdges, generationMap)
-  edges.value = newEdges
+  // Используем markRaw для узлов чтобы избежать лишней реактивности
+  nodes.value = markRaw(layoutNodes(newNodes, newEdges, generationMap, members))
+  edges.value = markRaw(newEdges)
+}
+
+// Обработчик перетаскивания узла - вызывается из шаблона
+const handleNodeDragStop = (event: { node: { id: string; position: { x: number; y: number } } }) => {
+  if (!isDragMode.value) return
+
+  const { node } = event
+  console.log('[FamilyTree] Node drag stop:', node.id, node.position)
+
+  if (node && node.id && node.position) {
+    // Emit synchronously, parent handles async save
+    emit('updatePosition', {
+      memberId: node.id,
+      position: { x: node.position.x, y: node.position.y }
+    })
+  }
+}
+
+// Переключение режима перетаскивания
+const toggleDragMode = () => {
+  isDragMode.value = !isDragMode.value
+}
+
+// Сброс layout к автоматическому
+const resetLayout = () => {
+  emit('resetLayout')
 }
 
 onMounted(() => {
-  buildTree()
+  buildTree(true)
   setTimeout(() => {
     fitView({ padding: 0.2 })
   }, 100)
 })
 
-watch(() => [props.members, props.relations], () => {
-  if (props.members !== undefined && props.relations !== undefined) {
-    buildTree()
-  }
-}, { deep: true })
+// Debounced build для частых обновлений (50ms debounce)
+const debouncedBuildTree = useDebounce(() => buildTree(false), 50)
+
+// Watch без deep: true - проверяем только длину массивов
+watch(
+  () => ({
+    membersLength: props.members?.length ?? 0,
+    relationsLength: props.relations?.length ?? 0,
+    // Хеш из ID для определения реальных изменений структуры
+    membersHash: (props.members ?? []).map(m => m.id).join(','),
+    relationsHash: (props.relations ?? []).map(r => `${r.fromMemberId}-${r.toMemberId}`).join(',')
+  }),
+  (newVal, oldVal) => {
+    if (newVal.membersLength !== oldVal?.membersLength ||
+        newVal.relationsLength !== oldVal?.relationsLength ||
+        newVal.membersHash !== oldVal?.membersHash ||
+        newVal.relationsHash !== oldVal?.relationsHash) {
+      // Структура изменилась - пересчитываем с debounce
+      debouncedBuildTree()
+    }
+  },
+  { immediate: false }
+)
 
 onNodeClick(({ node }) => {
   if (node.data.isFilled && node.data.member) {
@@ -299,10 +407,12 @@ onNodeClick(({ node }) => {
       :default-viewport="{ zoom: 0.8 }"
       :min-zoom="0.1"
       :max-zoom="3"
-      :pan-on-drag="true"
+      :pan-on-drag="!isDragMode"
       :zoom-on-scroll="true"
       :zoom-on-pinch="true"
+      :nodes-draggable="isDragMode"
       class="touch-pan-y"
+      @node-drag-stop="handleNodeDragStop"
     >
       <Background :pattern-color="'#ffffff'" :gap="24" :size="1" :style="{ opacity: 0.03 }" />
       <Controls position="bottom-right" />
@@ -318,8 +428,40 @@ onNodeClick(({ node }) => {
       </div>
     </div>
 
-    <!-- Mobile hint -->
-    <div class="md:hidden absolute bottom-4 left-4 right-4 pointer-events-none">
+    <!-- Drag mode controls -->
+    <div class="absolute top-4 right-4 flex gap-2 pointer-events-auto">
+      <!-- Drag mode toggle -->
+      <button
+        @click="toggleDragMode"
+        :class="[
+          'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+          isDragMode
+            ? 'bg-gold text-charcoal shadow-lg shadow-gold/20'
+            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-silk border border-white/10'
+        ]"
+      >
+        {{ isDragMode ? '✓ Режим перетаскивания' : '↔ Переместить' }}
+      </button>
+
+      <!-- Reset layout button -->
+      <button
+        v-if="isDragMode"
+        @click="resetLayout"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-silk border border-white/10 transition-all"
+      >
+        ↺ Сбросить
+      </button>
+    </div>
+
+    <!-- Drag mode hint -->
+    <div v-if="isDragMode" class="absolute bottom-4 left-4 right-4 pointer-events-none">
+      <p class="text-center text-gold text-xs bg-gold/10 rounded-lg py-2 px-4 border border-gold/20">
+        Перетащите карточки для изменения позиций • Позиции сохраняются автоматически
+      </p>
+    </div>
+
+    <!-- Mobile hint (когда не в режиме перетаскивания) -->
+    <div v-else class="md:hidden absolute bottom-4 left-4 right-4 pointer-events-none">
       <p class="text-center text-gray-500 text-xs bg-black/50 rounded-lg py-2 px-4">
         Нажмите для редактирования • Разведите пальцы для масштаба
       </p>

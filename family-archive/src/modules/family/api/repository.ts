@@ -17,22 +17,29 @@ function mapToDomain(
     createdAt: family.created_at,
     updatedAt: family.updated_at,
     rootMemberId: family.root_member_id || undefined,
-    members: members.map(m => ({
-      id: m.id,
-      name: m.name,
-      relationship: m.relationship || '',
-      gender: m.gender as 'male' | 'female' | 'unknown' | undefined,
-      generation: m.generation,
-      displayRole: m.display_role || undefined,
-      birthDate: m.birth_date || '',
-      deathDate: m.death_date || '',
-      biography: m.biography || '',
-      lifePath: (m.life_path as any) || [],
-      photoUrl: m.photo_url || '',
-      photos: m.photos || [],
-      videos: (m.videos as any) || [],
-      quotes: m.quotes || [],
-    })),
+    members: members.map(m => {
+      // Debug log for tree position loading
+      if (m.tree_position) {
+        console.log(`[Repository] Loading tree_position for member ${m.name}:`, m.tree_position)
+      }
+      return {
+        id: m.id,
+        name: m.name,
+        relationship: m.relationship || '',
+        gender: m.gender as 'male' | 'female' | 'unknown' | undefined,
+        generation: m.generation,
+        displayRole: m.display_role || undefined,
+        birthDate: m.birth_date || '',
+        deathDate: m.death_date || '',
+        biography: m.biography || '',
+        lifePath: (m.life_path as any) || [],
+        photoUrl: m.photo_url || '',
+        photos: m.photos || [],
+        videos: (m.videos as any) || [],
+        quotes: m.quotes || [],
+        treePosition: m.tree_position as { x: number; y: number } | undefined,
+      }
+    }),
     relations: relations.map(r => ({
       id: r.id,
       fromMemberId: r.from_member_id,
@@ -202,9 +209,18 @@ export class FamilyRepository {
           photos: m.photos || [],
           videos: m.videos as any,
           quotes: m.quotes || [],
+          tree_position: m.treePosition as any,
         }
 
-        await supabase.from('members').upsert(payload)
+        // Debug log for tree position
+        if (m.treePosition) {
+          console.log(`[Repository] Saving tree_position for member ${m.name}:`, m.treePosition)
+        }
+
+        const { error } = await supabase.from('members').upsert(payload)
+        if (error) {
+          console.error(`[Repository] Error saving member ${m.name}:`, error)
+        }
       }
 
       // 3. Upsert Relations

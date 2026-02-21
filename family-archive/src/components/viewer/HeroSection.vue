@@ -40,10 +40,12 @@ onMounted(() => {
       class="absolute inset-0 z-0"
       :style="{ transform: `translateY(${parallaxOffset}px)` }"
     >
-      <img 
+      <img
         v-if="member.photoUrl"
         :src="member.photoUrl"
         :alt="member.name"
+        loading="eager"
+        fetchpriority="high"
         class="w-full h-[120%] object-cover opacity-30"
       />
       <div class="absolute inset-0 bg-gradient-to-b from-obsidian/60 via-obsidian/80 to-obsidian"></div>
@@ -70,9 +72,10 @@ onMounted(() => {
       <!-- Portrait Circle -->
       <div v-if="member.photoUrl" class="relative w-48 h-48 md:w-64 md:h-64 mx-auto mb-12">
         <div class="absolute inset-0 rounded-full bg-gradient-to-br from-gold/20 to-purple-500/20 blur-2xl"></div>
-        <img 
+        <img
           :src="member.photoUrl"
           :alt="member.name"
+          loading="eager"
           class="relative w-full h-full object-cover rounded-full border-4 border-white/10 shadow-2xl"
         />
       </div>

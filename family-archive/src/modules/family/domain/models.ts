@@ -30,6 +30,8 @@ export interface FamilyMember {
   photos: string[]
   videos?: string[]
   quotes: string[]
+  // Позиция на семейном древе (сохраняется при drag-and-drop)
+  treePosition?: { x: number; y: number }
 }
 
 export interface FamilyArchive {
