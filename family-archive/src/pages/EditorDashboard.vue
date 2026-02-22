@@ -8,7 +8,7 @@ import EditorSidebar from '@/components/editor/EditorSidebar.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import MobileMemberList from '@/components/editor/MobileMemberList.vue'
 import MobileMemberEditor from '@/components/editor/MobileMemberEditor.vue'
-import ViewToggle from '@/components/shared/ViewToggle.vue'
+import ViewToggle from '@/shared/ui/ViewToggle.vue'
 import FamilyTree from '@/components/tree/FamilyTree.vue'
 import AssignRoleModal from '@/components/tree/AssignRoleModal.vue'
 import Skeleton from '@/shared/ui/Skeleton.vue'
@@ -304,12 +304,51 @@ const handleRelationCancel = () => {
   store.pendingRelation = null
 }
 
-const handleTreeAddRelation = (data: { memberId: string; relationType: string }) => {
+const handleTreeAddRelation = (data: { memberId: string; relationType: string; gender?: 'male' | 'female' }) => {
+  // Find source member's position to calculate new member's position
+  const sourceMember = store.members.find(m => m.id === data.memberId)
+  let treePosition: { x: number; y: number } | undefined
+
+  if (sourceMember?.treePosition) {
+    const offset = 220 // Node width + gap
+    const verticalOffset = 180 // Node height + vertical gap
+
+    switch (data.relationType) {
+      case 'parent':
+        // Parent goes above
+        treePosition = {
+          x: sourceMember.treePosition.x,
+          y: sourceMember.treePosition.y - verticalOffset
+        }
+        break
+      case 'child':
+        // Child goes below
+        treePosition = {
+          x: sourceMember.treePosition.x,
+          y: sourceMember.treePosition.y + verticalOffset
+        }
+        break
+      case 'spouse':
+      case 'sibling':
+        // Spouse/sibling goes to the right
+        treePosition = {
+          x: sourceMember.treePosition.x + offset,
+          y: sourceMember.treePosition.y
+        }
+        break
+    }
+  }
+
   // Create new member with relation
+  // displayRole вычисляется динамически в FamilyTree.vue на основе calculateDisplayRole
   const newMember = store.addMemberWithRelation(
     data.memberId,
-    data.relationType as 'parent' | 'spouse' | 'sibling',
-    { name: 'Новый родственник' }
+    data.relationType as 'parent' | 'spouse' | 'sibling' | 'child',
+    {
+      name: 'Новый родственник',
+      gender: data.gender,
+      treePosition
+    }
   )
   if (newMember) {
     mobileView.value = 'editor'
@@ -333,11 +372,6 @@ const handleUpdatePosition = (data: { memberId: string; position: { x: number; y
       .then(() => console.log('[EditorDashboard] Position saved to database successfully'))
       .catch(e => console.error('[EditorDashboard] Error saving position:', e))
   }
-}
-
-// Обработчик сброса layout
-const handleResetLayout = () => {
-  store.resetAllPositions()
 }
 
 const previewLink = computed(() => {
@@ -669,7 +703,6 @@ const planName = computed(() => {
               @select-member="handleTreeMemberSelect"
               @add-relation="handleTreeAddRelation"
               @update-position="handleUpdatePosition"
-              @reset-layout="handleResetLayout"
             />
           </div>
         </div>
@@ -803,6 +836,7 @@ const planName = computed(() => {
             :root-member-id="store.currentFamily?.rootMemberId"
             @select-member="handleTreeMemberSelect"
             @add-relation="handleTreeAddRelation"
+            @update-position="handleUpdatePosition"
           />
           <!-- FAB for adding -->
           <button

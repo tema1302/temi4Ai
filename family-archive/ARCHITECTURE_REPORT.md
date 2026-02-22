@@ -36,13 +36,10 @@
 - Auth: AuthForm
 - Editor: EditorSidebar, EditorPreview
 - Viewer: HeroSection, BentoGrid, TimelineSection
-- UI: BaseButton, BaseCard, BaseInput, RevealTransition
+- UI: BaseButton, BaseCard, BaseInput, ViewToggle (Shared UI)
 
 ### Найденные проблемы
-
-#### ⚠️ Незначительные
-1. **RevealTransition.vue** — компонент существует, но не используется нигде
-   - Решение: можно оставить для будущего использования или удалить
+**Не найдено ✅**
 
 ### Критические проблемы
 **Не найдено ✅**
@@ -64,12 +61,13 @@
 ### Хорошие практики
 - ✅ Модульная структура (stores, services, components разделены)
 - ✅ Type safety (TypeScript strict mode)
-- ✅ Lazy loading роутов
+- ✅ Lazy loading роутов (Оптимизированные чанки в vite.config.ts)
 - ✅ Navigation guards для защиты роутов
 - ✅ Fallback на localStorage если Supabase не настроен
 - ✅ Все компоненты следуют Composition API
 - ✅ Props с TypeScript интерфейсами
 - ✅ Русификация завершена полностью
+- ✅ Удалены неиспользуемые зависимости (@motionone, vue-flow плагины)
 
 ### Структура папок
 ```
@@ -77,8 +75,10 @@ src/
 ├── components/
 │   ├── auth/          ← Авторизация
 │   ├── editor/        ← Редактор
-│   ├── ui/            ← Базовые UI
 │   └── viewer/        ← Просмотр
+├── shared/            ← Общий код (Shared Layer)
+│   ├── ui/            ← Библиотека компонентов (Logo, BaseButton, BaseCard, ViewToggle)
+│   └── api/           ← Базовые клиенты
 ├── layouts/           ← Шаблоны
 ├── lib/               ← Клиенты (Supabase)
 ├── pages/             ← Роуты
@@ -95,10 +95,6 @@ src/
    - Настроить Supabase проект
    - Создать Storage bucket `photos`
    - Запустить SQL из `supabase/schema.sql`
-
-2. **Опционально:**
-   - Удалить `RevealTransition.vue` если не будет использоваться
-   - Добавить обработку ошибок в UI (toast notifications)
 
 ## Вердикт
 

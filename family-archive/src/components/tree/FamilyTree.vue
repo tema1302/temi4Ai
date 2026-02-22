@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, watch, markRaw, shallowRef, ref } from 'vue'
+import { onMounted, watch, markRaw, shallowRef } from 'vue'
 import { VueFlow, useVueFlow, Position } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import FamilyNode from './FamilyNode.vue'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
+import { calculateDisplayRole } from '@/modules/family/domain/models'
 
 // Node types для VueFlow (используем any для обхода проблемы с типами VueFlow)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,9 +24,6 @@ function useDebounce<T extends (...args: any[]) => void>(fn: T, delay: number): 
 const nodes = shallowRef<any[]>([])
 const edges = shallowRef<any[]>([])
 
-// Режим перетаскивания (активируется кнопкой)
-const isDragMode = ref(false)
-
 interface Props {
   members: FamilyMember[]
   relations: FamilyRelation[]
@@ -36,9 +34,8 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   selectMember: [memberId: string]
-  addRelation: [data: { memberId: string; relationType: RelationType }]
+  addRelation: [data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }]
   updatePosition: [data: { memberId: string; position: { x: number; y: number } }]
-  resetLayout: []
 }>()
 
 const { onNodeClick, fitView } = useVueFlow()
@@ -149,11 +146,27 @@ const layoutNodes = (
 
   console.log(`[FamilyTree] Total saved positions: ${savedPositions.size} / ${members.length}`)
 
-  // Если у всех членов есть сохранённые позиции - используем их
-  const allHavePositions = nodesList.every(node => savedPositions.has(node.id))
-  if (allHavePositions) {
+  // Константы для layout
+  const nodeWidth = 180
+  const nodeHeight = 100
+  const horizontalGap = 40
+  const verticalGap = 80
+
+  // Сначала назначаем сохранённые позиции
+  const positions = new Map<string, { x: number; y: number }>()
+  const nodesWithSavedPositions = new Set<string>()
+
+  nodesList.forEach(node => {
+    if (savedPositions.has(node.id)) {
+      positions.set(node.id, savedPositions.get(node.id)!)
+      nodesWithSavedPositions.add(node.id)
+    }
+  })
+
+  // Если у всех есть сохранённые позиции - используем их
+  if (nodesWithSavedPositions.size === nodesList.length) {
     return nodesList.map(node => {
-      const pos = savedPositions.get(node.id)!
+      const pos = positions.get(node.id)!
       return {
         ...node,
         targetPosition: Position.Top,
@@ -163,13 +176,15 @@ const layoutNodes = (
     })
   }
 
-  // Иначе вычисляем позиции автоматически
-  // Группируем узлы по поколениям
+  // Для узлов без сохранённых позиций вычисляем автоматически
+  // Группируем по поколениям
   const genGroups = new Map<number, string[]>()
   nodesList.forEach(node => {
-    const gen = generationMap.get(node.id) ?? 0
-    if (!genGroups.has(gen)) genGroups.set(gen, [])
-    genGroups.get(gen)!.push(node.id)
+    if (!nodesWithSavedPositions.has(node.id)) {
+      const gen = generationMap.get(node.id) ?? 0
+      if (!genGroups.has(gen)) genGroups.set(gen, [])
+      genGroups.get(gen)!.push(node.id)
+    }
   })
 
   // Находим связи супругов для сортировки
@@ -204,14 +219,6 @@ const layoutNodes = (
     genGroups.set(gen, sorted)
   })
 
-  // Вычисляем позиции вручную для полного контроля
-  const nodeWidth = 180
-  const nodeHeight = 100
-  const horizontalGap = 40
-  const verticalGap = 80
-
-  const positions = new Map<string, { x: number; y: number }>()
-
   // Находим максимальную ширину для центрирования
   let maxWidth = 0
   genGroups.forEach(ids => {
@@ -219,7 +226,7 @@ const layoutNodes = (
     if (width > maxWidth) maxWidth = width
   })
 
-  // Расставляем узлы
+  // Расставляем узлы без сохранённых позиций
   const sortedGens = Array.from(genGroups.keys()).sort((a, b) => a - b)
   sortedGens.forEach((gen, genIndex) => {
     const ids = genGroups.get(gen)!
@@ -234,10 +241,9 @@ const layoutNodes = (
   })
 
   // Создаём итоговый массив узлов с позициями
-  // Используем сохранённые позиции где они есть
+  // Используем сохранённые позиции где они есть, иначе вычисленные
   return nodesList.map(node => {
-    // Приоритет: сохранённая позиция > вычисленная
-    const pos = savedPositions.get(node.id) || positions.get(node.id) || { x: 0, y: 0 }
+    const pos = positions.get(node.id) || { x: 0, y: 0 }
     return {
       ...node,
       targetPosition: Position.Top,
@@ -272,6 +278,10 @@ const buildTree = (force = false) => {
   // Create nodes for all members
   members.forEach(member => {
     const gen = generationMap.get(member.id) ?? member.generation ?? 0
+
+    // Вычисляем displayRole относительно корневого члена
+    const calculatedRole = calculateDisplayRole(member.id, props.rootMemberId, members, relations)
+
     newNodes.push({
       id: member.id,
       type: 'family',
@@ -281,8 +291,11 @@ const buildTree = (force = false) => {
         isFilled: true,
         name: member.name,
         years: `${member.birthDate} ${member.deathDate ? '- ' + member.deathDate : ''}`,
-        displayRole: member.displayRole || member.relationship || 'Член семьи',
-        photoUrl: member.photoUrl
+        displayRole: calculatedRole,
+        photoUrl: member.photoUrl,
+        onAddRelative: (relationType: 'parent' | 'child' | 'spouse' | 'sibling', gender?: 'male' | 'female') => {
+          emit('addRelation', { memberId: member.id, relationType, gender })
+        }
       }
     })
   })
@@ -296,22 +309,37 @@ const buildTree = (force = false) => {
     }
 
     let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2 }
-    let animated = true
+    let edgeType = 'smoothstep'
+    let animated = false
 
+    // Определяем тип связи и соответствующий стиль
     if (relation.relationType === 'spouse') {
       edgeStyle = { stroke: '#ec4899', strokeWidth: 2 }
-      animated = false
+      edgeType = 'straight' // Прямая линия для супругов
     } else if (relation.relationType === 'sibling') {
       edgeStyle = { stroke: '#60a5fa', strokeWidth: 2, strokeDasharray: '5,5' }
-      animated = false
+      edgeType = 'straight' // Прямая линия для сиблингов
+    }
+
+    // Определяем позиции для connections на основе типа связи
+    let sourceHandle = undefined
+    let targetHandle = undefined
+
+    if (relation.relationType === 'spouse' || relation.relationType === 'sibling') {
+      // Для супругов и сиблингов - строго горизонтальные соединения
+      sourceHandle = 'right'
+      targetHandle = 'left'
     }
 
     newEdges.push({
       id: `e-${relation.id}`,
       source: relation.fromMemberId,
       target: relation.toMemberId,
+      sourceHandle,
+      targetHandle,
       animated,
-      style: edgeStyle
+      style: edgeStyle,
+      type: edgeType
     })
   })
 
@@ -335,8 +363,6 @@ const buildTree = (force = false) => {
 
 // Обработчик перетаскивания узла - вызывается из шаблона
 const handleNodeDragStop = (event: { node: { id: string; position: { x: number; y: number } } }) => {
-  if (!isDragMode.value) return
-
   const { node } = event
   console.log('[FamilyTree] Node drag stop:', node.id, node.position)
 
@@ -347,16 +373,6 @@ const handleNodeDragStop = (event: { node: { id: string; position: { x: number; 
       position: { x: node.position.x, y: node.position.y }
     })
   }
-}
-
-// Переключение режима перетаскивания
-const toggleDragMode = () => {
-  isDragMode.value = !isDragMode.value
-}
-
-// Сброс layout к автоматическому
-const resetLayout = () => {
-  emit('resetLayout')
 }
 
 onMounted(() => {
@@ -407,10 +423,11 @@ onNodeClick(({ node }) => {
       :default-viewport="{ zoom: 0.8 }"
       :min-zoom="0.1"
       :max-zoom="3"
-      :pan-on-drag="!isDragMode"
+      :pan-on-drag="true"
       :zoom-on-scroll="true"
       :zoom-on-pinch="true"
-      :nodes-draggable="isDragMode"
+      :nodes-draggable="true"
+      :selection-on-drag="false"
       class="touch-pan-y"
       @node-drag-stop="handleNodeDragStop"
     >
@@ -419,7 +436,7 @@ onNodeClick(({ node }) => {
     </VueFlow>
 
     <!-- Header overlay -->
-    <div class="absolute top-4 left-4 right-4 pointer-events-none md:right-auto">
+    <div class="absolute top-4 left-4 pointer-events-none">
       <div class="flex items-center gap-2">
         <h3 class="text-silk/40 text-[10px] uppercase tracking-widest font-bold">
           {{ familyName }}
@@ -428,42 +445,10 @@ onNodeClick(({ node }) => {
       </div>
     </div>
 
-    <!-- Drag mode controls -->
-    <div class="absolute top-4 right-4 flex gap-2 pointer-events-auto">
-      <!-- Drag mode toggle -->
-      <button
-        @click="toggleDragMode"
-        :class="[
-          'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-          isDragMode
-            ? 'bg-gold text-charcoal shadow-lg shadow-gold/20'
-            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-silk border border-white/10'
-        ]"
-      >
-        {{ isDragMode ? '✓ Режим перетаскивания' : '↔ Переместить' }}
-      </button>
-
-      <!-- Reset layout button -->
-      <button
-        v-if="isDragMode"
-        @click="resetLayout"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-silk border border-white/10 transition-all"
-      >
-        ↺ Сбросить
-      </button>
-    </div>
-
-    <!-- Drag mode hint -->
-    <div v-if="isDragMode" class="absolute bottom-4 left-4 right-4 pointer-events-none">
-      <p class="text-center text-gold text-xs bg-gold/10 rounded-lg py-2 px-4 border border-gold/20">
-        Перетащите карточки для изменения позиций • Позиции сохраняются автоматически
-      </p>
-    </div>
-
-    <!-- Mobile hint (когда не в режиме перетаскивания) -->
-    <div v-else class="md:hidden absolute bottom-4 left-4 right-4 pointer-events-none">
-      <p class="text-center text-gray-500 text-xs bg-black/50 rounded-lg py-2 px-4">
-        Нажмите для редактирования • Разведите пальцы для масштаба
+    <!-- Mobile hint -->
+    <div class="md:hidden absolute bottom-4 left-4 right-4 pointer-events-none">
+      <p class="text-center text-gray-400 text-[11px] bg-black/60 rounded-lg py-2 px-4">
+        Свайп — навигация • Перетащите карточку — изменение позиции • Щипок — масштаб
       </p>
     </div>
   </div>
