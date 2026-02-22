@@ -5,9 +5,11 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
+import { Trash2, Plus, Quote } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   save: []
+  delete: []
   assignOnTree: [memberId: string]
 }>()
 
@@ -195,13 +197,20 @@ const removeLifeEvent = (index: number) => {
   <div class="space-y-6">
     
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h2 class="text-xl font-serif text-silk">Редактирование</h2>
-      <BaseButton size="sm" @click="emit('save')">💾 Сохранить</BaseButton>
+    <div class="flex items-center justify-between border-b border-white/5 pb-4">
+      <h2 class="text-xl font-serif text-silk tracking-wide">Редактирование карточки</h2>
+      <button 
+        v-if="store.members.length > 1"
+        @click="emit('delete')"
+        class="p-2 text-gray-500 hover:text-red-400 transition-colors border border-white/10 rounded-lg"
+        title="Удалить карточку"
+      >
+        <Trash2 class="w-5 h-5" />
+      </button>
     </div>
 
     <!-- Form Fields -->
-    <div v-if="currentMember" class="space-y-5 pb-10">
+    <div v-if="currentMember" class="space-y-8 pb-10">
       
       <!-- Name -->
       <div>
@@ -216,22 +225,21 @@ const removeLifeEvent = (index: number) => {
 
       <!-- Relationship -->
       <div>
-        <label class="block text-sm text-gray-400 mb-2">Родственность (кем приходится)</label>
-        <input
-          :value="currentMember.relationship"
-          @input="updateField('relationship', ($event.target as HTMLInputElement).value)"
-          type="text"
-          placeholder="Например: Основатель рода, Дедушка..."
-          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50 transition-colors"
+        <div class="flex items-center gap-2 mb-2">
+          <GitBranch class="w-4 h-4 text-gold/60" />
+          <label class="block text-sm text-gray-400">Родственность (кем приходится)</label>
+        </div>
+        <SearchableSelect
+          :model-value="currentMember.relationship || ''"
+          :options="ROLE_DICTIONARY"
+          placeholder="Выберите роль из списка..."
+          @update:model-value="updateField('relationship', $event)"
         />
         <button
           @click="emit('assignOnTree', currentMember.id)"
-          class="mt-2 w-full py-2 px-4 bg-gold/10 hover:bg-gold/20 border border-gold/30 rounded-lg text-gold text-sm transition-colors flex items-center justify-center gap-2"
+          class="mt-4 w-full py-3 px-4 bg-gold/5 hover:bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-          </svg>
-          Назначить на древе
+          🧬 Назначить на древе (Связи)
         </button>
       </div>
 
@@ -349,24 +357,52 @@ const removeLifeEvent = (index: number) => {
       </BaseCard>
 
       <!-- Quotes -->
-      <BaseCard class="p-4 border-white/5">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Цитаты</h3>
-          <button @click="addQuote" class="text-gold text-xs hover:underline">+ Добавить</button>
+      <BaseCard class="p-6 border-white/5 bg-white/[0.02]">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-2">
+            <Quote class="w-4 h-4 text-gold/40" />
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-[0.2em]">Цитаты и мысли</h3>
+          </div>
+          <button @click="addQuote" class="text-gold text-xs hover:text-white transition-colors flex items-center gap-1 font-bold">
+            <Plus class="w-3 h-3" /> Добавить
+          </button>
         </div>
-        <div class="space-y-3">
-          <div v-for="(quote, index) in currentMember.quotes" :key="index" class="flex gap-2">
-            <input
-              :value="quote"
-              @input="updateQuote(index, ($event.target as HTMLInputElement).value)"
-              type="text"
-              class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-silk text-sm focus:outline-none focus:border-gold/50"
-              placeholder="&quot;Их слова...&quot;"
-            />
-            <button @click="removeQuote(index)" class="text-red-400 hover:text-red-300 px-2">✕</button>
+        <div class="space-y-4">
+          <div v-for="(quote, index) in currentMember.quotes" :key="index" class="flex gap-3 group items-start">
+            <div class="flex-1 relative">
+              <textarea
+                :value="quote"
+                @input="updateQuote(index, ($event.target as HTMLTextAreaElement).value)"
+                rows="2"
+                class="w-full px-4 py-3 bg-obsidian/50 border border-white/10 rounded-xl text-silk text-sm focus:outline-none focus:border-gold/50 transition-all resize-none placeholder:text-gray-600 italic"
+                placeholder="&quot;Их мудрые слова...&quot;"
+              ></textarea>
+            </div>
+            <button 
+              @click="removeQuote(index)" 
+              class="mt-3 text-gray-600 hover:text-red-400 transition-colors"
+              title="Удалить цитату"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+          <div v-if="!currentMember.quotes?.length" class="text-center py-6 border border-dashed border-white/5 rounded-xl text-xs text-gray-600 italic">
+            Список цитат пуст
           </div>
         </div>
       </BaseCard>
+
+      <!-- Save Button (Bottom) -->
+      <div class="pt-8 border-t border-white/5">
+        <BaseButton 
+          full 
+          size="lg" 
+          @click="emit('save')"
+          class="shadow-[0_10px_30px_rgba(212,175,55,0.1)]"
+        >
+          💾 Сохранить изменения
+        </BaseButton>
+      </div>
 
       <!-- Media (Photos & Videos) -->
       <BaseCard

@@ -1,11 +1,36 @@
 <script setup lang="ts">
-import { onMounted, watch, markRaw, shallowRef } from 'vue'
+import { onMounted, watch, markRaw, shallowRef, ref } from 'vue'
 import { VueFlow, useVueFlow, Position } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
+import { Maximize, Minimize } from 'lucide-vue-next'
 import FamilyNode from './FamilyNode.vue'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 import { calculateDisplayRole } from '@/modules/family/domain/models'
+
+const treeContainer = ref<HTMLElement | null>(null)
+const isFullscreen = ref(false)
+
+const toggleFullscreen = () => {
+  if (!treeContainer.value) return
+  
+  if (!document.fullscreenElement) {
+    treeContainer.value.requestFullscreen().catch(err => {
+      console.error(`Error attempting to enable full-screen mode: ${err.message}`)
+    })
+    isFullscreen.value = true
+  } else {
+    document.exitFullscreen()
+    isFullscreen.value = false
+  }
+}
+
+// Listen for escape key or other ways fullscreen closes
+onMounted(() => {
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen.value = !!document.fullscreenElement
+  })
+})
 
 // Node types для VueFlow (используем any для обхода проблемы с типами VueFlow)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -308,16 +333,14 @@ const buildTree = (force = false) => {
       return
     }
 
-    let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2 }
+    let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2, strokeDasharray: '5,5' }
     let edgeType = 'smoothstep'
     let animated = false
 
     // Определяем тип связи и соответствующий стиль
     if (relation.relationType === 'spouse') {
-      edgeStyle = { stroke: '#ec4899', strokeWidth: 2 }
       edgeType = 'straight' // Прямая линия для супругов
     } else if (relation.relationType === 'sibling') {
-      edgeStyle = { stroke: '#60a5fa', strokeWidth: 2, strokeDasharray: '5,5' }
       edgeType = 'straight' // Прямая линия для сиблингов
     }
 
@@ -414,7 +437,11 @@ onNodeClick(({ node }) => {
 </script>
 
 <template>
-  <div class="w-full h-full min-h-[500px] border border-white/5 rounded-3xl overflow-hidden bg-obsidian relative">
+  <div 
+    ref="treeContainer"
+    class="w-full h-full min-h-[500px] border border-white/5 rounded-3xl overflow-hidden bg-obsidian relative flex flex-col"
+    :class="{ 'fixed inset-0 z-[100] !rounded-none !border-none': isFullscreen }"
+  >
     <VueFlow
       v-model:nodes="nodes"
       v-model:edges="edges"
@@ -428,27 +455,38 @@ onNodeClick(({ node }) => {
       :zoom-on-pinch="true"
       :nodes-draggable="true"
       :selection-on-drag="false"
-      class="touch-pan-y"
+      class="touch-pan-y flex-1"
       @node-drag-stop="handleNodeDragStop"
     >
       <Background :pattern-color="'#ffffff'" :gap="24" :size="1" :style="{ opacity: 0.03 }" />
       <Controls position="bottom-right" />
     </VueFlow>
 
-    <!-- Header overlay -->
-    <div class="absolute top-4 left-4 pointer-events-none">
-      <div class="flex items-center gap-2">
-        <h3 class="text-silk/40 text-[10px] uppercase tracking-widest font-bold">
+    <!-- UI Overlay (Controls & Labels) -->
+    <div class="absolute top-6 left-6 right-6 flex items-center justify-between pointer-events-none z-20">
+      <div class="flex flex-col gap-1">
+        <h3 class="text-silk/60 text-xs font-serif italic tracking-wide">
           {{ familyName }}
         </h3>
-        <span class="text-gray-600 text-[10px]">• {{ members.length }} чел.</span>
+        <span class="text-gold/40 text-[9px] uppercase tracking-[0.2em] font-bold">
+          Семейный архив • {{ members.length }} чел.
+        </span>
       </div>
+
+      <button 
+        @click="toggleFullscreen" 
+        class="pointer-events-auto p-3 bg-charcoal/80 backdrop-blur-md border border-white/10 rounded-full text-silk hover:text-gold hover:border-gold/30 transition-all shadow-2xl"
+        :title="isFullscreen ? 'Свернуть' : 'На весь экран'"
+      >
+        <Minimize v-if="isFullscreen" class="w-5 h-5" />
+        <Maximize v-else class="w-5 h-5" />
+      </button>
     </div>
 
     <!-- Mobile hint -->
-    <div class="md:hidden absolute bottom-4 left-4 right-4 pointer-events-none">
-      <p class="text-center text-gray-400 text-[11px] bg-black/60 rounded-lg py-2 px-4">
-        Свайп — навигация • Перетащите карточку — изменение позиции • Щипок — масштаб
+    <div class="md:hidden absolute bottom-20 left-4 right-4 pointer-events-none z-20">
+      <p class="text-center text-gray-400 text-[10px] bg-black/80 backdrop-blur-md rounded-full py-2 px-6 border border-white/5">
+        Свайп — навигация • Удержание — перемещение • Щипок — масштаб
       </p>
     </div>
   </div>

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import type { FamilyMember, RelationType } from '@/modules/family/domain/models'
+import { ROLE_DICTIONARY } from '@/shared/utils/roleDictionary'
 
 interface Props {
   isOpen: boolean
@@ -16,32 +17,40 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const relationOptions = [
-  { value: 'parent' as RelationType, label: 'Родитель', icon: '👤', description: 'Мать или отец' },
-  { value: 'child' as RelationType, label: 'Ребенок', icon: '👶', description: 'Сын или дочь' },
-  { value: 'spouse' as RelationType, label: 'Супруг(а)', icon: '💑', description: 'Муж или жена' },
-  { value: 'sibling' as RelationType, label: 'Брат/Сестра', icon: '👥', description: 'Брат или сестра' },
-]
+const getIcon = (role: string) => {
+  const icons: Record<string, string> = {
+    father: '👴', mother: '👵', husband: '🤵', wife: '👰',
+    son: '👦', daughter: '👧', brother: '👱', sister: '👩',
+    parent: '👤', child: '👶', spouse: '💑', sibling: '👥'
+  }
+  return icons[role] || '👤'
+}
 
-const selectedRelation = ref<RelationType>('parent')
+const relationOptions = ROLE_DICTIONARY.filter(r => 
+  !['parent', 'child', 'spouse', 'sibling'].includes(r.value)
+)
+
+const selectedRelation = ref<RelationType>('father')
 
 // Reset selection when modal opens
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen && props.suggestedRole) {
     // Map suggested role to relation type
     const roleMap: Record<string, RelationType> = {
-      'parent': 'parent',
-      'child': 'child',
-      'spouse': 'spouse',
-      'sibling': 'sibling',
-      'Мама': 'parent',
-      'Папа': 'parent',
-      'Ребенок': 'child',
-      'Супруг(а)': 'spouse',
-      'Брат': 'sibling',
-      'Сестра': 'sibling',
+      'parent': 'father',
+      'father': 'father',
+      'mother': 'mother',
+      'child': 'son',
+      'son': 'son',
+      'daughter': 'daughter',
+      'spouse': 'husband',
+      'husband': 'husband',
+      'wife': 'wife',
+      'sibling': 'brother',
+      'brother': 'brother',
+      'sister': 'sister',
     }
-    selectedRelation.value = roleMap[props.suggestedRole] || 'parent'
+    selectedRelation.value = roleMap[props.suggestedRole] || 'father'
   }
 })
 
@@ -73,19 +82,18 @@ const handleConfirm = () => {
           </div>
 
           <!-- Relation Selection -->
-          <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin">
             <button
               v-for="option in relationOptions"
               :key="option.value"
-              @click="selectedRelation = option.value"
-              class="p-4 rounded-xl border transition-all text-left"
+              @click="selectedRelation = option.value as RelationType"
+              class="p-3 rounded-xl border transition-all text-center flex flex-col items-center justify-center gap-1"
               :class="selectedRelation === option.value
                 ? 'border-gold bg-gold/10 text-silk'
                 : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'"
             >
-              <span class="text-2xl mb-2 block">{{ option.icon }}</span>
-              <span class="text-sm font-bold block">{{ option.label }}</span>
-              <span class="text-[10px] text-gray-500">{{ option.description }}</span>
+              <span class="text-xl block">{{ getIcon(option.value) }}</span>
+              <span class="text-[10px] font-bold block uppercase tracking-tighter">{{ option.label }}</span>
             </button>
           </div>
 

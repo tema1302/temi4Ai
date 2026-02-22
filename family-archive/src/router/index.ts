@@ -70,9 +70,25 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/editor',
-    name: 'Editor',
     component: EditorDashboard,
     meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Editor',
+        redirect: { name: 'ArchiveList' }
+      },
+      {
+        path: 'list',
+        name: 'ArchiveList',
+        component: { template: '<div></div>' } // Dummy since everything is in EditorDashboard for now
+      },
+      {
+        path: 'tree',
+        name: 'ArchiveTree',
+        component: { template: '<div></div>' } // Dummy
+      }
+    ]
   },
   {
     path: '/admin',
@@ -138,6 +154,12 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   const isAuthenticated = authStore.isAuthenticated
+
+  // Smart redirect: root to dashboard if authenticated
+  if (to.path === '/' && isAuthenticated) {
+    next({ name: 'Editor' })
+    return
+  }
 
   // Protected routes
   if (to.meta.requiresAuth && !isAuthenticated) {

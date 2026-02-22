@@ -24,6 +24,7 @@ const authStore = useAuthStore()
 const subStore = useSubscriptionStore()
 const subscription = useSubscription()
 const router = useRouter()
+const route = useRoute()
 const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
 
 const isCreating = ref(false)
@@ -32,6 +33,23 @@ const isSaving = ref(false)
 const showSaved = ref(false)
 const showPricing = ref(false)
 const isShowingMemberList = ref(false)
+
+// Sync viewMode with route
+watch(() => route.name, (newName) => {
+  if (newName === 'ArchiveTree') {
+    store.setViewMode('tree')
+  } else if (newName === 'ArchiveList') {
+    store.setViewMode('cards')
+  }
+}, { immediate: true })
+
+const handleViewChange = (mode: 'cards' | 'tree') => {
+  if (mode === 'tree') {
+    router.push({ name: 'ArchiveTree' })
+  } else {
+    router.push({ name: 'ArchiveList' })
+  }
+}
 
 // Assign role modal
 const showAssignModal = ref(false)
@@ -521,12 +539,16 @@ const planName = computed(() => {
               <BaseCard 
                 v-for="family in store.userFamilies" 
                 :key="family.id"
-                class="p-6 cursor-pointer group relative overflow-hidden"
+                class="p-6 cursor-pointer group relative overflow-hidden transition-all duration-300"
+                :class="store.currentFamily?.id === family.id ? 'border-gold bg-gold/5 ring-1 ring-gold/20' : 'hover:border-gold/30'"
                 @click="loadFamily(family)"
               >
                 <div class="flex items-center justify-between relative z-10">
                   <div>
-                    <h3 class="text-lg text-silk">{{ family.name }}</h3>
+                    <h3 class="text-lg text-silk" :class="{ 'text-gold': store.currentFamily?.id === family.id }">
+                      {{ family.name }}
+                      <span v-if="store.currentFamily?.id === family.id" class="ml-2 text-[10px] bg-gold text-charcoal px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Текущий</span>
+                    </h3>
                     <p class="text-sm text-gray-400">{{ family.members.length }} {{ family.members.length === 1 ? 'человек' : 'людей' }}</p>
                   </div>
                   <div class="flex items-center gap-4">
@@ -597,16 +619,17 @@ const planName = computed(() => {
               <BaseButton variant="secondary" @click="store.toggleEditing">
                 {{ store.isEditing ? '🔍 Предпросмотр' : '✏️ Редактировать' }}
               </BaseButton>
-              <BaseButton v-if="store.isEditing" @click="saveChanges" :disabled="isSaving">
-                {{ isSaving ? 'Сохраняем...' : 'Сохранить' }}
-              </BaseButton>
             </div>
           </div>
 
           <!-- Content Area -->
           <div class="max-w-4xl mx-auto">
              <div v-if="store.isEditing" class="bg-charcoal/30 p-8 rounded-2xl border border-white/5 shadow-2xl">
-                <EditorSidebar @save="saveChanges" @assign-on-tree="handleAssignOnTree" />
+                <EditorSidebar 
+                  @save="saveChanges" 
+                  @delete="deleteActiveMember"
+                  @assign-on-tree="handleAssignOnTree" 
+                />
                 <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
                   <button 
                     v-if="store.members.length > 1"
@@ -626,57 +649,61 @@ const planName = computed(() => {
           </div>
         </div>
 
-        <!-- Member List View (Desktop) -->
-        <div v-else>
-          <div class="flex items-center justify-between mb-8">
-             <ViewToggle v-model="store.viewMode" />
-             <BaseButton size="sm" variant="ghost" @click="addMember" class="text-gold">
-               + Добавить человека
-             </BaseButton>
-          </div>
-
-          <!-- Cards View -->
-          <div v-if="store.viewMode === 'cards'" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-             <div
-               v-for="member in store.members"
-               :key="member.id"
-               @click="selectMemberForPreview(member.id)"
-               class="group cursor-pointer"
-             >
-                <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
-                   <img
-                     v-if="member.photoUrl"
-                     :src="member.photoUrl"
-                     loading="lazy"
-                     decoding="async"
-                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                   />
-                   <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">
-                     {{ member.name[0] || '?' }}
-                   </div>
-                   <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
-                   <div class="absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                      <span class="px-4 py-2 bg-gold text-charcoal text-[10px] font-bold uppercase tracking-[0.2em] rounded-full shadow-xl">
-                        Смотреть
-                      </span>
-                   </div>
-                </div>
-                <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors text-lg">{{ member.name }}</h4>
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.displayRole || member.relationship || 'Член семьи' }}</p>
-             </div>
-
-             <!-- Add Card -->
-             <button
-               @click="addMember"
-               class="aspect-[3/4] rounded-2xl border-2 border-dashed border-white/10 hover:border-gold/30 hover:bg-gold/5 transition-all flex flex-col items-center justify-center gap-4 group"
-             >
-                <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-gray-500 group-hover:text-gold group-hover:scale-110 transition-all">
-                   <span class="text-3xl">+</span>
-                </div>
-                <span class="text-[10px] text-gray-500 group-hover:text-gold transition-colors font-bold uppercase tracking-[0.2em]">Добавить</span>
-             </button>
-          </div>
-
+                        <!-- Member List View (Desktop) -->
+                        <div v-else>
+                          <div class="flex items-center justify-center mb-12">
+                             <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
+                          </div>
+                
+                          <!-- Cards View -->                  <div v-if="store.viewMode === 'cards'">
+                    <div v-if="store.members.length === 0" class="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10 mb-10">
+                      <div class="text-6xl mb-6 opacity-30">👥</div>
+                      <h3 class="text-2xl font-serif text-silk mb-2">Архив пуст</h3>
+                      <p class="text-gray-400 mb-8">Добавьте людей, чтобы перейти к древу</p>
+                      <BaseButton size="lg" @click="addMember">
+                        + Добавить человека
+                      </BaseButton>
+                    </div>
+        
+                    <div v-else class="space-y-12">
+                      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                         <div
+                           v-for="member in store.members"
+                           :key="member.id"
+                           @click="selectMemberForPreview(member.id)"
+                           class="group cursor-pointer"
+                         >
+                            <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
+                               <img
+                                 v-if="member.photoUrl"
+                                 :src="member.photoUrl"
+                                 loading="lazy"
+                                 decoding="async"
+                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                               />
+                               <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">
+                                 {{ member.name[0] || '?' }}
+                               </div>
+                               <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                               <div class="absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                                  <span class="px-4 py-2 bg-gold text-charcoal text-[10px] font-bold uppercase tracking-[0.2em] rounded-full shadow-xl">
+                                    Смотреть
+                                  </span>
+                               </div>
+                            </div>
+                            <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors text-lg">{{ member.name }}</h4>
+                            <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.displayRole || member.relationship || 'Член семьи' }}</p>
+                         </div>
+                      </div>
+        
+                      <!-- Primary CTA at bottom -->
+                      <div class="flex justify-center pt-10 border-t border-white/5">
+                        <BaseButton size="lg" @click="addMember">
+                          + Добавить человека
+                        </BaseButton>
+                      </div>
+                    </div>
+                  </div>
           <!-- Tree View -->
           <div v-else class="h-[600px] bg-charcoal/30 rounded-2xl border border-white/5 overflow-hidden relative">
             <!-- Hint when assigning relation -->
@@ -800,7 +827,7 @@ const planName = computed(() => {
           </div>
           <!-- View Toggle for Mobile -->
           <div class="flex justify-center">
-            <ViewToggle v-model="store.viewMode" />
+            <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
           </div>
         </div>
 

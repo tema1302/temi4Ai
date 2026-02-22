@@ -5,7 +5,7 @@ import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import Logo from '@/shared/ui/Logo.vue'
 import { useRouter } from 'vue-router'
-import { Menu, X } from 'lucide-vue-next'
+import { Menu, X, User } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 interface Props {
@@ -87,7 +87,7 @@ const handleLogout = async () => {
         <div class="hidden md:flex items-center gap-4">
           <template v-if="!authStore.isAuthenticated">
             <button 
-              class="text-sm text-silk hover:text-gold transition-colors font-medium"
+              class="text-sm text-silk hover:text-gold transition-colors font-medium border border-white/10 px-4 py-2 rounded-full"
               @click="router.push('/auth')"
             >
               Войти
@@ -98,14 +98,18 @@ const handleLogout = async () => {
           </template>
           <template v-else>
             <button 
-              class="text-sm text-silk hover:text-gold transition-colors font-medium"
+              class="flex items-center gap-2 text-sm text-silk hover:text-gold transition-colors font-medium"
+              @click="router.push('/editor')"
+            >
+              <User class="w-4 h-4" />
+              Кабинет
+            </button>
+            <button 
+              class="text-sm text-gray-500 hover:text-red-400 transition-colors font-medium ml-4"
               @click="handleLogout"
             >
               Выйти
             </button>
-            <BaseButton size="sm" @click="router.push('/editor')">
-              Мой архив
-            </BaseButton>
           </template>
         </div>
 
@@ -114,7 +118,13 @@ const handleLogout = async () => {
           class="md:hidden z-50 relative text-silk p-2"
           @click="toggleMobileMenu"
         >
-          <Menu />
+          <template v-if="isMobileMenuOpen">
+            <X />
+          </template>
+          <template v-else>
+            <User v-if="authStore.isAuthenticated" class="text-gold" />
+            <Menu v-else />
+          </template>
         </button>
       </div>
     </header>

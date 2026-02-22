@@ -165,7 +165,7 @@ const handleSuccessContinue = () => {
         <h1 class="text-3xl font-serif text-silk mb-2">
           <template v-if="isForgotPasswordMode">Восстановление пароля</template>
           <template v-else-if="isResetPasswordMode">Новый пароль</template>
-          <template v-else>{{ isLoginMode ? 'С возвращением' : 'Создать аккаунт' }}</template>
+          <template v-else>{{ isLoginMode ? 'Войдите' : 'Создать аккаунт' }}</template>
         </h1>
         <p class="text-gray-400">
           <template v-if="isForgotPasswordMode">Введите email для получения ссылки</template>

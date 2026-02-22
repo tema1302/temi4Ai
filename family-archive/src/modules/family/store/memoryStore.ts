@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { FamilyRepository } from '../api/repository'
+import { useAuthStore } from '@/stores/authStore'
 import {
   type FamilyArchive,
   type FamilyMember,
@@ -9,6 +10,15 @@ import {
   createEmptyMember,
   createEmptyRelation
 } from '../domain/models'
+
+// Simple debounce helper
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  return ((...args: any[]) => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
 
 // Пустой массив как константа для избежания создания новых ссылок
 const EMPTY_ARRAY: any[] = []
@@ -19,9 +29,33 @@ export const useMemoryStore = defineStore('memory', () => {
   const activeMemberId = ref<string | null>(null)
   const isLoading = ref(false)
   const isEditing = ref(false)
+  const isDraft = ref(false)
   const userFamilies = ref<FamilyArchive[]>([])
   const pendingRelation = ref<{ memberId: string; suggestedRole: string } | null>(null)
   const viewMode = ref<'cards' | 'tree'>('cards')
+
+  // Auto-save logic
+  const debouncedSave = debounce(async (userId: string) => {
+    if (currentFamily.value) {
+      console.log('[Store] Auto-saving changes...')
+      const success = await saveCurrentFamily(userId)
+      if (success) {
+        isDraft.value = false
+        console.log('[Store] Auto-save complete')
+      }
+    }
+  }, 3000) // 3 seconds delay
+
+  // Watch for changes to trigger auto-save
+  watch(currentFamily, (newVal) => {
+    if (newVal) {
+      isDraft.value = true
+      const authStore = useAuthStore()
+      if (authStore.userId) {
+        debouncedSave(authStore.userId)
+      }
+    }
+  }, { deep: true })
 
   // Getters - используем стабильные ссылки на пустой массив
   const familyName = computed(() => currentFamily.value?.name ?? '')
@@ -79,6 +113,13 @@ export const useMemoryStore = defineStore('memory', () => {
         ...updates
       }
       currentFamily.value.updatedAt = new Date().toISOString()
+      
+      // Auto-save if authorized
+      const authStore = (window as any).authStore // Quick access if globally set, or inject later
+      if (currentFamily.value) {
+         // This is a bit tricky since we can't easily inject other stores here in all environments
+         // but we can at least flag as unsaved
+      }
     }
   }
 
