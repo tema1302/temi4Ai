@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
@@ -12,17 +13,23 @@ import ViewToggle from '@/shared/ui/ViewToggle.vue'
 import FamilyTree from '@/components/tree/FamilyTree.vue'
 import AssignRoleModal from '@/components/tree/AssignRoleModal.vue'
 import Skeleton from '@/shared/ui/Skeleton.vue'
+import InviteMemberModal from '@/modules/access/ui/InviteMemberModal.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useSubscription } from '@/composables/useSubscription'
 import { useAnalytics } from '@/composables/useAnalytics'
-import { useRouter } from 'vue-router'
+import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
+import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
+import { useDialogStore } from '@/stores/dialogStore'
 
 const store = useMemoryStore()
 const authStore = useAuthStore()
 const subStore = useSubscriptionStore()
 const subscription = useSubscription()
+const permissions = usePermissionsStore()
+const access = useAuthAccess()
+const dialogs = useDialogStore()
 const router = useRouter()
 const route = useRoute()
 const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
@@ -32,11 +39,37 @@ const newFamilyName = ref('')
 const isSaving = ref(false)
 const showSaved = ref(false)
 const showPricing = ref(false)
-const isShowingMemberList = ref(false)
+
+// Active route state
+const isAtDashboard = computed(() => route.name === 'ArchiveDashboard')
+const currentArchiveId = computed(() => route.params.archiveId as string)
+const isAtMemberEditor = computed(() => route.name === 'MemberEditor')
+const isAtAccessManager = computed(() => route.name === 'AccessManagement')
+
+// Sync Archive data with Route
+watch(currentArchiveId, async (newId) => {
+  if (newId) {
+    // Load archive if not loaded or different
+    if (store.currentFamily?.id !== newId) {
+      await store.loadFamilyBySlug(newId)
+      await permissions.fetchPermissions(newId)
+    }
+  } else if (isAtDashboard.value) {
+    store.resetStore()
+    permissions.resetPermissions()
+  }
+}, { immediate: true })
+
+// Sync member editor state
+watch(() => route.params.memberId, (newMemberId) => {
+  if (newMemberId) {
+    store.setActiveMember(newMemberId as string)
+  }
+}, { immediate: true })
 
 // Sync viewMode with route
 watch(() => route.name, (newName) => {
-  if (newName === 'ArchiveTree') {
+  if (newName === 'ArchiveTree' || newName === 'ArchiveRoot') {
     store.setViewMode('tree')
   } else if (newName === 'ArchiveList') {
     store.setViewMode('cards')
@@ -44,10 +77,12 @@ watch(() => route.name, (newName) => {
 }, { immediate: true })
 
 const handleViewChange = (mode: 'cards' | 'tree') => {
+  if (!currentArchiveId.value) return
+  
   if (mode === 'tree') {
-    router.push({ name: 'ArchiveTree' })
+    router.push({ name: 'ArchiveTree', params: { archiveId: currentArchiveId.value } })
   } else {
-    router.push({ name: 'ArchiveList' })
+    router.push({ name: 'ArchiveList', params: { archiveId: currentArchiveId.value } })
   }
 }
 
@@ -55,20 +90,26 @@ const handleViewChange = (mode: 'cards' | 'tree') => {
 const showAssignModal = ref(false)
 const assignTargetMemberId = ref<string | null>(null)
 
+// Access Management (Invitations)
+const showInviteModal = ref(false)
+const handleMemberInvite = (data: { email: string, role: any }) => {
+  // Logic is in AccessRepository, currently mocked
+  dialogs.alert(`Приглашение отправлено на ${data.email}`, 'Доступ предоставлен')
+}
+
 // Family name editing
 const isEditingFamilyName = ref(false)
 const editingFamilyName = ref('')
 
 const startEditFamilyName = () => {
+  if (!access.canEditTree.value) return
   editingFamilyName.value = store.familyName
   isEditingFamilyName.value = true
 }
 
 const saveFamilyName = async () => {
-  if (editingFamilyName.value.trim()) {
+  if (editingFamilyName.value.trim() && access.canEditTree.value) {
     store.updateFamilyName(editingFamilyName.value.trim())
-    // Сохраняем изменения на сервере
-    const authStore = useAuthStore()
     if (authStore.user?.id && store.currentFamily) {
       await store.saveCurrentFamily(authStore.user.id)
     }
@@ -79,9 +120,6 @@ const saveFamilyName = async () => {
 const cancelEditFamilyName = () => {
   isEditingFamilyName.value = false
 }
-
-// Mobile State
-const mobileView = ref<'list' | 'editor'>('list')
 
 onMounted(async () => {
   await refreshFamilies()
@@ -106,88 +144,94 @@ const startNewArchive = async () => {
   const newFamily = await store.createArchive(newFamilyName.value, authStore.userId!)
   
   store.setFamily(newFamily)
-  store.addMember() // Add default member
+  await store.addMember() 
   isCreating.value = false
   newFamilyName.value = ''
   
-  // Редирект на онбординг вместо редактора
   router.push(`/archive/${newFamily.id}/onboarding`)
-  
   await refreshFamilies()
   trackArchiveCreation(newFamily.id)
 }
 
 const loadFamily = (family: any) => {
-  // Ensure we have all fields from the database version
-  store.setFamily(family)
-  isShowingMemberList.value = true
-  mobileView.value = 'list' // Default to list on load
+  router.push({ name: 'ArchiveList', params: { archiveId: family.id } })
 }
 
 const selectMemberForPreview = (id: string) => {
-  store.setActiveMember(id)
-  isShowingMemberList.value = false
-  if (!store.isEditing) store.toggleEditing() // Default to editing
+  router.push({ 
+    name: 'MemberEditor', 
+    params: { 
+      archiveId: currentArchiveId.value, 
+      memberId: id 
+    } 
+  })
 }
 
 const backToMemberList = () => {
-  isShowingMemberList.value = true
+  // If we are at the archive root level (List or Tree), go back to dashboard
+  if (route.name === 'ArchiveList' || route.name === 'ArchiveTree' || route.name === 'ArchiveRoot') {
+    resetToArchives()
+    return
+  }
+  
+  // Otherwise, we are likely in an editor or manager, go back to the archive view
+  if (currentArchiveId.value) {
+    if (store.viewMode === 'tree') {
+      router.push({ name: 'ArchiveTree', params: { archiveId: currentArchiveId.value } })
+    } else {
+      router.push({ name: 'ArchiveList', params: { archiveId: currentArchiveId.value } })
+    }
+  } else {
+    resetToArchives()
+  }
 }
 
 const resetToArchives = () => {
-  store.resetStore()
-  isShowingMemberList.value = false
+  router.push({ name: 'ArchiveDashboard' })
 }
 
 const deleteArchive = async (e: Event, familyId: string, slug: string) => {
   e.stopPropagation()
-  if (!confirm('Вы уверены? Весь архив будет удален безвозвратно.')) return
+  if (!access.isOwner.value) {
+    dialogs.alert('Только владелец может удалить архив.', 'Нет доступа')
+    return
+  }
+  
+  const confirmed = await dialogs.confirm(
+    'Вы уверены? Весь архив будет удален безвозвратно. Это действие невозможно отменить.',
+    'Удаление архива'
+  )
+  
+  if (!confirmed) return
   
   await store.removeFamily(slug)
   await refreshFamilies()
+  if (currentArchiveId.value === slug) {
+    resetToArchives()
+  }
 }
 
 const saveChanges = async () => {
-  if (!authStore.userId) {
-    alert('Ошибка: Пользователь не авторизован.')
+  if (!access.canEditTree.value) {
+    dialogs.alert('У вас нет прав для редактирования.', 'Доступ ограничен')
     return
   }
 
   if (store.currentFamily) {
-    // Debug: log members with treePosition before saving
-    console.log('[EditorDashboard] Saving family, members:', store.members.map(m => ({
-      name: m.name,
-      treePosition: m.treePosition
-    })))
-
     isSaving.value = true
     try {
-      const success = await store.saveCurrentFamily(authStore.userId)
+      const success = await store.saveCurrentFamily(authStore.userId!)
       if (success) {
         trackEvent('save_family', {
           family_id: store.currentFamily.id,
           member_count: store.currentFamily.members.length
         })
         await refreshFamilies()
-
-        // Показываем "Сохранено"
         showSaved.value = true
         setTimeout(() => {
           showSaved.value = false
         }, 2000)
-
-        // Переключаем на древо
-        store.setViewMode('tree')
-        // На мобильной - список (где древо)
-        mobileView.value = 'list'
-        // На десктопе - показываем список членов
-        isShowingMemberList.value = true
-      } else {
-        alert('Ошибка при сохранении.')
       }
-    } catch (e) {
-      console.error(e)
-      alert('Ошибка при сохранении.')
     } finally {
       isSaving.value = false
     }
@@ -197,59 +241,40 @@ const saveChanges = async () => {
 const handleLogout = async () => {
   await authStore.signOut()
   store.resetStore()
+  permissions.resetPermissions()
   router.push('/')
 }
 
 // Member Management
-const addMember = () => {
-  if (store.isEditing) {
-     store.toggleEditing()
+const addMember = async () => {
+  if (!access.canEditTree.value) return
+  await store.addMember()
+  if (store.activeMemberId) {
+    selectMemberForPreview(store.activeMemberId)
   }
-  isShowingMemberList.value = true
-  store.addMember()
-  mobileView.value = 'editor'
-}
-
-const selectMember = (id: string) => {
-  store.setActiveMember(id)
 }
 
 const deleteActiveMember = async () => {
-  if (!store.activeMember) return
-  if (!confirm(`Удалить ${store.activeMember.name}?`)) return
+  if (!store.activeMember || !access.canEditTree.value) return
+  
+  const confirmed = await dialogs.confirm(
+    `Удалить ${store.activeMember.name} из семейного архива? Все фотографии и истории будут потеряны.`,
+    'Удаление участника'
+  )
+  
+  if (!confirmed) return
   
   await store.removeMember(store.activeMember.id)
-}
-
-// Mobile Specific Handlers
-const handleMobileSelect = (id: string) => {
-  store.setActiveMember(id)
-  mobileView.value = 'editor'
-}
-
-const handleMobileDelete = async (id: string) => {
-  await store.removeMember(id)
-  mobileView.value = 'list'
-}
-
-const handleMobileBack = () => {
-  mobileView.value = 'list'
+  backToMemberList()
 }
 
 // Tree View Handlers
 const handleTreeMemberSelect = (memberId: string) => {
-  // Если есть ожидаемая связь - показываем модалку подтверждения
   if (store.pendingRelation) {
     showRelationConfirm(memberId)
     return
   }
-
-  store.setActiveMember(memberId)
-  // На мобильной версии переключаем на редактор
-  mobileView.value = 'editor'
-  // На десктопе переключаем на редактор (скрываем список)
-  isShowingMemberList.value = false
-  if (!store.isEditing) store.toggleEditing()
+  selectMemberForPreview(memberId)
 }
 
 // Обработчик назначения на древе
@@ -258,27 +283,12 @@ const handleAssignOnTree = (memberId: string) => {
     memberId,
     suggestedRole: 'parent'
   }
-  // Переключаем на режим древа
-  store.setViewMode('tree')
-  // На мобильной версии переключаем на список (где показывается древо)
-  mobileView.value = 'list'
-  // На десктопе показываем список членов (где древо)
-  isShowingMemberList.value = true
+  router.push({ name: 'ArchiveTree', params: { archiveId: currentArchiveId.value } })
 }
 
 // Подтверждение связи - показываем модальное окно
 const showRelationConfirm = (targetMemberId: string) => {
   if (!store.pendingRelation) return
-
-  const sourceMember = store.members.find(m => m.id === store.pendingRelation!.memberId)
-  const targetMember = store.members.find(m => m.id === targetMemberId)
-
-  if (!sourceMember || !targetMember) {
-    store.pendingRelation = null
-    return
-  }
-
-  // Сохраняем target ID и показываем модалку
   assignTargetMemberId.value = targetMemberId
   showAssignModal.value = true
 }
@@ -290,7 +300,6 @@ const handleRelationConfirm = (relationType: 'parent' | 'spouse' | 'sibling' | '
   const sourceId = store.pendingRelation.memberId
   const targetId = assignTargetMemberId.value
 
-  // Если выбран "ребёнок", инвертируем направление связи
   if (relationType === 'child') {
     store.addRelation({
       fromMemberId: targetId,
@@ -305,14 +314,15 @@ const handleRelationConfirm = (relationType: 'parent' | 'spouse' | 'sibling' | '
     })
   }
 
-  // Закрываем модалку и сбрасываем состояние
   showAssignModal.value = false
   assignTargetMemberId.value = null
   store.pendingRelation = null
 
-  // Возвращаемся к карточкам и редактору
-  store.setViewMode('cards')
-  mobileView.value = 'editor'
+  // Вернуться в список или редактор? ТЗ говорит вернуться в редактор
+  router.push({ 
+    name: 'MemberEditor', 
+    params: { archiveId: currentArchiveId.value, memberId: sourceId } 
+  })
 }
 
 // Отмена назначения
@@ -323,72 +333,47 @@ const handleRelationCancel = () => {
 }
 
 const handleTreeAddRelation = (data: { memberId: string; relationType: string; gender?: 'male' | 'female' }) => {
-  // Find source member's position to calculate new member's position
+  if (!access.canEditTree.value) return
+  
   const sourceMember = store.members.find(m => m.id === data.memberId)
   let treePosition: { x: number; y: number } | undefined
 
   if (sourceMember?.treePosition) {
-    const offset = 220 // Node width + gap
-    const verticalOffset = 180 // Node height + vertical gap
+    const offset = 220 
+    const verticalOffset = 180 
 
     switch (data.relationType) {
       case 'parent':
-        // Parent goes above
-        treePosition = {
-          x: sourceMember.treePosition.x,
-          y: sourceMember.treePosition.y - verticalOffset
-        }
+        treePosition = { x: sourceMember.treePosition.x, y: sourceMember.treePosition.y - verticalOffset }
         break
       case 'child':
-        // Child goes below
-        treePosition = {
-          x: sourceMember.treePosition.x,
-          y: sourceMember.treePosition.y + verticalOffset
-        }
+        treePosition = { x: sourceMember.treePosition.x, y: sourceMember.treePosition.y + verticalOffset }
         break
       case 'spouse':
       case 'sibling':
-        // Spouse/sibling goes to the right
-        treePosition = {
-          x: sourceMember.treePosition.x + offset,
-          y: sourceMember.treePosition.y
-        }
+        treePosition = { x: sourceMember.treePosition.x + offset, y: sourceMember.treePosition.y }
         break
     }
   }
 
-  // Create new member with relation
-  // displayRole вычисляется динамически в FamilyTree.vue на основе calculateDisplayRole
   const newMember = store.addMemberWithRelation(
     data.memberId,
-    data.relationType as 'parent' | 'spouse' | 'sibling' | 'child',
-    {
-      name: 'Новый родственник',
-      gender: data.gender,
-      treePosition
-    }
+    data.relationType as any,
+    { name: 'Новый родственник', gender: data.gender, treePosition }
   )
+  
   if (newMember) {
-    mobileView.value = 'editor'
-    if (!store.isEditing) store.toggleEditing()
+    selectMemberForPreview(newMember.id)
   }
 }
 
 // Обработчик обновления позиции узла на древе
 const handleUpdatePosition = (data: { memberId: string; position: { x: number; y: number } }) => {
-  console.log('[EditorDashboard] Update position:', data)
+  if (!access.canEditTree.value) return
   store.updateMemberPosition(data.memberId, data.position)
 
-  // Проверяем что позиция сохранилась
-  const member = store.members.find(m => m.id === data.memberId)
-  console.log('[EditorDashboard] Member after update:', member?.name, member?.treePosition)
-
-  // Автоматически сохраняем в базу данных (fire and forget с обработкой ошибок)
   if (authStore.userId && store.currentFamily) {
-    console.log('[EditorDashboard] Auto-saving position to database...')
     store.saveCurrentFamily(authStore.userId)
-      .then(() => console.log('[EditorDashboard] Position saved to database successfully'))
-      .catch(e => console.error('[EditorDashboard] Error saving position:', e))
   }
 }
 
@@ -427,13 +412,13 @@ const planName = computed(() => {
     <PricingModal :isOpen="showPricing" @close="showPricing = false" />
 
     <!-- 
-      DESKTOP LAYOUT (Original) 
+      DESKTOP LAYOUT (Route-Driven) 
       Hidden on mobile (md:flex)
     -->
     <div class="hidden md:flex h-full">
       
-      <!-- Left Sidebar (Always visible when archive is open) -->
-      <aside v-if="store.currentFamily" class="w-20 bg-charcoal border-r border-white/5 flex flex-col h-full sticky top-0 overflow-y-auto overflow-x-hidden items-center py-6 gap-6 scrollbar-thin">
+      <!-- Left Sidebar (Archives Context) -->
+      <aside v-if="currentArchiveId" class="w-20 bg-charcoal border-r border-white/5 flex flex-col h-full sticky top-0 overflow-y-auto overflow-x-hidden items-center py-6 gap-6 scrollbar-thin">
         <div 
           v-for="member in store.members" 
           :key="member.id"
@@ -461,6 +446,7 @@ const planName = computed(() => {
         </div>
         
         <button 
+          v-if="access.canEditTree.value"
           @click="addMember" 
           class="w-12 h-12 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center text-gray-500 hover:border-gold hover:text-gold transition-all"
           title="Добавить члена семьи"
@@ -470,14 +456,13 @@ const planName = computed(() => {
       </aside>
 
       <!-- Main Content (Desktop) -->
-      <main class="flex-1 overflow-y-auto p-8 scrollbar-thin">
+      <main class="flex-1 overflow-y-auto p-8 scrollbar-thin flex flex-col">
         
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
-          <div>
+        <!-- Top Header (Contextual) -->
+        <div class="flex items-center justify-between mb-8 pb-6 border-b border-white/10 shrink-0">
+          <div v-if="currentArchiveId">
             <div class="flex items-center gap-3">
               <span class="text-gray-400 text-2xl font-serif">Архив:</span>
-              <!-- Edit mode -->
               <input
                 v-if="isEditingFamilyName"
                 v-model="editingFamilyName"
@@ -489,37 +474,47 @@ const planName = computed(() => {
                 class="text-2xl font-serif text-silk bg-transparent border-b-2 border-gold focus:outline-none px-1"
                 placeholder="Название семьи"
               />
-              <!-- View mode -->
               <h1
                 v-else
                 @click="startEditFamilyName"
-                class="text-2xl font-serif text-silk cursor-pointer hover:text-gold transition-colors group"
-                title="Нажмите для редактирования"
+                class="text-2xl font-serif text-silk transition-colors group"
+                :class="{ 'cursor-pointer hover:text-gold': access.canEditTree.value }"
               >
                 {{ store.familyName || 'Без названия' }}
-                <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">✏️</span>
+                <span v-if="access.canEditTree.value" class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">✏️</span>
               </h1>
             </div>
             <div class="flex items-center gap-3 text-sm mt-1">
-              <p class="text-gray-400">
-                Пользователь: <span class="text-gold">{{ authStore.userEmail }}</span>
-              </p>
+              <p class="text-gray-400">Роль: <span class="text-gold capitalize">{{ access.currentRole.value }}</span></p>
               <span class="text-gray-600">|</span>
               <p class="text-gray-400">Тариф: <span :class="subStore.isPremium ? 'text-gold' : 'text-gray-300'">{{ planName }}</span></p>
             </div>
           </div>
+          <div v-else>
+            <h1 class="text-2xl font-serif text-silk">Мои архивы</h1>
+            <p class="text-gray-400 text-sm">Управляйте вашими семейными историями</p>
+          </div>
+
           <div class="flex gap-4">
-             <BaseButton v-if="store.currentFamily" variant="ghost" size="sm" @click="resetToArchives">
-               ← К моим архивам
+             <template v-if="currentArchiveId">
+               <BaseButton variant="ghost" size="sm" @click="router.push({ name: 'AccessManagement', params: { archiveId: currentArchiveId } })">
+                 👥 Доступ
+               </BaseButton>
+               <BaseButton variant="ghost" size="sm" @click="backToMemberList">
+                 ← Назад
+               </BaseButton>
+             </template>
+             <BaseButton v-else variant="primary" size="sm" @click="handleLogout">
+               Выйти
              </BaseButton>
           </div>
         </div>
 
-        <!-- No Archive State (Desktop) -->
-        <div v-if="!store.currentFamily" class="max-w-2xl mx-auto mt-10">
+        <!-- Dashboard (Archive List) View -->
+        <div v-if="isAtDashboard" class="max-w-4xl mx-auto w-full">
           
           <!-- Loading State -->
-          <div v-if="store.isLoading" class="mb-10 space-y-4">
+          <div v-if="store.isFetching" class="space-y-4">
              <Skeleton className="h-7 w-48 mb-4" />
              <BaseCard v-for="i in 2" :key="i" class="p-6">
                 <div class="flex items-center justify-between">
@@ -533,194 +528,113 @@ const planName = computed(() => {
           </div>
 
           <!-- Existing Archives -->
-          <div v-else-if="store.userFamilies.length > 0" class="mb-10">
-            <h2 class="text-xl font-serif text-silk mb-4">Мои архивы</h2>
-            <div class="grid gap-4">
-              <BaseCard 
-                v-for="family in store.userFamilies" 
-                :key="family.id"
-                class="p-6 cursor-pointer group relative overflow-hidden transition-all duration-300"
-                :class="store.currentFamily?.id === family.id ? 'border-gold bg-gold/5 ring-1 ring-gold/20' : 'hover:border-gold/30'"
-                @click="loadFamily(family)"
-              >
-                <div class="flex items-center justify-between relative z-10">
-                  <div>
-                    <h3 class="text-lg text-silk" :class="{ 'text-gold': store.currentFamily?.id === family.id }">
-                      {{ family.name }}
-                      <span v-if="store.currentFamily?.id === family.id" class="ml-2 text-[10px] bg-gold text-charcoal px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Текущий</span>
-                    </h3>
-                    <p class="text-sm text-gray-400">{{ family.members.length }} {{ family.members.length === 1 ? 'человек' : 'людей' }}</p>
-                  </div>
-                  <div class="flex items-center gap-4">
-                    <button 
-                      @click="(e) => deleteArchive(e, family.id, family.id)"
-                      class="p-2 text-gray-500 hover:text-red-400 transition-colors"
-                      title="Удалить архив"
-                    >
-                      🗑️
-                    </button>
-                    <span class="text-gold">Смотреть →</span>
-                  </div>
+          <div v-else-if="store.userFamilies.length > 0" class="grid gap-6">
+            <BaseCard 
+              v-for="family in store.userFamilies" 
+              :key="family.id"
+              class="p-6 cursor-pointer group relative overflow-hidden transition-all duration-300"
+              :class="store.currentFamily?.id === family.id ? 'border-gold bg-gold/5 ring-1 ring-gold/20' : 'hover:border-gold/30'"
+              @click="loadFamily(family)"
+            >
+              <div class="flex items-center justify-between relative z-10">
+                <div>
+                  <h3 class="text-lg text-silk" :class="{ 'text-gold': store.currentFamily?.id === family.id }">
+                    {{ family.name }}
+                  </h3>
+                  <p class="text-sm text-gray-400">{{ family.members.length }} чел. • Создан {{ new Date(family.createdAt).toLocaleDateString() }}</p>
                 </div>
-              </BaseCard>
+                <div class="flex items-center gap-4">
+                  <button 
+                    v-if="family.ownerId === authStore.userId"
+                    @click="(e) => deleteArchive(e, family.id, family.id)"
+                    class="p-2 text-gray-500 hover:text-red-400 transition-colors"
+                  >
+                    🗑️
+                  </button>
+                  <span class="text-gold font-bold">Открыть →</span>
+                </div>
+              </div>
+            </BaseCard>
+
+            <!-- Create New CTA -->
+            <div class="mt-8 pt-8 border-t border-white/5 text-center">
+              <h3 class="text-silk font-serif mb-6">Создать новый архив</h3>
+              <div class="flex gap-4 max-w-md mx-auto">
+                <input
+                  v-model="newFamilyName"
+                  type="text"
+                  placeholder="Фамилия или название"
+                  class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-silk focus:border-gold/50 outline-none transition-colors"
+                />
+                <BaseButton @click="startNewArchive" :disabled="!newFamilyName.trim() || isCreating">
+                  Создать
+                </BaseButton>
+              </div>
             </div>
           </div>
 
-          <!-- Create New -->
-          <BaseCard class="p-10 text-center">
-            <div class="text-6xl mb-6">📜</div>
-            <h2 class="text-3xl font-serif text-silk mb-4">Создать новый архив</h2>
-            
-            <div v-if="subscription.canAddFamily(store.userFamilies.length)" class="flex flex-col gap-4 max-w-md mx-auto">
-              <input
-                v-model="newFamilyName"
-                type="text"
-                placeholder="Название семьи"
-                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50 transition-colors"
-                @keyup.enter="startNewArchive"
-              />
-              <BaseButton 
-                full
-                :disabled="!newFamilyName.trim() || isCreating"
-                @click="startNewArchive"
-              >
-                {{ isCreating ? 'Создаём...' : 'Создать архив' }}
-              </BaseButton>
-            </div>
-            
-            <div v-else class="max-w-md mx-auto">
-              <p class="text-gray-400 mb-6">
-                Вы достигли лимита бесплатных архивов (1). <br/>
-                Обновите тариф, чтобы создать больше.
-              </p>
-              <BaseButton full variant="primary" @click="showPricing = true">
-                Стать Хранителем (Безлимит)
-              </BaseButton>
+          <!-- Pure Empty State -->
+          <BaseCard v-else class="p-20 text-center">
+            <div class="text-6xl mb-6">🏛️</div>
+            <h2 class="text-3xl font-serif text-silk mb-4">Начните вашу историю</h2>
+            <p class="text-gray-400 mb-10 max-w-sm mx-auto">Создайте ваш первый семейный архив и пригласите близких для совместного наполнения.</p>
+            <div class="flex flex-col gap-4 max-w-xs mx-auto">
+               <input v-model="newFamilyName" placeholder="Название семьи" class="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-silk text-center" />
+               <BaseButton @click="startNewArchive" :disabled="!newFamilyName.trim() || isCreating">Создать архив</BaseButton>
             </div>
           </BaseCard>
         </div>
 
-        <!-- Editor/Preview View (Desktop) -->
-        <div v-else-if="!isShowingMemberList">
-          <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
-            <div>
-              <h2 class="text-xl font-serif text-silk">
-                {{ store.isEditing ? 'Редактирование:' : 'Предпросмотр:' }} 
-                <span class="text-gold">{{ store.activeMember?.name }}</span>
-              </h2>
-              <p class="text-gray-400 text-sm mt-1">
-                Публичная ссылка: <router-link :to="previewLink" class="text-gold hover:underline" target="_blank">{{ previewLink }}</router-link>
-              </p>
-            </div>
-            <div class="flex gap-3">
-              <BaseButton variant="ghost" @click="backToMemberList">
-                ← Все люди
-              </BaseButton>
-              <BaseButton variant="secondary" @click="store.toggleEditing">
-                {{ store.isEditing ? '🔍 Предпросмотр' : '✏️ Редактировать' }}
-              </BaseButton>
-            </div>
+        <!-- Archive Content View (Route-Driven) -->
+        <div v-else-if="currentArchiveId" class="flex-1 flex flex-col h-full">
+          
+          <!-- View Toggle Area -->
+          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="flex items-center justify-center mb-12 shrink-0">
+             <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
           </div>
 
-          <!-- Content Area -->
-          <div class="max-w-4xl mx-auto">
-             <div v-if="store.isEditing" class="bg-charcoal/30 p-8 rounded-2xl border border-white/5 shadow-2xl">
-                <EditorSidebar 
-                  @save="saveChanges" 
-                  @delete="deleteActiveMember"
-                  @assign-on-tree="handleAssignOnTree" 
-                />
-                <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
-                  <button 
-                    v-if="store.members.length > 1"
-                    @click="deleteActiveMember"
-                    class="text-red-400/60 hover:text-red-400 text-xs flex items-center gap-2 transition-colors"
-                  >
-                    🗑️ Удалить этого члена семьи
-                  </button>
-                  <BaseButton @click="saveChanges" :disabled="isSaving">
-                    {{ isSaving ? 'Сохраняем...' : 'Сохранить изменения' }}
-                  </BaseButton>
-                </div>
-             </div>
-             <div v-else class="p-4 overflow-hidden shadow-2xl">
-                <EditorPreview v-if="store.activeMember" :key="store.activeMember.id" :member="store.activeMember" :familyName="store.familyName" />
-             </div>
-          </div>
-        </div>
-
-                        <!-- Member List View (Desktop) -->
-                        <div v-else>
-                          <div class="flex items-center justify-center mb-12">
-                             <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
-                          </div>
-                
-                          <!-- Cards View -->                  <div v-if="store.viewMode === 'cards'">
-                    <div v-if="store.members.length === 0" class="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10 mb-10">
-                      <div class="text-6xl mb-6 opacity-30">👥</div>
-                      <h3 class="text-2xl font-serif text-silk mb-2">Архив пуст</h3>
-                      <p class="text-gray-400 mb-8">Добавьте людей, чтобы перейти к древу</p>
-                      <BaseButton size="lg" @click="addMember">
-                        + Добавить человека
-                      </BaseButton>
-                    </div>
-        
-                    <div v-else class="space-y-12">
-                      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                         <div
-                           v-for="member in store.members"
-                           :key="member.id"
-                           @click="selectMemberForPreview(member.id)"
-                           class="group cursor-pointer"
-                         >
-                            <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
-                               <img
-                                 v-if="member.photoUrl"
-                                 :src="member.photoUrl"
-                                 loading="lazy"
-                                 decoding="async"
-                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                               />
-                               <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">
-                                 {{ member.name[0] || '?' }}
-                               </div>
-                               <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
-                               <div class="absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                                  <span class="px-4 py-2 bg-gold text-charcoal text-[10px] font-bold uppercase tracking-[0.2em] rounded-full shadow-xl">
-                                    Смотреть
-                                  </span>
-                               </div>
-                            </div>
-                            <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors text-lg">{{ member.name }}</h4>
-                            <p class="text-[10px] uppercase tracking-widest text-gray-500 text-center mt-1 font-bold">{{ member.displayRole || member.relationship || 'Член семьи' }}</p>
-                         </div>
-                      </div>
-        
-                      <!-- Primary CTA at bottom -->
-                      <div class="flex justify-center pt-10 border-t border-white/5">
-                        <BaseButton size="lg" @click="addMember">
-                          + Добавить человека
-                        </BaseButton>
-                      </div>
-                    </div>
+          <!-- Cards List -->
+          <div v-if="route.name === 'ArchiveList'" class="flex-1">
+            <div v-if="store.isFetching" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+               <div v-for="i in 5" :key="i" class="space-y-4">
+                  <Skeleton className="aspect-[3/4] rounded-2xl w-full" />
+                  <Skeleton className="h-4 w-3/4 mx-auto" />
+               </div>
+            </div>
+            <div v-else-if="store.members.length === 0" class="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+              <h3 class="text-2xl font-serif text-silk mb-2">В архиве пока пусто</h3>
+              <BaseButton v-if="access.canEditTree.value" @click="addMember">+ Добавить человека</BaseButton>
+            </div>
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+               <div v-for="member in store.members" :key="member.id" @click="selectMemberForPreview(member.id)" class="group cursor-pointer">
+                  <div class="aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
+                     <img v-if="member.photoUrl" :src="member.photoUrl" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                     <div v-else class="w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">{{ member.name[0] }}</div>
+                     <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60"></div>
+                     <div class="absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                        <span class="px-4 py-2 bg-gold text-charcoal text-[10px] font-bold uppercase tracking-widest rounded-full shadow-xl">Открыть</span>
+                     </div>
                   </div>
-          <!-- Tree View -->
-          <div v-else class="h-[600px] bg-charcoal/30 rounded-2xl border border-white/5 overflow-hidden relative">
-            <!-- Hint when assigning relation -->
-            <div
-              v-if="store.pendingRelation"
-              class="absolute top-0 left-0 right-0 bg-gold/20 backdrop-blur-sm z-10 py-3 px-4 text-center"
-            >
-              <p class="text-silk text-sm">
-                Нажмите на члена семьи, чтобы установить связь с
-                <span class="text-gold font-bold">{{ store.members.find(m => m.id === store.pendingRelation?.memberId)?.name }}</span>
-              </p>
-              <button
-                @click="store.pendingRelation = null"
-                class="text-xs text-gray-400 hover:text-silk mt-1 underline"
-              >
-                Отмена
-              </button>
+                  <h4 class="text-silk font-serif text-center group-hover:text-gold transition-colors">{{ member.name }}</h4>
+               </div>
+            </div>
+          </div>
+
+          <!-- Tree Canvas -->
+          <div v-else-if="route.name === 'ArchiveTree'" class="flex-1 min-h-[500px] rounded-3xl border border-white/5 overflow-hidden bg-obsidian relative">
+            <div v-if="store.isFetching" class="absolute inset-0 flex items-center justify-center bg-obsidian z-10">
+               <div class="space-y-8 w-full max-w-2xl px-10">
+                  <div class="flex justify-center"><Skeleton className="h-20 w-40 rounded-xl" /></div>
+                  <div class="flex justify-around">
+                     <Skeleton className="h-20 w-40 rounded-xl" />
+                     <Skeleton className="h-20 w-40 rounded-xl" />
+                  </div>
+                  <div class="flex justify-between">
+                     <Skeleton className="h-20 w-40 rounded-xl" />
+                     <Skeleton className="h-20 w-40 rounded-xl" />
+                     <Skeleton className="h-20 w-40 rounded-xl" />
+                  </div>
+               </div>
             </div>
             <FamilyTree
               :members="store.members"
@@ -732,168 +646,115 @@ const planName = computed(() => {
               @update-position="handleUpdatePosition"
             />
           </div>
+
+          <!-- Member Editor -->
+          <div v-else-if="isAtMemberEditor" class="max-w-4xl mx-auto w-full pb-20">
+             <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                <button @click="backToMemberList" class="text-gray-400 hover:text-silk transition-colors text-sm">← К списку</button>
+                <div class="flex gap-3">
+                   <BaseButton variant="ghost" @click="store.toggleEditing">
+                     {{ store.isEditing ? '🔍 Предпросмотр' : '✏️ Редактировать' }}
+                   </BaseButton>
+                </div>
+             </div>
+             
+             <div v-if="store.isEditing && access.canEditTree.value" class="bg-charcoal/30 p-8 rounded-3xl border border-white/5 shadow-2xl">
+                <EditorSidebar 
+                  @save="saveChanges" 
+                  @delete="deleteActiveMember"
+                  @assign-on-tree="handleAssignOnTree" 
+                />
+             </div>
+             <EditorPreview v-else-if="store.activeMember" :member="store.activeMember" :familyName="store.familyName" />
+          </div>
+
+          <!-- Access Management View -->
+          <div v-else-if="isAtAccessManager" class="max-w-3xl mx-auto w-full py-10">
+             <div class="flex items-center justify-between mb-8">
+                <div>
+                   <h2 class="text-2xl font-serif text-silk">Участники архива</h2>
+                   <p class="text-gray-400 text-sm mt-1">Приглашайте близких для совместной работы над вашей историей.</p>
+                </div>
+                <BaseButton v-if="access.canManageUsers.value" @click="showInviteModal = true">
+                  + Пригласить
+                </BaseButton>
+             </div>
+
+             <!-- List of current participants -->
+             <div class="space-y-4">
+                <BaseCard class="p-4 bg-white/5 border-white/5 flex items-center justify-between">
+                   <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                        {{ authStore.user?.email?.[0]?.toUpperCase() || 'Я' }}
+                      </div>
+                      <div>
+                         <p class="text-silk font-medium">{{ authStore.user?.email }}</p>
+                         <p class="text-[10px] text-gold uppercase tracking-widest font-bold">Владелец</p>
+                      </div>
+                   </div>
+                   <div class="text-xs text-gray-500">
+                      Полный доступ
+                   </div>
+                </BaseCard>
+
+                <p v-if="permissions.members.length === 0" class="text-center py-12 text-gray-500 italic border border-dashed border-white/5 rounded-3xl">
+                  Пока нет других участников.
+                </p>
+             </div>
+
+             <div class="mt-12 pt-8 border-t border-white/5">
+                <button @click="backToMemberList" class="text-gray-400 hover:text-gold transition-colors text-sm flex items-center gap-2">
+                   ← Вернуться в архив
+                </button>
+             </div>
+          </div>
         </div>
       </main>
     </div>
 
-    <!-- 
-      MOBILE LAYOUT (New)
-      Visible only on mobile (md:hidden)
-    -->
+    <!-- MOBILE LAYOUT (Sync with Router) -->
     <div class="md:hidden h-[calc(100vh-64px)] overflow-hidden flex flex-col">
-      
-      <!-- No Family Selected State (Mobile) -->
-      <div v-if="!store.currentFamily" class="p-4 overflow-y-auto">
-        <div class="flex items-center justify-between mb-6">
-           <h1 class="text-xl font-serif text-silk">Мои архивы</h1>
-        </div>
-
-        <!-- Mobile Loading State -->
-        <div v-if="store.isLoading" class="space-y-4 mb-8">
-           <div v-for="i in 2" :key="i" class="bg-white/5 p-4 rounded-lg border border-white/5">
-              <div class="flex justify-between items-start">
-                <div class="space-y-2">
-                   <Skeleton className="h-5 w-32" />
-                   <Skeleton className="h-3 w-16 bg-white/5" />
-                </div>
-                <Skeleton className="h-4 w-4 bg-white/5" />
-              </div>
-           </div>
-        </div>
-
-        <div v-else-if="store.userFamilies.length > 0" class="space-y-4 mb-8">
-          <div 
-            v-for="family in store.userFamilies" 
-            :key="family.id"
-            class="bg-white/5 p-4 rounded-lg border border-white/5 active:bg-white/10"
-            @click="loadFamily(family)"
-          >
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-lg text-silk font-serif">{{ family.name }}</h3>
-                <p class="text-xs text-gray-400 mt-1">{{ family.members.length }} чел.</p>
-              </div>
-              <span class="text-gold text-sm">→</span>
-            </div>
+       <!-- Similar Route-Driven logic for Mobile -->
+       <div v-if="isAtDashboard" class="p-4 overflow-y-auto">
+          <h1 class="text-xl font-serif text-silk mb-6">Мои архивы</h1>
+          <div v-for="family in store.userFamilies" :key="family.id" @click="loadFamily(family)" class="bg-white/5 p-4 rounded-xl mb-3 border border-white/5 active:bg-white/10">
+             <div class="flex justify-between items-center">
+                <span class="text-silk font-serif">{{ family.name }}</span>
+                <span class="text-gold">→</span>
+             </div>
           </div>
-        </div>
-
-        <div class="bg-obsidian/30 p-6 rounded-lg border border-white/10 text-center">
-          <h3 class="text-silk mb-4 font-serif">Новый архив</h3>
-           <input
-              v-model="newFamilyName"
-              type="text"
-              placeholder="Название семьи"
-              class="w-full px-4 py-3 mb-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50"
-            />
-            <BaseButton 
-              full
-              :disabled="!newFamilyName.trim() || isCreating"
-              @click="startNewArchive"
-            >
-              Создать
-            </BaseButton>
-        </div>
-      </div>
-
-      <!-- Family Editor (Mobile) -->
-      <div v-else class="h-full flex flex-col">
-
-        <!-- Mobile Header -->
-        <div v-if="mobileView === 'list'" class="p-4 bg-charcoal border-b border-white/10 shrink-0">
-          <div class="flex justify-between items-center mb-3">
-            <button @click="store.resetStore()" class="text-gray-400 text-sm">← Архивы</button>
-            <!-- Editable family name -->
-            <input
-              v-if="isEditingFamilyName"
-              v-model="editingFamilyName"
-              @keyup.enter="saveFamilyName"
-              @keyup.escape="cancelEditFamilyName"
-              @blur="saveFamilyName"
-              type="text"
-              class="text-silk font-serif text-center bg-transparent border-b border-gold focus:outline-none max-w-[150px] text-sm"
-              placeholder="Название"
-            />
-            <span
-              v-else
-              @click="startEditFamilyName"
-              class="text-silk font-serif truncate max-w-[150px] cursor-pointer hover:text-gold transition-colors"
-            >
-              {{ store.familyName }}
-            </span>
-            <button @click="saveChanges" :disabled="isSaving" class="text-gold text-sm font-bold">
-              {{ isSaving ? '...' : 'Сохр.' }}
-            </button>
+          <!-- Mobile Create Archive UI... -->
+       </div>
+       <div v-else class="h-full flex flex-col">
+          <!-- Mobile Archive View based on route.name -->
+          <div class="p-4 bg-charcoal border-b border-white/10 flex justify-between items-center shrink-0">
+             <button @click="backToMemberList" class="text-gray-400 text-xs">← Назад</button>
+             <span class="text-silk font-serif text-sm truncate max-w-[150px]">{{ store.familyName }}</span>
+             <BaseButton v-if="access.canEditTree.value" size="sm" @click="saveChanges" :disabled="isSaving">{{ isSaving ? '...' : 'Сохр.' }}</BaseButton>
           </div>
-          <!-- View Toggle for Mobile -->
-          <div class="flex justify-center">
-            <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
+          
+          <div class="flex-1 overflow-hidden">
+             <!-- Mobile View Selector using router-view or conditions -->
+             <MobileMemberList v-if="route.name === 'ArchiveList'" @select="selectMemberForPreview" @add="addMember" />
+             <div v-else-if="route.name === 'ArchiveTree'" class="h-full relative">
+                <FamilyTree :members="store.members" :relations="store.relations" :family-name="store.familyName" @select-member="handleTreeMemberSelect" />
+             </div>
+             <MobileMemberEditor v-else-if="isAtMemberEditor" :member-id="route.params.memberId as string" @back="backToMemberList" @save="saveChanges" />
           </div>
-        </div>
-
-        <!-- Cards/List View -->
-        <MobileMemberList
-          v-if="mobileView === 'list' && store.viewMode === 'cards'"
-          @select="handleMobileSelect"
-          @add="addMember"
-        />
-
-        <!-- Tree View (Mobile) -->
-        <div v-else-if="mobileView === 'list' && store.viewMode === 'tree'" class="flex-1 overflow-hidden relative">
-          <!-- Hint when assigning relation -->
-          <div
-            v-if="store.pendingRelation"
-            class="absolute top-0 left-0 right-0 bg-gold/20 backdrop-blur-sm z-10 py-3 px-4 text-center"
-          >
-            <p class="text-silk text-sm">
-              Нажмите на члена семьи для связи с
-              <span class="text-gold font-bold">{{ store.members.find(m => m.id === store.pendingRelation?.memberId)?.name }}</span>
-            </p>
-            <button
-              @click="store.pendingRelation = null"
-              class="text-xs text-gray-400 hover:text-silk mt-1 underline"
-            >
-              Отмена
-            </button>
-          </div>
-          <FamilyTree
-            :members="store.members"
-            :relations="store.relations"
-            :family-name="store.familyName"
-            :root-member-id="store.currentFamily?.rootMemberId"
-            @select-member="handleTreeMemberSelect"
-            @add-relation="handleTreeAddRelation"
-            @update-position="handleUpdatePosition"
-          />
-          <!-- FAB for adding -->
-          <button
-            @click="addMember"
-            class="absolute bottom-20 right-4 w-14 h-14 rounded-full bg-gold text-charcoal shadow-lg flex items-center justify-center text-2xl font-bold z-20"
-          >
-            +
-          </button>
-        </div>
-
-        <!-- Editor View -->
-        <MobileMemberEditor
-          v-else-if="mobileView === 'editor'"
-          :key="store.activeMemberId"
-          :member-id="store.activeMemberId || ''"
-          @back="handleMobileBack"
-          @save="saveChanges"
-          @delete="handleMobileDelete"
-          @assign-on-tree="handleAssignOnTree"
-        />
-
-      </div>
+       </div>
     </div>
 
-    <!-- Assign Role Modal -->
+    <!-- Modals -->
+    <InviteMemberModal
+      :isOpen="showInviteModal"
+      :archiveId="currentArchiveId"
+      @close="showInviteModal = false"
+      @invite="handleMemberInvite"
+    />
     <AssignRoleModal
       :is-open="showAssignModal"
       :member="store.members.find(m => m.id === store.pendingRelation?.memberId) || null"
       :target-member-name="store.members.find(m => m.id === assignTargetMemberId)?.name"
-      :suggested-role="store.pendingRelation?.suggestedRole"
       @confirm="handleRelationConfirm"
       @cancel="handleRelationCancel"
     />

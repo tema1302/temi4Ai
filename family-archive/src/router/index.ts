@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { h } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
+import type { Capability } from '@/modules/access/constants/roles'
 
 // Lazy load components
 const LandingPage = () => import('@/pages/LandingPage.vue')
@@ -14,6 +17,9 @@ const PersonalDataPolicy = () => import('@/pages/legal/PersonalDataPolicy.vue')
 const PersonalDataConsent = () => import('@/pages/legal/PersonalDataConsent.vue')
 const NewsletterConsent = () => import('@/pages/legal/NewsletterConsent.vue')
 const CookieRules = () => import('@/pages/legal/CookieRules.vue')
+
+// Empty component for layout-driven routes
+const EmptyComponent = { render: () => h('div') }
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -76,17 +82,50 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: '',
         name: 'Editor',
-        redirect: { name: 'ArchiveList' }
+        redirect: { name: 'ArchiveDashboard' }
       },
       {
-        path: 'list',
-        name: 'ArchiveList',
-        component: { template: '<div></div>' } // Dummy since everything is in EditorDashboard for now
+        path: 'archives',
+        name: 'ArchiveDashboard',
+        component: EmptyComponent
       },
       {
-        path: 'tree',
-        name: 'ArchiveTree',
-        component: { template: '<div></div>' } // Dummy
+        path: 'archive/:archiveId',
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: '',
+            name: 'ArchiveRoot',
+            redirect: to => ({ name: 'ArchiveTree', params: to.params })
+          },
+          {
+            path: 'list',
+            name: 'ArchiveList',
+            component: EmptyComponent
+          },
+          {
+            path: 'tree',
+            name: 'ArchiveTree',
+            component: EmptyComponent
+          },
+          {
+            path: 'member/:memberId',
+            name: 'MemberEditor',
+            component: EmptyComponent,
+            meta: { requiredCapability: 'canEditTree' }
+          },
+          {
+            path: 'access',
+            name: 'AccessManagement',
+            component: EmptyComponent,
+            meta: { requiredCapability: 'canManageUsers' }
+          }
+        ]
+      },
+      // Fallback for any other /editor/* routes to avoid "No match" warnings
+      {
+        path: ':pathMatch(.*)*',
+        redirect: { name: 'ArchiveDashboard' }
       }
     ]
   },
@@ -94,12 +133,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin',
     name: 'Admin',
     component: () => import('@/modules/admin/ui/AdminDashboard.vue'),
-    meta: { requiresAuth: true }, // Add role check here in real app
+    meta: { requiresAuth: true },
   },
   {
     path: '/billing',
     name: 'Billing',
-    component: () => import('@/modules/billing/BillingPage.vue'),
+    component: () => import('@/modules/billing/ui/BillingPage.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -107,8 +146,6 @@ const routes: Array<RouteRecordRaw> = [
     name: 'MemoryViewer',
     component: MemoryViewer,
   },
-  // Fallback for direct root links (e.g. /semya-panasyuk)
-  // Must be last to avoid catching /auth or /editor
   {
     path: '/:id',
     name: 'MemoryViewerRoot',
@@ -135,6 +172,7 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+  const permissions = usePermissionsStore()
   
   // Wait for auth to initialize on first load
   if (authStore.isLoading) {
@@ -157,7 +195,7 @@ router.beforeEach(async (to, _from, next) => {
 
   // Smart redirect: root to dashboard if authenticated
   if (to.path === '/' && isAuthenticated) {
-    next({ name: 'Editor' })
+    next({ name: 'ArchiveDashboard' })
     return
   }
 
@@ -167,9 +205,22 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
+  // RBAC Check
+  if (to.params.archiveId) {
+    if (permissions.userRole === null) {
+      await permissions.fetchPermissions(to.params.archiveId as string)
+    }
+
+    const requiredCap = to.meta.requiredCapability as Capability | undefined
+    if (requiredCap && !permissions.can(requiredCap)) {
+      next({ name: 'ArchiveDashboard' })
+      return
+    }
+  }
+
   // Guest-only routes (like login page)
   if (to.meta.guestOnly && isAuthenticated && to.query.type !== 'recovery') {
-    next({ name: 'Editor' })
+    next({ name: 'ArchiveDashboard' })
     return
   }
 

@@ -14,14 +14,11 @@ function mapToDomain(
     id: family.slug,
     name: family.name,
     heroImage: family.hero_image || '',
+    ownerId: family.user_id,
     createdAt: family.created_at,
     updatedAt: family.updated_at,
     rootMemberId: family.root_member_id || undefined,
     members: members.map(m => {
-      // Debug log for tree position loading
-      if (m.tree_position) {
-        console.log(`[Repository] Loading tree_position for member ${m.name}:`, m.tree_position)
-      }
       return {
         id: m.id,
         name: m.name,
@@ -119,6 +116,7 @@ export class FamilyRepository {
 
   /**
    * Получить все семьи пользователя
+   * TODO: Refactor to batch-request to avoid N+1 query issue
    */
   static async getAllByUser(userId: string): Promise<FamilyArchive[]> {
     const { data: families, error } = await supabase
@@ -191,11 +189,11 @@ export class FamilyRepository {
 
       if (!dbId) throw new Error('Failed to resolve Family DB ID')
 
-      // 2. Upsert Members
-      for (const m of archive.members) {
-        const payload: MemberInsert = {
+      // 2. Batch Upsert Members
+      if (archive.members.length > 0) {
+        const memberPayloads: MemberInsert[] = archive.members.map(m => ({
           id: m.id,
-          family_id: dbId,
+          family_id: dbId as string,
           name: m.name,
           relationship: m.relationship || null,
           gender: m.gender || null,
@@ -210,30 +208,28 @@ export class FamilyRepository {
           videos: m.videos as any,
           quotes: m.quotes || [],
           tree_position: m.treePosition as any,
-        }
+        }))
 
-        // Debug log for tree position
-        if (m.treePosition) {
-          console.log(`[Repository] Saving tree_position for member ${m.name}:`, m.treePosition)
-        }
-
-        const { error } = await supabase.from('members').upsert(payload)
-        if (error) {
-          console.error(`[Repository] Error saving member ${m.name}:`, error)
+        const { error: membersError } = await supabase.from('members').upsert(memberPayloads)
+        if (membersError) {
+          console.error('[Repository] Error batch saving members:', membersError)
         }
       }
 
-      // 3. Upsert Relations
-      for (const r of archive.relations) {
-        const relationPayload: FamilyRelationInsert = {
+      // 3. Batch Upsert Relations
+      if (archive.relations.length > 0) {
+        const relationPayloads: FamilyRelationInsert[] = archive.relations.map(r => ({
           id: r.id,
-          family_id: dbId,
+          family_id: dbId as string,
           from_member_id: r.fromMemberId,
           to_member_id: r.toMemberId,
           relation_type: r.relationType,
-        }
+        }))
 
-        await supabase.from('family_relations').upsert(relationPayload)
+        const { error: relationsError } = await supabase.from('family_relations').upsert(relationPayloads)
+        if (relationsError) {
+          console.error('[Repository] Error batch saving relations:', relationsError)
+        }
       }
 
       return true

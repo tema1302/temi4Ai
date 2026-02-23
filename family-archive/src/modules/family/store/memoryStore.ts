@@ -27,29 +27,41 @@ export const useMemoryStore = defineStore('memory', () => {
   // State
   const currentFamily = ref<FamilyArchive | null>(null)
   const activeMemberId = ref<string | null>(null)
-  const isLoading = ref(false)
+  const isFetching = ref(false)
+  const isSaving = ref(false)
   const isEditing = ref(false)
   const isDraft = ref(false)
   const userFamilies = ref<FamilyArchive[]>([])
   const pendingRelation = ref<{ memberId: string; suggestedRole: string } | null>(null)
   const viewMode = ref<'cards' | 'tree'>('cards')
+  
+  // Cache for loaded families
+  const archiveCache = ref<Record<string, FamilyArchive>>({})
+
+  // Flag to skip auto-save on initial load
+  let isInitialLoad = false
 
   // Auto-save logic
   const debouncedSave = debounce(async (userId: string) => {
-    if (currentFamily.value) {
-      console.log('[Store] Auto-saving changes...')
-      const success = await saveCurrentFamily(userId)
-      if (success) {
-        isDraft.value = false
-        console.log('[Store] Auto-save complete')
-      }
+    if (currentFamily.value && isDraft.value) {
+      await saveCurrentFamily(userId)
+      isDraft.value = false
     }
   }, 3000) // 3 seconds delay
 
   // Watch for changes to trigger auto-save
   watch(currentFamily, (newVal) => {
     if (newVal) {
+      // If this is the initial set from a load, don't mark as draft
+      if (isInitialLoad) {
+        isInitialLoad = false
+        return
+      }
+
       isDraft.value = true
+      // Update cache with current changes (deep clone to avoid reference issues)
+      archiveCache.value[newVal.id] = JSON.parse(JSON.stringify(newVal))
+      
       const authStore = useAuthStore()
       if (authStore.userId) {
         debouncedSave(authStore.userId)
@@ -57,7 +69,8 @@ export const useMemoryStore = defineStore('memory', () => {
     }
   }, { deep: true })
 
-  // Getters - используем стабильные ссылки на пустой массив
+  // Getters
+  const isLoading = computed(() => isFetching.value) // Backward compatibility for UI skeletons
   const familyName = computed(() => currentFamily.value?.name ?? '')
   const members = computed(() => currentFamily.value?.members ?? EMPTY_ARRAY as FamilyMember[])
   const relations = computed(() => currentFamily.value?.relations ?? EMPTY_ARRAY as FamilyRelation[])
@@ -92,8 +105,13 @@ export const useMemoryStore = defineStore('memory', () => {
   })
 
   // Actions
-  function setFamily(data: FamilyArchive) {
+  function setFamily(data: FamilyArchive, isFromLoad = false) {
+    if (isFromLoad) isInitialLoad = true
+    
     currentFamily.value = data
+    // Also update cache (deep clone)
+    archiveCache.value[data.id] = JSON.parse(JSON.stringify(data))
+    
     if (data.members.length > 0) {
       activeMemberId.value = data.rootMemberId || data.members[0].id
     }
@@ -113,36 +131,20 @@ export const useMemoryStore = defineStore('memory', () => {
         ...updates
       }
       currentFamily.value.updatedAt = new Date().toISOString()
-      
-      // Auto-save if authorized
-      const authStore = (window as any).authStore // Quick access if globally set, or inject later
-      if (currentFamily.value) {
-         // This is a bit tricky since we can't easily inject other stores here in all environments
-         // but we can at least flag as unsaved
-      }
     }
   }
 
   // Обновление позиции члена на древе
   function updateMemberPosition(memberId: string, position: { x: number; y: number }) {
-    if (!currentFamily.value) {
-      console.warn('[Store] updateMemberPosition: no currentFamily')
-      return
-    }
+    if (!currentFamily.value) return
 
     const index = currentFamily.value.members.findIndex(m => m.id === memberId)
-    console.log(`[Store] updateMemberPosition: member ${memberId}, index ${index}, position`, position)
-
     if (index !== -1) {
-      const member = currentFamily.value.members[index]
       currentFamily.value.members[index] = {
-        ...member,
+        ...currentFamily.value.members[index],
         treePosition: position
       }
       currentFamily.value.updatedAt = new Date().toISOString()
-      console.log(`[Store] Updated member ${member.name} treePosition:`, currentFamily.value.members[index].treePosition)
-    } else {
-      console.warn(`[Store] Member ${memberId} not found`)
     }
   }
 
@@ -163,17 +165,23 @@ export const useMemoryStore = defineStore('memory', () => {
     currentFamily.value.updatedAt = new Date().toISOString()
   }
 
-  function addMember() {
+  async function addMember() {
     if (!currentFamily.value) return
     const newMember = createEmptyMember()
     newMember.name = 'Новый член семьи'
     currentFamily.value.members.push(newMember)
     activeMemberId.value = newMember.id
     currentFamily.value.updatedAt = new Date().toISOString()
+    
+    // Persist immediately if logged in
+    const authStore = useAuthStore()
+    if (authStore.userId) {
+      await saveCurrentFamily(authStore.userId)
+    }
   }
 
   // Новое: Добавление члена с ролью
-  function addMemberWithRelation(
+  async function addMemberWithRelation(
     relatedMemberId: string,
     relationType: RelationType,
     memberData?: Partial<FamilyMember>
@@ -206,6 +214,13 @@ export const useMemoryStore = defineStore('memory', () => {
     })
 
     currentFamily.value.updatedAt = new Date().toISOString()
+    
+    // Persist immediately if logged in
+    const authStore = useAuthStore()
+    if (authStore.userId) {
+      await saveCurrentFamily(authStore.userId)
+    }
+    
     return newMember
   }
 
@@ -279,30 +294,49 @@ export const useMemoryStore = defineStore('memory', () => {
       resetStore()
     }
     userFamilies.value = userFamilies.value.filter(f => f.id !== slug)
+    // Also remove from cache
+    delete archiveCache.value[slug]
   }
 
   async function saveCurrentFamily(userId: string) {
     if (!currentFamily.value) return false
-    isLoading.value = true
+    isSaving.value = true
     const success = await FamilyRepository.save(currentFamily.value, userId)
-    isLoading.value = false
+    isSaving.value = false
     return success
   }
 
   async function loadUserFamilies(userId: string) {
-    isLoading.value = true
+    // Only show loading if we don't have any families yet
+    if (userFamilies.value.length === 0) isFetching.value = true
+    
     userFamilies.value = await FamilyRepository.getAllByUser(userId)
-    isLoading.value = false
+    
+    // Partially populate cache with what we got from getAll
+    userFamilies.value.forEach(f => {
+      if (!archiveCache.value[f.id]) {
+        archiveCache.value[f.id] = f
+      }
+    })
+    
+    isFetching.value = false
     return userFamilies.value
   }
 
-  async function loadFamilyBySlug(slug: string) {
-    isLoading.value = true
+  async function loadFamilyBySlug(slug: string, bypassCache = false) {
+    // Check cache first
+    if (!bypassCache && archiveCache.value[slug]) {
+      console.log(`[Store] Serving archive ${slug} from cache`)
+      setFamily(archiveCache.value[slug], true) // Mark as from load to skip auto-save trigger
+      return archiveCache.value[slug]
+    }
+
+    isFetching.value = true
     const family = await FamilyRepository.getBySlug(slug)
     if (family) {
-      setFamily(family)
+      setFamily(family, true)
     }
-    isLoading.value = false
+    isFetching.value = false
     return family
   }
 
@@ -313,6 +347,7 @@ export const useMemoryStore = defineStore('memory', () => {
       id: slug,
       name: name,
       heroImage: '',
+      ownerId: userId,
       members: [],
       relations: [],
       createdAt: new Date().toISOString(),
@@ -320,6 +355,8 @@ export const useMemoryStore = defineStore('memory', () => {
     }
 
     await FamilyRepository.save(newFamily, userId)
+    // Add to cache
+    archiveCache.value[slug] = newFamily
     return newFamily
   }
 
@@ -334,10 +371,18 @@ export const useMemoryStore = defineStore('memory', () => {
   function resetStore() {
     currentFamily.value = null
     activeMemberId.value = null
-    isLoading.value = false
+    isFetching.value = false
+    isSaving.value = false
     isEditing.value = false
     pendingRelation.value = null
     viewMode.value = 'cards'
+    // We don't clear archiveCache here to keep it during the session
+  }
+
+  function logoutReset() {
+    resetStore()
+    archiveCache.value = {}
+    userFamilies.value = []
   }
 
   return {
@@ -346,9 +391,12 @@ export const useMemoryStore = defineStore('memory', () => {
     activeMemberId,
     userFamilies,
     isLoading,
+    isFetching,
+    isSaving,
     isEditing,
     pendingRelation,
     viewMode,
+    archiveCache,
 
     // Getters
     familyName,
@@ -378,5 +426,6 @@ export const useMemoryStore = defineStore('memory', () => {
     toggleEditing,
     setViewMode,
     resetStore,
+    logoutReset
   }
 })

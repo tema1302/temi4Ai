@@ -40,6 +40,30 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
   }
 
+  /**
+   * Update user subscription tier (optimistic + remote)
+   */
+  async function upgradeTier(newTier: SubscriptionTier) {
+    if (!authStore.userId) return
+
+    // Optimistic update
+    const oldTier = tier.value
+    tier.value = newTier
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        subscription_tier: newTier,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', authStore.userId)
+
+    if (error) {
+      console.error('Failed to upgrade tier:', error)
+      tier.value = oldTier // Rollback
+    }
+  }
+
   // Watch for auth changes to re-fetch
   authStore.$subscribe((mutation, state) => {
     if (state.user) {
@@ -54,6 +78,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     status,
     isLoading,
     isPremium,
-    fetchSubscription
+    fetchSubscription,
+    upgradeTier
   }
 })

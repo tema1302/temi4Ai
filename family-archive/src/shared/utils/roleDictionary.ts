@@ -6,6 +6,11 @@ export interface RoleOption {
   gender?: 'male' | 'female'
 }
 
+/**
+ * ROLE DICTIONARY
+ * TODO: Unify with src/modules/family/domain/models.ts:getRelationLabel
+ * and the BFS-based calculateDisplayRole to avoid source of truth mismatch.
+ */
 export const ROLE_DICTIONARY: RoleOption[] = [
   { value: 'father', label: 'Отец', gender: 'male' },
   { value: 'mother', label: 'Мать', gender: 'female' },

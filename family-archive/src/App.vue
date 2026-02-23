@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CookieConsent from '@/shared/ui/CookieConsent.vue'
+import GlobalDialog from '@/shared/ui/GlobalDialog.vue'
 </script>
 
 <template>
@@ -8,7 +8,7 @@ import CookieConsent from '@/shared/ui/CookieConsent.vue'
       <component :is="Component" />
     </transition>
   </router-view>
-  <CookieConsent />
+  <GlobalDialog />
 </template>
 
 <style>

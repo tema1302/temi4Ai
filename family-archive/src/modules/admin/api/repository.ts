@@ -1,16 +1,5 @@
 import { supabase } from '@/lib/supabase'
-
-export interface AnalyticsEvent {
-  id: string
-  eventName: string
-  metadata: any
-  createdAt: string
-}
-
-export interface DailyStats {
-  date: string
-  count: number
-}
+import type { AnalyticsEvent, DailyStats } from '../domain/models'
 
 export class AnalyticsRepository {
   

@@ -6,6 +6,7 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
+import { useDialogStore } from '@/stores/dialogStore'
 import { Eye, Edit2, Trash2, Plus, ArrowLeft, X, RefreshCw, Link } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useMemoryStore()
+const dialogs = useDialogStore()
 const { trackEvent } = useAnalytics()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadType = ref<'main' | 'gallery'>('main')
@@ -117,8 +119,8 @@ const replaceGalleryPhoto = (index: number) => {
 }
 
 // Add photo by URL to gallery
-const addPhotoByUrl = () => {
-  const url = prompt('Введите URL фотографии:')
+const addPhotoByUrl = async () => {
+  const url = await dialogs.prompt('Введите URL фотографии:', '', 'https://example.com/photo.jpg')
   if (url && currentMember.value) {
     const updatedPhotos = [...currentMember.value.photos, url]
     store.updateMember(props.memberId, { photos: updatedPhotos })
@@ -127,8 +129,9 @@ const addPhotoByUrl = () => {
 }
 
 // Replace photo in gallery by URL
-const replaceGalleryPhotoByUrl = (index: number) => {
-  const url = prompt('Введите новый URL фотографии:')
+const replaceGalleryPhotoByUrl = async (index: number) => {
+  const currentUrl = currentMember.value?.photos[index] || ''
+  const url = await dialogs.prompt('Введите новый URL фотографии:', currentUrl, 'https://example.com/photo.jpg')
   if (url && currentMember.value) {
     const updatedPhotos = [...currentMember.value.photos]
     updatedPhotos[index] = url
@@ -142,8 +145,9 @@ const removeMainPhoto = () => {
 }
 
 // Set main photo from URL
-const setMainPhotoByUrl = () => {
-  const url = prompt('Введите URL фотографии:')
+const setMainPhotoByUrl = async () => {
+  const currentUrl = currentMember.value?.photoUrl || ''
+  const url = await dialogs.prompt('Введите URL фотографии:', currentUrl, 'https://example.com/photo.jpg')
   if (url) {
     store.updateMember(props.memberId, { photoUrl: url })
     trackEvent('set_main_photo_url', { member_id: props.memberId })
@@ -172,25 +176,29 @@ const removeLifeEvent = (index: number) => {
   }
 }
 
-const addVideo = () => {
-  const url = prompt('Введите URL видео:')
+const addVideo = async () => {
+  const url = await dialogs.prompt('Введите URL видео:', '', 'YouTube or Direct MP4 link')
   if (url && currentMember.value) {
     const updatedVideos = [...(currentMember.value.videos || []), url]
     store.updateMember(props.memberId, { videos: updatedVideos })
   }
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (validate()) {
     trackEvent('update_member', { member_id: props.memberId })
     emit('save')
   } else {
-    alert('Пожалуйста, исправьте ошибки.')
+    await dialogs.alert('Пожалуйста, введите имя члена семьи.', 'Ошибка валидации')
   }
 }
 
-const handleDelete = () => {
-  if (confirm('Вы уверены? Это действие необратимо.')) {
+const handleDelete = async () => {
+  const confirmed = await dialogs.confirm(
+    `Вы уверены, что хотите удалить ${currentMember.value?.name}? Это действие необратимо.`,
+    'Подтверждение удаления'
+  )
+  if (confirmed) {
     trackEvent('delete_member', { member_id: props.memberId })
     emit('delete', props.memberId)
   }

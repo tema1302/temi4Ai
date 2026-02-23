@@ -1,5 +1,5 @@
 // Auto-generated types for Supabase
-// In production, generate with: npx supabase gen types typescript
+// Updated to include analytics and profiles
 
 export type Json =
   | string
@@ -61,7 +61,7 @@ export interface Database {
           videos: Json
           quotes: string[]
           order_index: number
-          tree_position: Json | null  // { x: number, y: number }
+          tree_position: Json | null
           created_at: string
           updated_at: string
         }
@@ -82,7 +82,7 @@ export interface Database {
           videos?: Json
           quotes?: string[]
           order_index?: number
-          tree_position?: Json | null  // { x: number, y: number }
+          tree_position?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -101,7 +101,7 @@ export interface Database {
           videos?: Json
           quotes?: string[]
           order_index?: number
-          tree_position?: Json | null  // { x: number, y: number }
+          tree_position?: Json | null
           updated_at?: string
         }
       }
@@ -126,6 +126,60 @@ export interface Database {
           relation_type?: string
         }
       }
+      analytics_events: {
+        Row: {
+          id: string
+          event_name: string
+          metadata: Json
+          session_id: string | null
+          user_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_name: string
+          metadata?: Json
+          session_id?: string | null
+          user_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          event_name?: string
+          metadata?: Json
+          session_id?: string | null
+          user_id?: string | null
+        }
+      }
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          subscription_tier: string
+          subscription_status: string
+          subscription_period_end: string | null
+          stripe_customer_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          subscription_tier?: string
+          subscription_status?: string
+          subscription_period_end?: string | null
+          stripe_customer_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          email?: string | null
+          subscription_tier?: string
+          subscription_status?: string
+          subscription_period_end?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+      }
     }
   }
 }
@@ -137,3 +191,4 @@ export type Member = Database['public']['Tables']['members']['Row']
 export type MemberInsert = Database['public']['Tables']['members']['Insert']
 export type FamilyRelation = Database['public']['Tables']['family_relations']['Row']
 export type FamilyRelationInsert = Database['public']['Tables']['family_relations']['Insert']
+export type Profile = Database['public']['Tables']['profiles']['Row']

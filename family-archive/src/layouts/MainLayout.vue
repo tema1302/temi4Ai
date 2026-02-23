@@ -50,7 +50,7 @@ const toggleMobileMenu = () => {
 
 const handleLogout = async () => {
   await authStore.signOut()
-  memoryStore.resetStore()
+  memoryStore.logoutReset()
   router.push('/')
   isMobileMenuOpen.value = false
 }

@@ -42,7 +42,7 @@ export function useAnalytics() {
       console.warn('Internal analytics failed', e)
     }
 
-    if (consent === 'accepted' || true) { // Forcing true for now to ensure GTM gets data in this demo environment
+    if (consent === 'accepted') {
       try {
         // 2. Direct GA4 Event (via vue-gtag)
         event(name, params)

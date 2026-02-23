@@ -22,6 +22,7 @@ const MOCK_FAMILY_DATA: FamilyArchive = {
   heroImage: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  relations: [],
   members: [
     {
       id: 'm1',

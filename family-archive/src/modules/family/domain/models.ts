@@ -1,7 +1,10 @@
 // Чистая бизнес-сущность. Не зависит от базы данных.
 
-// Типы родственных связей
-export type RelationType = 'parent' | 'spouse' | 'sibling'
+// Типы родственных связей (в БД сохраняются только базовые: parent, spouse, sibling)
+export type RelationType = 
+  | 'parent' | 'spouse' | 'sibling' | 'child'
+  | 'father' | 'mother' | 'son' | 'daughter' 
+  | 'husband' | 'wife' | 'brother' | 'sister'
 
 // Тип пола
 export type Gender = 'male' | 'female' | 'unknown'
@@ -38,6 +41,7 @@ export interface FamilyArchive {
   id: string // slug
   name: string
   heroImage: string
+  ownerId?: string              // ID владельца (user_id в БД)
   members: FamilyMember[]
   relations: FamilyRelation[]   // Связи между членами
   rootMemberId?: string         // ID корневого члена (обычно "self")

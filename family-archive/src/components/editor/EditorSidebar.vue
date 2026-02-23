@@ -2,10 +2,13 @@
 import { ref, computed } from 'vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
+import SearchableSelect from '@/shared/ui/SearchableSelect.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
-import { Trash2, Plus, Quote } from 'lucide-vue-next'
+import { useDialogStore } from '@/stores/dialogStore'
+import { Trash2, Plus, Quote, GitBranch } from 'lucide-vue-next'
+import { ROLE_DICTIONARY } from '@/shared/utils/roleDictionary'
 
 const emit = defineEmits<{
   save: []
@@ -14,6 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useMemoryStore()
+const dialogs = useDialogStore()
 const { trackEvent } = useAnalytics()
 const currentMember = computed(() => store.activeMember)
 const isDragging = ref(false)
@@ -109,8 +113,8 @@ const removeQuote = (index: number) => {
   }
 }
 
-const addPhoto = () => {
-  const url = prompt('Введите URL фотографии:')
+const addPhoto = async () => {
+  const url = await dialogs.prompt('Введите URL фотографии:', '', 'https://example.com/photo.jpg')
   if (url && currentMember.value) {
     trackEvent('add_photo', { member_id: currentMember.value.id })
     const updatedPhotos = [...currentMember.value.photos, url]
@@ -134,8 +138,9 @@ const replaceGalleryPhoto = (index: number) => {
 }
 
 // Replace photo in gallery by URL
-const replaceGalleryPhotoByUrl = (index: number) => {
-  const url = prompt('Введите новый URL фотографии:')
+const replaceGalleryPhotoByUrl = async (index: number) => {
+  const currentUrl = currentMember.value?.photos[index] || ''
+  const url = await dialogs.prompt('Введите новый URL фотографии:', currentUrl, 'https://example.com/photo.jpg')
   if (url && currentMember.value) {
     const updatedPhotos = [...currentMember.value.photos]
     updatedPhotos[index] = url
@@ -153,16 +158,17 @@ const removeMainPhoto = () => {
 }
 
 // Set main photo from URL
-const setMainPhotoByUrl = () => {
-  const url = prompt('Введите URL фотографии:')
+const setMainPhotoByUrl = async () => {
+  const currentUrl = currentMember.value?.photoUrl || ''
+  const url = await dialogs.prompt('Введите URL фотографии:', currentUrl, 'https://example.com/photo.jpg')
   if (url && currentMember.value) {
     store.updateMember(currentMember.value.id, { photoUrl: url })
     trackEvent('set_main_photo_url', { member_id: currentMember.value.id })
   }
 }
 
-const addVideo = () => {
-  const url = prompt('Введите URL видео (YouTube/Vimeo/Direct):')
+const addVideo = async () => {
+  const url = await dialogs.prompt('Введите URL видео (YouTube/Vimeo/Direct):', '', 'https://youtube.com/watch?v=...')
   if (url && currentMember.value) {
     trackEvent('add_video', { member_id: currentMember.value.id })
     const updatedVideos = [...(currentMember.value.videos || []), url]

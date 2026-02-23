@@ -27,7 +27,7 @@ const handleRoleSelect = async (role: FamilyRole) => {
   let targetMember = store.members.find(m => !m.relationship || m.name === 'Новый член семьи')
   
   if (!targetMember) {
-    store.addMember()
+    await store.addMember()
     targetMember = store.members[store.members.length - 1]
   }
 
@@ -102,6 +102,7 @@ const goBack = () => {
       <div class="flex-1 min-h-0">
         <FamilyTree 
           :members="store.members" 
+          :relations="store.relations"
           :family-name="store.familyName"
           @select-role="handleRoleSelect"
           @select-member="handleMemberSelect"

@@ -59,35 +59,45 @@
 ## Архитектурные решения ✅
 
 ### Хорошие практики
-- ✅ Модульная структура (stores, services, components разделены)
-- ✅ Type safety (TypeScript strict mode)
-- ✅ Lazy loading роутов (Оптимизированные чанки в vite.config.ts)
-- ✅ Navigation guards для защиты роутов
-- ✅ Fallback на localStorage если Supabase не настроен
-- ✅ Все компоненты следуют Composition API
-- ✅ Props с TypeScript интерфейсами
-- ✅ Русификация завершена полностью
-- ✅ Удалены неиспользуемые зависимости (@motionone, vue-flow плагины)
+- ✅ **Route-Driven Architecture:** Все состояния приложения (список, дерево, редактор) привязаны к URL. Поддержка Deep Linking и кнопок навигации браузера.
+- ✅ **Role-Based Access Control (RBAC):** Внедрена система прав доступа (Owner, Editor, Viewer).
+- ✅ **Capability-based security:** Проверка прав не по строкам ролей, а по конкретным возможностям (capabilities) через `useAuthAccess`.
+- ✅ **Модульная структура:** Выделен независимый модуль `access` для управления правами.
+- ✅ Type safety (TypeScript strict mode + Enums для ролей).
+- ✅ Lazy loading роутов (Оптимизированные чанки в vite.config.ts).
+- ✅ Navigation guards с проверкой прав доступа перед входом на роут.
 
 ### Структура папок
 ```
 src/
-├── components/
-│   ├── auth/          ← Авторизация
-│   ├── editor/        ← Редактор
-│   └── viewer/        ← Просмотр
-├── shared/            ← Общий код (Shared Layer)
-│   ├── ui/            ← Библиотека компонентов (Logo, BaseButton, BaseCard, ViewToggle)
-│   └── api/           ← Базовые клиенты
-├── layouts/           ← Шаблоны
-├── lib/               ← Клиенты (Supabase)
-├── pages/             ← Роуты
-├── router/            ← Маршрутизация
-├── services/          ← Бизнес-логика
-├── stores/            ← State (Pinia)
-├── types/             ← TypeScript типы
-└── utils/             ← Хелперы
+├── components/        ← Презентационные компоненты
+├── modules/           ← Бизнес-модули (Domain Logic)
+│   ├── access/        ← RBAC (Сторы, типы, константы ролей)
+│   ├── family/        ← Основной домен архива
+│   └── admin/         ← Администрирование
+├── shared/            ← Общий код (UI Kit, Utils)
+├── pages/             ← Страницы-контейнеры
+├── router/            ← Конфигурация и Navigation Guards
+└── stores/            ← Глобальные сторы (Auth, Billing)
 ```
+
+## Система доступа (RBAC)
+
+| Роль | Возможности (Capabilities) |
+| :--- | :--- |
+| **Owner** | Full Access + User Management + Delete Archive |
+| **Editor** | Edit Tree + Edit Content + Delete Nodes |
+| **Contributor** | Edit Content (Photos/Bio) only |
+| **Viewer** | Read Only |
+
+## Структура URL (Editor)
+
+- `/editor/archives` — список проектов
+- `/editor/archive/:id/list` — список членов семьи
+- `/editor/archive/:id/tree` — интерактивное древо
+- `/editor/archive/:id/member/:memberId` — редактор личности
+- `/editor/archive/:id/access` — управление доступом (модерация)
+
 
 ## Рекомендации
 
