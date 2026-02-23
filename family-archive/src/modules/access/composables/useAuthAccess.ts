@@ -15,6 +15,18 @@ export function useAuthAccess() {
   const isOwner = computed(() => store.isOwner)
   const currentRole = computed(() => store.userRole)
 
+  const roleLabels: Record<string, string> = {
+    'owner': 'Владелец',
+    'editor': 'Редактор',
+    'viewer': 'Просмотр',
+    'contributor': 'Участник'
+  }
+
+  const currentRoleLabel = computed(() => {
+    const role = store.userRole || ''
+    return roleLabels[role] || role
+  })
+
   // API Guard
   const verifyAccess = (requiredCapability: Capability): boolean => {
     const hasAccess = store.can(requiredCapability)
@@ -28,6 +40,7 @@ export function useAuthAccess() {
   return {
     isOwner,
     currentRole,
+    currentRoleLabel,
     canEditTree,
     canManageUsers,
     canDeleteNodes,

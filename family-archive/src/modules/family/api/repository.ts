@@ -239,6 +239,20 @@ export class FamilyRepository {
     }
   }
 
+  /**
+   * Проверить доступность слага (slug)
+   */
+  static async checkSlugAvailability(slug: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('families')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (error) return false
+    return !data
+  }
+
   static async delete(slug: string): Promise<boolean> {
     const { error } = await supabase.from('families').delete().eq('slug', slug)
     return !error

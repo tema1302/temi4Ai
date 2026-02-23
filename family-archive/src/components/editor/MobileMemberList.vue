@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
+import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
+import { useDialogStore } from '@/stores/dialogStore'
+import { Trash2, Eye } from 'lucide-vue-next'
 import BaseInput from '@/shared/ui/BaseInput.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const store = useMemoryStore()
+const access = useAuthAccess()
+const dialogs = useDialogStore()
+
 const emit = defineEmits<{
   select: [id: string]
   add: []
+  delete: [id: string, name: string]
 }>()
+
+const handleDelete = async (e: Event, id: string, name: string) => {
+  e.stopPropagation()
+  emit('delete', id, name)
+}
 
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -98,9 +110,26 @@ const onSelect = (id: string) => {
           </p>
         </div>
 
-        <!-- Arrow -->
-        <div class="text-gray-600">
-          →
+        <!-- Actions -->
+        <div class="flex items-center gap-2">
+          <a 
+            :href="`/${store.currentFamily?.id}?member=${member.id}`"
+            target="_blank"
+            class="p-2 text-gold hover:bg-gold/10 rounded-full transition-colors"
+            @click.stop
+          >
+            <Eye class="w-4 h-4" />
+          </a>
+          <button 
+            v-if="access.canEditTree.value"
+            @click="handleDelete($event, member.id, member.name)"
+            class="p-2 text-red-400 hover:bg-red-500/10 rounded-full transition-colors"
+          >
+            <Trash2 class="w-4 h-4" />
+          </button>
+          <div class="text-gray-600">
+            →
+          </div>
         </div>
       </div>
       

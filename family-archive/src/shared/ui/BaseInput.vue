@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const inputClasses = computed(() => [
-  'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk',
+  'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-silk',
   'placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors',
 ])
 </script>

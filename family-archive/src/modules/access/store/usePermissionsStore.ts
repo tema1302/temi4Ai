@@ -5,7 +5,7 @@ import type { AccessMember, AccessRequest } from '../types'
 
 export const usePermissionsStore = defineStore('permissions', () => {
   // State
-  const userRole = ref<ArchiveRole | null>(null)
+  const userRole = ref<ArchiveRole | null>(ArchiveRole.OWNER)
   const members = ref<AccessMember[]>([])
   const requests = ref<AccessRequest[]>([])
   const isLoading = ref(false)
@@ -43,7 +43,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
   }
 
   function resetPermissions() {
-    userRole.value = null
+    userRole.value = ArchiveRole.OWNER
     members.value = []
     requests.value = []
   }

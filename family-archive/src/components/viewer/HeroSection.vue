@@ -81,7 +81,7 @@ onMounted(() => {
       </div>
 
       <!-- Biography -->
-      <p class="max-w-3xl mx-auto text-lg md:text-xl text-gray-300 leading-relaxed">
+      <p class="max-w-3xl mx-auto text-lg md:text-xl text-gray-300 leading-relaxed whitespace-pre-wrap">
         {{ member.biography }}
       </p>
 

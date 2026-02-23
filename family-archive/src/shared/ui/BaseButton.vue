@@ -16,7 +16,7 @@ withDefaults(defineProps<Props>(), {
 
 <template>
   <button 
-    class="relative overflow-hidden rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2 group"
+    class="relative overflow-hidden rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 group"
     :class="[
       // Size
       size === 'sm' ? 'px-4 py-2 text-sm' : '',

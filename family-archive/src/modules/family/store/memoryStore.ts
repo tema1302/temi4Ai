@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { FamilyRepository } from '../api/repository'
 import { useAuthStore } from '@/stores/authStore'
+import { slugify } from '@/utils'
 import {
   type FamilyArchive,
   type FamilyMember,
@@ -52,6 +53,11 @@ export const useMemoryStore = defineStore('memory', () => {
   // Watch for changes to trigger auto-save
   watch(currentFamily, (newVal) => {
     if (newVal) {
+      // Don't auto-save demo data
+      if (newVal.id === 'smith-family' || newVal.id === 'example') {
+        return
+      }
+
       // If this is the initial set from a load, don't mark as draft
       if (isInitialLoad) {
         isInitialLoad = false
@@ -172,6 +178,7 @@ export const useMemoryStore = defineStore('memory', () => {
     currentFamily.value.members.push(newMember)
     activeMemberId.value = newMember.id
     currentFamily.value.updatedAt = new Date().toISOString()
+    isEditing.value = true
     
     // Persist immediately if logged in
     const authStore = useAuthStore()
@@ -193,6 +200,7 @@ export const useMemoryStore = defineStore('memory', () => {
 
     currentFamily.value.members.push(newMember)
     activeMemberId.value = newMember.id
+    isEditing.value = true
 
     // Создаем связь
     let fromId = relatedMemberId
@@ -298,8 +306,16 @@ export const useMemoryStore = defineStore('memory', () => {
     delete archiveCache.value[slug]
   }
 
+  async function checkSlugAvailability(slug: string) {
+    return await FamilyRepository.checkSlugAvailability(slug)
+  }
+
   async function saveCurrentFamily(userId: string) {
     if (!currentFamily.value) return false
+    // Don't save demo data
+    if (currentFamily.value.id === 'smith-family' || currentFamily.value.id === 'example') {
+      return false
+    }
     isSaving.value = true
     const success = await FamilyRepository.save(currentFamily.value, userId)
     isSaving.value = false
@@ -341,7 +357,8 @@ export const useMemoryStore = defineStore('memory', () => {
   }
 
   async function createArchive(name: string, userId: string) {
-    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString(36)
+    const baseSlug = slugify(name)
+    const slug = baseSlug ? `${baseSlug}-${Date.now().toString(36).slice(-4)}` : Date.now().toString(36)
 
     const newFamily: FamilyArchive = {
       id: slug,
@@ -358,6 +375,59 @@ export const useMemoryStore = defineStore('memory', () => {
     // Add to cache
     archiveCache.value[slug] = newFamily
     return newFamily
+  }
+
+  async function updateArchiveId(newId: string) {
+    if (!currentFamily.value || !newId || currentFamily.value.id === newId) return true
+    
+    const isAvailable = await FamilyRepository.checkSlugAvailability(newId)
+    if (!isAvailable) {
+      throw new Error('Этот URL уже занят другим архивом. Пожалуйста, выберите другой.')
+    }
+
+    const oldId = currentFamily.value.id
+    
+    // Update all photo URLs in memory before saving
+    const updateUrl = (url: string) => {
+      if (!url) return url
+      // Replace old slug with new slug in the URL path (specifically for our bucket structure)
+      return url.replace(`/${oldId}/`, `/${newId}/`)
+    }
+
+    const updatedMembers = currentFamily.value.members.map(m => ({
+      ...m,
+      photoUrl: updateUrl(m.photoUrl),
+      photos: m.photos.map(updateUrl)
+    }))
+
+    const updatedFamily = { 
+      ...currentFamily.value, 
+      id: newId,
+      members: updatedMembers 
+    }
+    
+    const authStore = useAuthStore()
+    if (!authStore.userId) return false
+
+    // 1. Save with new ID (and updated image paths)
+    const success = await FamilyRepository.save(updatedFamily, authStore.userId)
+    
+    if (success) {
+      // 2. Note: Ideally we should move files in Supabase Storage here.
+      // But since storage renaming is complex via client, 
+      // we at least updated the DB references.
+      
+      // 3. Delete old ID entry in DB
+      await FamilyRepository.delete(oldId)
+      
+      // 4. Update state
+      currentFamily.value = updatedFamily
+      delete archiveCache.value[oldId]
+      archiveCache.value[newId] = updatedFamily
+      
+      return true
+    }
+    return false
   }
 
   function toggleEditing() {
@@ -420,6 +490,8 @@ export const useMemoryStore = defineStore('memory', () => {
     removeMember,
     removeFamily,
     saveCurrentFamily,
+    updateArchiveId,
+    checkSlugAvailability,
     loadUserFamilies,
     loadFamilyBySlug,
     createArchive,

@@ -398,6 +398,16 @@ const removeLifeEvent = (index: number) => {
         </div>
       </BaseCard>
 
+      <!-- Delete Button (Bottom of form) -->
+      <div v-if="store.members.length > 1" class="pt-6">
+        <button
+          @click="emit('delete')"
+          class="w-full py-3 rounded-xl border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/5 transition-all flex items-center justify-center gap-2"
+        >
+          <Trash2 class="w-4 h-4" /> Удалить карточку
+        </button>
+      </div>
+
       <!-- Save Button (Bottom) -->
       <div class="pt-8 border-t border-white/5">
         <BaseButton 
@@ -419,12 +429,12 @@ const removeLifeEvent = (index: number) => {
         @drop.prevent="onDrop($event, true)"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Медиатека</h3>
+          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Фотографии</h3>
           <div class="flex gap-2">
              <button @click="addPhoto" class="text-gold text-xs hover:underline">URL фото</button>
              <span class="text-gray-700">|</span>
              <input type="file" ref="galleryInput" class="hidden" accept="image/*" multiple @change="(e) => onFileChange(e, true)" />
-             <button @click="replacePhotoIndex = null; galleryInput?.click()" class="text-gold text-xs hover:underline">Загрузить с ПК</button>
+             <button @click="replacePhotoIndex = null; galleryInput?.click()" class="text-gold text-xs hover:underline">Загрузить</button>
              <span class="text-gray-700">|</span>
              <button @click="addVideo" class="text-gold text-xs hover:underline">Видео</button>
           </div>

@@ -4,10 +4,11 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import Logo from '@/shared/ui/Logo.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Menu, X, User } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
+import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
 interface Props {
   fullHeight?: boolean
 }
@@ -17,8 +18,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const memoryStore = useMemoryStore()
+const permissions = usePermissionsStore()
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -48,9 +51,18 @@ const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 
+const handleUserClick = () => {
+  if (route.path === '/settings' || route.path === '/') {
+    router.push('/editor')
+  } else {
+    router.push('/settings')
+  }
+}
+
 const handleLogout = async () => {
   await authStore.signOut()
   memoryStore.logoutReset()
+  permissions.resetPermissions()
   router.push('/')
   isMobileMenuOpen.value = false
 }
@@ -99,10 +111,10 @@ const handleLogout = async () => {
           <template v-else>
             <button 
               class="flex items-center gap-2 text-sm text-silk hover:text-gold transition-colors font-medium"
-              @click="router.push('/editor')"
+              @click="handleUserClick"
             >
               <User class="w-4 h-4" />
-              Кабинет
+              {{ (route.path === '/' || route.path === '/settings') ? 'Кабинет' : 'Настройки' }}
             </button>
             <button 
               class="text-sm text-gray-500 hover:text-red-400 transition-colors font-medium ml-4"
@@ -113,19 +125,35 @@ const handleLogout = async () => {
           </template>
         </div>
 
-        <!-- Mobile Menu Button -->
-        <button 
-          class="md:hidden z-50 relative text-silk p-2"
-          @click="toggleMobileMenu"
-        >
-          <template v-if="isMobileMenuOpen">
-            <X />
+        <!-- Mobile Buttons (Burger and User) -->
+        <div class="flex items-center gap-2 md:hidden z-50 relative">
+          <template v-if="authStore.isAuthenticated">
+            <button 
+              class="text-silk p-2 hover:text-gold transition-colors"
+              @click="handleUserClick"
+              :title="(route.path === '/' || route.path === '/settings') ? 'Личный кабинет' : 'Настройки'"
+            >
+              <User class="w-6 h-6" />
+            </button>
+            <button 
+              class="text-silk p-2 hover:text-gold transition-colors"
+              @click="toggleMobileMenu"
+              title="Меню"
+            >
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
+              <X v-else class="w-6 h-6" />
+            </button>
           </template>
           <template v-else>
-            <User v-if="authStore.isAuthenticated" class="text-gold" />
-            <Menu v-else />
+            <button 
+              class="text-silk p-2"
+              @click="toggleMobileMenu"
+            >
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
+              <X v-else class="w-6 h-6" />
+            </button>
           </template>
-        </button>
+        </div>
       </div>
     </header>
 
@@ -161,11 +189,18 @@ const handleLogout = async () => {
               </button>
             </template>
             <template v-else>
-              <BaseButton :full="true" size="lg" @click="router.push('/editor')">
-                Мой архив
+              <BaseButton :full="true" size="lg" @click="router.push('/editor'); isMobileMenuOpen = false">
+                Личный кабинет
               </BaseButton>
               <button 
-                class="text-silk hover:text-gold transition-colors text-xl font-medium"
+                class="text-silk hover:text-gold transition-colors text-xl font-medium flex items-center justify-center gap-2"
+                @click="handleUserClick(); isMobileMenuOpen = false"
+              >
+                <User class="w-5 h-5" />
+                {{ (route.path === '/' || route.path === '/settings') ? 'Личный кабинет' : 'Настройки' }}
+              </button>
+              <button 
+                class="text-red-400 hover:text-red-300 transition-colors text-xl font-medium"
                 @click="handleLogout"
               >
                 Выйти

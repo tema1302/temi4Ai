@@ -194,26 +194,17 @@ const handleSave = async () => {
 }
 
 const handleDelete = async () => {
-  const confirmed = await dialogs.confirm(
-    `Вы уверены, что хотите удалить ${currentMember.value?.name}? Это действие необратимо.`,
-    'Подтверждение удаления'
-  )
-  if (confirmed) {
-    trackEvent('delete_member', { member_id: props.memberId })
-    emit('delete', props.memberId)
-  }
+  trackEvent('delete_member', { member_id: props.memberId })
+  emit('delete', props.memberId)
 }
 </script>
 
 <template>
-  <div v-if="currentMember" class="bg-charcoal min-h-screen flex flex-col pb-20">
+  <div v-if="currentMember" class="bg-charcoal h-full flex flex-col">
     
     <!-- Sticky Header -->
-    <div class="sticky top-0 z-30 bg-charcoal/95 backdrop-blur border-b border-white/10 p-4 flex justify-between items-center shadow-lg">
+    <div class="sticky top-0 z-30 bg-charcoal/95 backdrop-blur border-b border-white/10 p-4 flex justify-between items-center shadow-lg shrink-0">
       <div class="flex items-center gap-3">
-        <button @click="emit('back')" class="text-gray-400 p-1">
-          <ArrowLeft class="w-6 h-6" />
-        </button>
         <div>
           <h2 class="text-silk font-serif leading-none">{{ currentMember.name || 'Новый профиль' }}</h2>
           <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
@@ -223,6 +214,13 @@ const handleDelete = async () => {
       </div>
       
       <div class="flex items-center gap-2">
+        <button 
+          v-if="viewMode === 'edit' && store.members.length > 1"
+          @click="handleDelete"
+          class="p-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400"
+        >
+          <Trash2 class="w-5 h-5" />
+        </button>
         <button 
           @click="viewMode = viewMode === 'edit' ? 'preview' : 'edit'"
           class="p-2 rounded-full bg-white/5 border border-white/10 text-gold"
@@ -237,12 +235,12 @@ const handleDelete = async () => {
     </div>
 
     <!-- Mode: PREVIEW -->
-    <div v-if="viewMode === 'preview'" class="p-4 overflow-y-auto animate-fade-in">
+    <div v-if="viewMode === 'preview'" class="flex-1 overflow-y-auto p-4 animate-fade-in pb-32 overscroll-contain">
        <EditorPreview />
     </div>
 
     <!-- Mode: EDIT -->
-    <div v-else class="p-4 overflow-y-auto space-y-6 animate-fade-in">
+    <div v-else class="flex-1 overflow-y-auto p-4 space-y-6 animate-fade-in pb-32 overscroll-contain">
 
       <!-- No member selected -->
       <div v-if="!currentMember" class="text-center py-8">
@@ -445,13 +443,13 @@ const handleDelete = async () => {
       <!-- Media (Photos & Videos) -->
       <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Медиатека</label>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Фотографии</label>
           <div class="flex gap-3">
             <button @click="addPhotoByUrl" class="text-gold text-xs flex items-center gap-1">
               <Link class="w-3 h-3" /> URL
             </button>
             <button @click="triggerPCGalleryUpload" class="text-gold text-xs flex items-center gap-1">
-              <Plus class="w-3 h-3" /> Фото
+              <Plus class="w-3 h-3" /> Загрузить
             </button>
             <button @click="addVideo" class="text-gold text-xs flex items-center gap-1">
               <Plus class="w-3 h-3" /> Видео

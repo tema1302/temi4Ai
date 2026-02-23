@@ -6,6 +6,7 @@ import BaseCard from '@/shared/ui/BaseCard.vue'
 import HeroSection from '@/components/viewer/HeroSection.vue'
 import BentoGrid from '@/components/viewer/BentoGrid.vue'
 import TimelineSection from '@/components/viewer/TimelineSection.vue'
+import PhotoGalleryModal from '@/components/viewer/PhotoGalleryModal.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import type { FamilyArchive } from '@/modules/family/domain/models'
 
@@ -15,6 +16,15 @@ const store = useMemoryStore()
 const familyId = computed(() => route.params.id as string)
 const isLoading = ref(true)
 const notFound = ref(false)
+
+// Gallery State
+const isGalleryOpen = ref(false)
+const selectedPhotoIndex = ref(0)
+
+const openGallery = (index: number) => {
+  selectedPhotoIndex.value = index
+  isGalleryOpen.value = true
+}
 
 const MOCK_FAMILY_DATA: FamilyArchive = {
   id: 'smith-family',
@@ -68,6 +78,7 @@ onMounted(async () => {
     // Simulate tiny delay for smoother UX
     setTimeout(() => {
       store.setFamily(MOCK_FAMILY_DATA)
+      checkQueryMember()
       notFound.value = false
       isLoading.value = false
     }, 100)
@@ -78,6 +89,7 @@ onMounted(async () => {
   
   if (data) {
     // store.setFamily(data) is handled inside loadFamilyBySlug now
+    checkQueryMember()
     notFound.value = false
   } else {
     notFound.value = true
@@ -85,6 +97,13 @@ onMounted(async () => {
   
   isLoading.value = false
 })
+
+const checkQueryMember = () => {
+  const memberId = route.query.member as string
+  if (memberId) {
+    store.setActiveMember(memberId)
+  }
+}
 
 const setActiveMember = (id: string) => {
   store.setActiveMember(id)
@@ -167,7 +186,10 @@ const setActiveMember = (id: string) => {
           <h2 class="text-3xl font-serif text-center mb-12 text-silk/90">
             Дорогие сердцу моменты
           </h2>
-          <BentoGrid :photos="store.activeMember.photos" />
+          <BentoGrid 
+            :photos="store.activeMember.photos" 
+            @open-gallery="openGallery"
+          />
         </section>
 
         <!-- Timeline -->
@@ -192,6 +214,15 @@ const setActiveMember = (id: string) => {
             </BaseCard>
           </div>
         </section>
+
+        <!-- Gallery Modal -->
+        <PhotoGalleryModal
+          v-if="isGalleryOpen && store.activeMember"
+          :is-open="isGalleryOpen"
+          :photos="store.activeMember.photos"
+          :initial-index="selectedPhotoIndex"
+          @close="isGalleryOpen = false"
+        />
 
       </div>
     </div>

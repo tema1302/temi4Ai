@@ -8,6 +8,7 @@ import type { Capability } from '@/modules/access/constants/roles'
 const LandingPage = () => import('@/pages/LandingPage.vue')
 const MemoryViewer = () => import('@/pages/MemoryViewer.vue')
 const EditorDashboard = () => import('@/pages/EditorDashboard.vue')
+const SettingsPage = () => import('@/pages/SettingsPage.vue')
 const AuthPage = () => import('@/pages/AuthPage.vue')
 const ArchiveOnboardingView = () => import('@/pages/ArchiveOnboardingView.vue')
 const PrivacyPolicy = () => import('@/pages/legal/PrivacyPolicy.vue')
@@ -67,6 +68,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/cookie-rules',
     name: 'CookieRules',
     component: CookieRules,
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: SettingsPage,
+    meta: { requiresAuth: true },
   },
   {
     path: '/auth',
@@ -192,12 +199,6 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   const isAuthenticated = authStore.isAuthenticated
-
-  // Smart redirect: root to dashboard if authenticated
-  if (to.path === '/' && isAuthenticated) {
-    next({ name: 'ArchiveDashboard' })
-    return
-  }
 
   // Protected routes
   if (to.meta.requiresAuth && !isAuthenticated) {

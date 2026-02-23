@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { FamilyMember } from '@/modules/family/domain/models'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 
@@ -14,24 +15,44 @@ const formatYear = (dateStr: string) => {
 }
 
 // Generate timeline events
-const timelineEvents = [
-  {
-    year: formatYear(props.member.birthDate),
-    title: 'Рождение',
-    description: `${props.member.name} появился на свет.`,
-    icon: '👶',
-  },
-  ...(props.member.deathDate
-    ? [
-        {
-          year: formatYear(props.member.deathDate),
-          title: 'Ушёл из жизни',
-          description: `${props.member.name} покинул этот мир, оставив светлую память в наших сердцах.`,
-          icon: '🕊️',
-        },
-      ]
-    : []),
-]
+const timelineEvents = computed(() => {
+  const events = [
+    {
+      year: formatYear(props.member.birthDate),
+      title: 'Рождение',
+      description: `${props.member.name} появился на свет.`,
+      icon: '👶',
+      sortYear: parseInt(formatYear(props.member.birthDate)) || 0
+    }
+  ]
+
+  // Add life path events
+  if (props.member.lifePath) {
+    props.member.lifePath.forEach(item => {
+      events.push({
+        year: item.year,
+        title: item.title,
+        description: item.description,
+        icon: '📜',
+        sortYear: parseInt(item.year) || 0
+      })
+    })
+  }
+
+  // Add death event
+  if (props.member.deathDate) {
+    events.push({
+      year: formatYear(props.member.deathDate),
+      title: 'Ушёл из жизни',
+      description: `${props.member.name} покинул этот мир, оставив светлую память в наших сердцах.`,
+      icon: '🕊️',
+      sortYear: parseInt(formatYear(props.member.deathDate)) || 9999
+    })
+  }
+
+  // Sort chronologically
+  return events.sort((a, b) => a.sortYear - b.sortYear)
+})
 </script>
 
 <template>
@@ -60,7 +81,7 @@ const timelineEvents = [
               <span class="text-gold font-medium">{{ event.year }}</span>
             </div>
             <h3 class="text-xl font-serif text-silk mb-2">{{ event.title }}</h3>
-            <p class="text-gray-400 text-sm leading-relaxed">{{ event.description }}</p>
+            <p class="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{{ event.description }}</p>
           </BaseCard>
         </div>
 

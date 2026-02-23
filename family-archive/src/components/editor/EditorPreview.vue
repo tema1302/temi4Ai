@@ -57,7 +57,7 @@ const formatDate = (dateStr: string) => {
             <div class="w-20 shrink-0 text-gold font-serif text-xl">{{ event.year }}</div>
             <div class="flex-1 pb-6 border-b border-white/5">
                <h4 class="text-silk font-serif text-lg mb-2">{{ event.title }}</h4>
-               <p class="text-gray-400 text-sm leading-relaxed">{{ event.description }}</p>
+               <p class="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{{ event.description }}</p>
             </div>
          </div>
       </div>
@@ -66,7 +66,7 @@ const formatDate = (dateStr: string) => {
     <!-- Biography Preview -->
     <BaseCard class="p-8 border-white/5 bg-charcoal/30">
       <h3 class="text-xs text-gray-500 uppercase tracking-widest font-bold mb-6">Биография</h3>
-      <p class="text-silk/90 leading-relaxed text-lg font-serif">
+      <p class="text-silk/90 leading-relaxed text-lg font-serif whitespace-pre-wrap">
         {{ member?.biography || 'Биография ещё не написана...' }}
       </p>
     </BaseCard>

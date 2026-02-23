@@ -24,16 +24,42 @@ const props = defineProps<Props>()
 const isHovered = ref(false)
 const activeMenu = ref<'top' | 'bottom' | 'left' | 'right' | null>(null)
 
+const isSelf = computed(() => {
+  const rel = props.data.member?.relationship?.toLowerCase() || ''
+  return rel.includes('это вы') || rel.includes('self')
+})
+
+const isComplete = computed(() => {
+  const m = props.data.member
+  if (!m) return false
+  // Check completion: needs name, photo, and biography or dates
+  const hasPhoto = !!m.photoUrl
+  const hasBio = !!m.biography && m.biography.length > 20
+  const hasDates = !!m.birthDate
+  
+  // High weight for photo and bio
+  return hasPhoto && (hasBio || hasDates)
+})
+
 const nodeClasses = computed(() => {
   if (props.data.isFilled) {
-    return 'bg-charcoal border-white/10 text-silk'
+    let classes = 'bg-charcoal border-white/10 text-silk transition-all duration-500 '
+    
+    if (isSelf.value) {
+      classes += 'ring-4 ring-gold/30 shadow-[0_0_30px_rgba(212,175,55,0.4)] '
+    } else if (!isComplete.value) {
+      classes += 'opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 '
+    }
+    
+    return classes
   }
   return 'bg-white/5 border-white/10 text-gray-500'
 })
 
 const borderClasses = computed(() => {
   if (props.data.isFilled) {
-    return 'border-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]'
+    if (isSelf.value) return 'border-gold scale-110 z-10'
+    return 'border-gold/50 shadow-[0_0_15px_rgba(212,175,55,0.2)]'
   }
   return 'border-white/10'
 })
@@ -98,31 +124,31 @@ const closeMenu = () => {
 
 <template>
   <div
-    class="family-node-wrapper relative"
+    class="family-node"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false; closeMenu()"
   >
     <!-- Hover buttons for adding relatives (FigJam-style) -->
     <Transition name="fade">
-      <div v-if="isHovered && data.isFilled && data.member" class="add-buttons-container">
+      <div v-show="isHovered && data.isFilled && data.member" class="family-node__add-container">
         <!-- Parent button (top) -->
-        <div class="add-button-top">
+        <div class="family-node__add-wrapper family-node__add-wrapper--top">
           <button
             @click="toggleMenu('top', $event)"
-            class="add-button add-button-gold"
-            :class="{ 'ring-2 ring-white': activeMenu === 'top' }"
+            class="family-node__add-btn family-node__add-btn--gold"
+            :class="{ 'family-node__add-btn--active': activeMenu === 'top' }"
             title="Добавить родителя"
           >
             +
           </button>
           <!-- Dropdown menu for top -->
           <Transition name="menu">
-            <div v-if="activeMenu === 'top'" class="dropdown-menu dropdown-menu-top">
+            <div v-show="activeMenu === 'top'" class="family-node__dropdown family-node__dropdown--top">
               <button
                 v-for="option in topMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
-                class="dropdown-option"
+                class="family-node__dropdown-item"
               >
                 {{ option.label }}
               </button>
@@ -131,23 +157,23 @@ const closeMenu = () => {
         </div>
 
         <!-- Child button (bottom) -->
-        <div class="add-button-bottom">
+        <div class="family-node__add-wrapper family-node__add-wrapper--bottom">
           <button
             @click="toggleMenu('bottom', $event)"
-            class="add-button add-button-gold"
-            :class="{ 'ring-2 ring-white': activeMenu === 'bottom' }"
+            class="family-node__add-btn family-node__add-btn--gold"
+            :class="{ 'family-node__add-btn--active': activeMenu === 'bottom' }"
             title="Добавить ребёнка"
           >
             +
           </button>
           <!-- Dropdown menu for bottom -->
           <Transition name="menu">
-            <div v-if="activeMenu === 'bottom'" class="dropdown-menu dropdown-menu-bottom">
+            <div v-show="activeMenu === 'bottom'" class="family-node__dropdown family-node__dropdown--bottom">
               <button
                 v-for="option in bottomMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
-                class="dropdown-option"
+                class="family-node__dropdown-item"
               >
                 {{ option.label }}
               </button>
@@ -156,23 +182,23 @@ const closeMenu = () => {
         </div>
 
         <!-- Side button (left) -->
-        <div class="add-button-left">
+        <div class="family-node__add-wrapper family-node__add-wrapper--left">
           <button
             @click="toggleMenu('left', $event)"
-            class="add-button add-button-pink"
-            :class="{ 'ring-2 ring-white': activeMenu === 'left' }"
+            class="family-node__add-btn family-node__add-btn--pink"
+            :class="{ 'family-node__add-btn--active': activeMenu === 'left' }"
             title="Добавить родственника"
           >
             +
           </button>
           <!-- Dropdown menu for left -->
           <Transition name="menu-left">
-            <div v-if="activeMenu === 'left'" class="dropdown-menu dropdown-menu-left">
+            <div v-show="activeMenu === 'left'" class="family-node__dropdown family-node__dropdown--left">
               <button
                 v-for="option in sideMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
-                class="dropdown-option dropdown-option-pink"
+                class="family-node__dropdown-item family-node__dropdown-item--pink"
               >
                 {{ option.label }}
               </button>
@@ -181,23 +207,23 @@ const closeMenu = () => {
         </div>
 
         <!-- Side button (right) -->
-        <div class="add-button-right">
+        <div class="family-node__add-wrapper family-node__add-wrapper--right">
           <button
             @click="toggleMenu('right', $event)"
-            class="add-button add-button-pink"
-            :class="{ 'ring-2 ring-white': activeMenu === 'right' }"
+            class="family-node__add-btn family-node__add-btn--pink"
+            :class="{ 'family-node__add-btn--active': activeMenu === 'right' }"
             title="Добавить родственника"
           >
             +
           </button>
           <!-- Dropdown menu for right -->
           <Transition name="menu-right">
-            <div v-if="activeMenu === 'right'" class="dropdown-menu dropdown-menu-right">
+            <div v-show="activeMenu === 'right'" class="family-node__dropdown family-node__dropdown--right">
               <button
                 v-for="option in sideMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
-                class="dropdown-option dropdown-option-pink"
+                class="family-node__dropdown-item family-node__dropdown-item--pink"
               >
                 {{ option.label }}
               </button>
@@ -208,38 +234,38 @@ const closeMenu = () => {
     </Transition>
 
     <div
-      class="px-4 py-3 rounded-xl border-2 transition-all duration-300 min-w-[160px] text-center cursor-pointer hover:scale-105"
+      class="family-node__content px-4 py-3 rounded-xl border-2 transition-all duration-300 min-w-[160px] text-center cursor-pointer hover:scale-105"
       :class="[nodeClasses, borderClasses]"
     >
     <!-- Filled State -->
-    <div v-if="data.isFilled" class="flex flex-col gap-2">
+    <div v-if="data.isFilled" class="family-node__info-wrapper flex flex-col gap-2">
       <!-- Avatar -->
-      <div v-if="displayPhoto" class="w-12 h-12 mx-auto rounded-full overflow-hidden border border-white/20">
+      <div v-if="displayPhoto" class="family-node__avatar-container w-12 h-12 mx-auto rounded-full overflow-hidden border border-white/20">
         <img
           :src="displayPhoto"
           loading="lazy"
           decoding="async"
-          class="w-full h-full object-cover"
+          class="family-node__avatar-img w-full h-full object-cover"
           alt=""
         />
       </div>
-      <div v-else class="w-12 h-12 mx-auto rounded-full bg-gold/10 flex items-center justify-center text-xl text-gold font-serif">
+      <div v-else class="family-node__avatar-placeholder w-12 h-12 mx-auto rounded-full bg-gold/10 flex items-center justify-center text-xl text-gold font-serif">
         {{ displayName.charAt(0) }}
       </div>
 
       <!-- Info -->
-      <div class="flex flex-col gap-0.5">
-        <span class="text-[8px] uppercase tracking-widest text-gold font-bold opacity-80">{{ displayRole }}</span>
-        <span class="text-sm font-serif text-silk font-bold truncate max-w-[140px]">{{ displayName }}</span>
-        <span v-if="displayYears" class="text-[9px] text-gray-400 font-mono">{{ displayYears }}</span>
+      <div class="family-node__details flex flex-col gap-0.5">
+        <span class="family-node__role text-[8px] uppercase tracking-widest text-gold font-bold opacity-80">{{ displayRole }}</span>
+        <span class="family-node__name text-sm font-serif text-silk font-bold truncate max-w-[140px]">{{ displayName }}</span>
+        <span v-if="displayYears" class="family-node__years text-[9px] text-gray-400 font-mono">{{ displayYears }}</span>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else class="flex flex-col gap-1 py-2">
-      <span class="text-[10px] uppercase tracking-widest font-bold">{{ data.label || 'Добавить' }}</span>
-      <div class="mt-2 text-xs text-gold/60">
-        <span class="px-2 py-0.5 rounded-full border border-gold/20">+ добавить</span>
+    <div v-else class="family-node__empty flex flex-col gap-1 py-2">
+      <span class="family-node__empty-label text-[10px] uppercase tracking-widest font-bold">{{ data.label || 'Добавить' }}</span>
+      <div class="family-node__empty-action mt-2 text-xs text-gold/60">
+        <span class="family-node__empty-btn px-2 py-0.5 rounded-full border border-gold/20">+ добавить</span>
       </div>
     </div>
 
@@ -264,7 +290,7 @@ const closeMenu = () => {
 }
 
 /* Container for add buttons - positioned relative to the node */
-.add-buttons-container {
+.family-node__add-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -275,42 +301,48 @@ const closeMenu = () => {
 }
 
 /* Base button styles */
-.add-button {
+.family-node__add-btn {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 20px;
+  line-height: 1;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 0 1px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s ease;
   pointer-events: auto;
   cursor: pointer;
   border: none;
   opacity: 0;
-  animation: pop-in 0.2s ease-out forwards;
+  animation: family-node-pop-in 0.2s ease-out forwards;
 }
 
-.add-button:hover {
-  transform: scale(1.15);
+.family-node__add-btn:hover {
+  transform: scale(1.2);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-.add-button-gold {
+.family-node__add-btn--active {
+  ring: 2px solid white;
+}
+
+.family-node__add-btn--gold {
   background: #d4af37;
   color: #1a1a1f;
 }
 
-.add-button-pink {
+.family-node__add-btn--pink {
   background: #f472b6;
   color: white;
 }
 
 /* Position buttons centered on edges */
-.add-button-top {
+.family-node__add-wrapper--top {
   position: absolute;
   top: 0;
   left: 0;
@@ -318,18 +350,18 @@ const closeMenu = () => {
   height: 0;
 }
 
-.add-button-top .add-button {
+.family-node__add-wrapper--top .family-node__add-btn {
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
   animation-delay: 0ms;
 }
 
-.add-button-top .add-button:hover {
+.family-node__add-wrapper--top .family-node__add-btn:hover {
   transform: translateX(-50%) scale(1.15);
 }
 
-.add-button-bottom {
+.family-node__add-wrapper--bottom {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -337,18 +369,18 @@ const closeMenu = () => {
   height: 0;
 }
 
-.add-button-bottom .add-button {
+.family-node__add-wrapper--bottom .family-node__add-btn {
   bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
   animation-delay: 50ms;
 }
 
-.add-button-bottom .add-button:hover {
+.family-node__add-wrapper--bottom .family-node__add-btn:hover {
   transform: translateX(-50%) scale(1.15);
 }
 
-.add-button-left {
+.family-node__add-wrapper--left {
   position: absolute;
   left: 0;
   top: 0;
@@ -356,19 +388,19 @@ const closeMenu = () => {
   width: 0;
 }
 
-.add-button-left .add-button {
+.family-node__add-wrapper--left .family-node__add-btn {
   left: -12px;
   top: 50%;
   transform: translateY(-50%);
-  animation: pop-in-side 0.2s ease-out forwards;
+  animation: family-node-pop-in-side 0.2s ease-out forwards;
   animation-delay: 100ms;
 }
 
-.add-button-left .add-button:hover {
+.family-node__add-wrapper--left .family-node__add-btn:hover {
   transform: translateY(-50%) scale(1.15);
 }
 
-.add-button-right {
+.family-node__add-wrapper--right {
   position: absolute;
   right: 0;
   top: 0;
@@ -376,20 +408,20 @@ const closeMenu = () => {
   width: 0;
 }
 
-.add-button-right .add-button {
+.family-node__add-wrapper--right .family-node__add-btn {
   right: -12px;
   top: 50%;
   transform: translateY(-50%);
-  animation: pop-in-side 0.2s ease-out forwards;
+  animation: family-node-pop-in-side 0.2s ease-out forwards;
   animation-delay: 150ms;
 }
 
-.add-button-right .add-button:hover {
+.family-node__add-wrapper--right .family-node__add-btn:hover {
   transform: translateY(-50%) scale(1.15);
 }
 
 /* Animations */
-@keyframes pop-in {
+@keyframes family-node-pop-in {
   from {
     opacity: 0;
     transform: translateX(-50%) scale(0.5);
@@ -400,7 +432,7 @@ const closeMenu = () => {
   }
 }
 
-@keyframes pop-in-side {
+@keyframes family-node-pop-in-side {
   from {
     opacity: 0;
     transform: translateY(-50%) scale(0.5);
@@ -412,7 +444,7 @@ const closeMenu = () => {
 }
 
 /* Dropdown menu base styles */
-.dropdown-menu {
+.family-node__dropdown {
   position: absolute;
   background: #1a1a1f;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -424,7 +456,7 @@ const closeMenu = () => {
   pointer-events: auto;
 }
 
-.dropdown-option {
+.family-node__dropdown-item {
   width: 100%;
   padding: 8px 12px;
   text-align: left;
@@ -437,34 +469,34 @@ const closeMenu = () => {
   white-space: nowrap;
 }
 
-.dropdown-option:hover {
+.family-node__dropdown-item:hover {
   background: rgba(212, 175, 55, 0.2);
 }
 
-.dropdown-option-pink:hover {
+.family-node__dropdown-item--pink:hover {
   background: rgba(244, 114, 182, 0.2);
 }
 
 /* Dropdown positions */
-.dropdown-menu-top {
+.family-node__dropdown--top {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.dropdown-menu-bottom {
+.family-node__dropdown--bottom {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.dropdown-menu-left {
+.family-node__dropdown--left {
   top: 50%;
   left: 20px;
   transform: translateY(-50%);
 }
 
-.dropdown-menu-right {
+.family-node__dropdown--right {
   top: 50%;
   right: 20px;
   transform: translateY(-50%);
@@ -515,8 +547,7 @@ const closeMenu = () => {
   transform: translateY(-50%) translateX(8px) scale(0.9);
 }
 
-/* Family node wrapper */
-.family-node-wrapper {
+.family-node {
   position: relative;
 }
 </style>
