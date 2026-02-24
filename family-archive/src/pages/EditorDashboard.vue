@@ -845,10 +845,10 @@ const planName = computed(() => {
               v-for="family in store.userFamilies" 
               :key="family.id" 
               @click="loadFamily(family)" 
-              class="dashboard__mobile-archive-card p-4 rounded-xl mb-3 border transition-all relative overflow-hidden"
+              class="dashboard__mobile-archive-card p-4 rounded-xl mb-3 border border-gold/30 transition-all relative overflow-hidden"
               :class="store.currentFamily?.id === family.id 
                 ? 'dashboard__mobile-archive-card--active border-gold bg-gold/10 ring-2 ring-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.1)]' 
-                : 'bg-white/5 border-white/5 active:bg-white/10'"
+                : 'bg-white/5 active:bg-white/10'"
             >
                <div class="flex justify-between items-center relative z-10">
                   <div class="flex flex-col gap-1">
