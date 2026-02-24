@@ -5,10 +5,21 @@ import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import Logo from '@/shared/ui/Logo.vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Menu, X, User } from 'lucide-vue-next'
+import { 
+  Menu, 
+  X, 
+  User, 
+  ChevronDown, 
+  Settings, 
+  LogOut, 
+  Library, 
+  CreditCard,
+  PenLine
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
+
 interface Props {
   fullHeight?: boolean
 }
@@ -24,6 +35,7 @@ const memoryStore = useMemoryStore()
 const permissions = usePermissionsStore()
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
@@ -51,12 +63,8 @@ const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 
-const handleUserClick = () => {
-  if (route.path === '/settings' || route.path === '/') {
-    router.push('/editor')
-  } else {
-    router.push('/settings')
-  }
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value
 }
 
 const handleLogout = async () => {
@@ -64,6 +72,13 @@ const handleLogout = async () => {
   memoryStore.logoutReset()
   permissions.resetPermissions()
   router.push('/')
+  isMobileMenuOpen.value = false
+  isUserMenuOpen.value = false
+}
+
+const navigateTo = (path: string) => {
+  router.push(path)
+  isUserMenuOpen.value = false
   isMobileMenuOpen.value = false
 }
 </script>
@@ -95,8 +110,8 @@ const handleLogout = async () => {
           <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
         </nav>
 
-        <!-- CTA (Desktop) -->
-        <div class="hidden md:flex items-center gap-4">
+        <!-- CTA / User Menu (Desktop) -->
+        <div class="hidden md:flex items-center gap-4 relative">
           <template v-if="!authStore.isAuthenticated">
             <button 
               class="text-sm text-silk hover:text-gold transition-colors font-medium border border-white/10 px-4 py-2 rounded-full"
@@ -109,42 +124,60 @@ const handleLogout = async () => {
             </BaseButton>
           </template>
           <template v-else>
+            <!-- User Menu Trigger -->
             <button 
-              class="flex items-center gap-2 text-sm text-silk hover:text-gold transition-colors font-medium"
-              @click="handleUserClick"
+              class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
+              @click="toggleUserMenu"
             >
-              <User class="w-4 h-4" />
-              {{ (route.path === '/' || route.path === '/settings') ? 'Кабинет' : 'Настройки' }}
+              <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+                <User class="w-4 h-4" />
+              </div>
+              <span class="text-sm font-medium text-silk">{{ authStore.userName }}</span>
+              <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
             </button>
-            <button 
-              class="text-sm text-gray-500 hover:text-red-400 transition-colors font-medium ml-4"
-              @click="handleLogout"
-            >
-              Выйти
-            </button>
+
+            <!-- User Dropdown Menu (Desktop) -->
+            <transition name="fade">
+              <div v-if="isUserMenuOpen" class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden">
+                <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <PenLine class="w-4 h-4" />
+                  Мои архивы
+                </button>
+                <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <Settings class="w-4 h-4" />
+                  Настройки
+                </button>
+                <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <CreditCard class="w-4 h-4" />
+                  Тарифы
+                </button>
+                <div class="h-px bg-white/5 my-1"></div>
+                <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+                  <LogOut class="w-4 h-4" />
+                  Выйти из аккаунта
+                </button>
+              </div>
+            </transition>
           </template>
         </div>
 
-        <!-- Mobile Buttons (Burger and User) -->
+        <!-- Mobile Header Actions -->
         <div class="flex items-center gap-2 md:hidden z-50 relative">
           <template v-if="authStore.isAuthenticated">
+            <!-- Mobile Auth User: show name + icon + arrow -->
             <button 
-              class="text-silk p-2 hover:text-gold transition-colors"
-              @click="handleUserClick"
-              :title="(route.path === '/' || route.path === '/settings') ? 'Личный кабинет' : 'Настройки'"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 active:scale-95 transition-all"
+              @click="toggleUserMenu"
             >
-              <User class="w-6 h-6" />
-            </button>
-            <button 
-              class="text-silk p-2 hover:text-gold transition-colors"
-              @click="toggleMobileMenu"
-              title="Меню"
-            >
-              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
-              <X v-else class="w-6 h-6" />
+              <div class="w-6 h-6 rounded-full bg-gold/10 flex items-center justify-center text-gold">
+                <User class="w-3.5 h-3.5" />
+              </div>
+              <span class="text-xs font-medium text-silk max-w-[80px] truncate">{{ authStore.userName }}</span>
+              <ChevronDown class="w-3.5 h-3.5 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
             </button>
           </template>
           <template v-else>
+            <!-- Mobile Guest: show burger -->
             <button 
               class="text-silk p-2"
               @click="toggleMobileMenu"
@@ -157,11 +190,39 @@ const handleLogout = async () => {
       </div>
     </header>
 
-    <!-- Mobile Menu Overlay -->
+    <!-- Mobile Dropdown Menu (Overlay-like for authenticated) -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="isUserMenuOpen" class="fixed inset-0 z-[100] md:hidden">
+          <div class="absolute inset-0 bg-obsidian/60 backdrop-blur-sm" @click="isUserMenuOpen = false"></div>
+          <div class="absolute top-[70px] right-4 left-4 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 overflow-hidden animate-slide-down">
+            <button @click="navigateTo('/editor')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
+              <PenLine class="w-5 h-5 text-gold" />
+              <span class="font-serif">Мои архивы</span>
+            </button>
+            <button @click="navigateTo('/settings')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
+              <Settings class="w-5 h-5 text-gold" />
+              <span class="font-serif">Настройки</span>
+            </button>
+            <button @click="navigateTo('/'); scrollToSection('pricing')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
+              <CreditCard class="w-5 h-5 text-gold" />
+              <span class="font-serif">Тарифы</span>
+            </button>
+            <div class="h-px bg-white/5 mx-6 my-2"></div>
+            <button @click="handleLogout" class="w-full px-6 py-4 flex items-center gap-4 text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-colors">
+              <LogOut class="w-5 h-5" />
+              <span class="font-serif font-bold">Выйти из аккаунта</span>
+            </button>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Guest Mobile Menu Overlay (Burger) -->
     <Teleport to="body">
       <transition name="fade">
         <div 
-          v-if="isMobileMenuOpen"
+          v-if="isMobileMenuOpen && !authStore.isAuthenticated"
           class="fixed inset-0 bg-obsidian z-[100] flex flex-col items-center justify-center space-y-8 md:hidden overflow-y-auto"
         >
           <!-- Close Button -->
@@ -177,35 +238,15 @@ const handleLogout = async () => {
           <button @click="scrollToSection('pricing')" class="text-3xl font-serif text-silk hover:text-gold transition-colors">Тарифы</button>
           
           <div class="flex flex-col gap-6 mt-12 w-full max-w-xs px-4">
-            <template v-if="!authStore.isAuthenticated">
-              <BaseButton :full="true" size="lg" @click="router.push('/auth')">
-                Создать архив
-              </BaseButton>
-              <button 
-                class="text-silk hover:text-gold transition-colors text-xl font-medium"
-                @click="router.push('/auth')"
-              >
-                Войти
-              </button>
-            </template>
-            <template v-else>
-              <BaseButton :full="true" size="lg" @click="router.push('/editor'); isMobileMenuOpen = false">
-                Личный кабинет
-              </BaseButton>
-              <button 
-                class="text-silk hover:text-gold transition-colors text-xl font-medium flex items-center justify-center gap-2"
-                @click="handleUserClick(); isMobileMenuOpen = false"
-              >
-                <User class="w-5 h-5" />
-                {{ (route.path === '/' || route.path === '/settings') ? 'Личный кабинет' : 'Настройки' }}
-              </button>
-              <button 
-                class="text-red-400 hover:text-red-300 transition-colors text-xl font-medium"
-                @click="handleLogout"
-              >
-                Выйти
-              </button>
-            </template>
+            <BaseButton :full="true" size="lg" @click="router.push('/auth'); isMobileMenuOpen = false">
+              Создать архив
+            </BaseButton>
+            <button 
+              class="text-silk hover:text-gold transition-colors text-xl font-medium"
+              @click="router.push('/auth'); isMobileMenuOpen = false"
+            >
+              Войти
+            </button>
           </div>
         </div>
       </transition>
@@ -242,6 +283,15 @@ const handleLogout = async () => {
 @keyframes pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.6; }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
 }
 
 .fade-enter-active,

@@ -10,9 +10,18 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   
   const tier = ref<SubscriptionTier>('basic')
   const status = ref<string>('active')
+  const periodEnd = ref<string | null>(null)
   const isLoading = ref(false)
 
   const isPremium = computed(() => tier.value === 'guardian' || tier.value === 'legacy')
+
+  const tierLabel = computed(() => {
+    switch (tier.value) {
+      case 'guardian': return 'Хранитель'
+      case 'legacy': return 'Наследие'
+      default: return 'Базовый'
+    }
+  })
 
   async function fetchSubscription() {
     if (!authStore.userId) return
@@ -21,13 +30,14 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('subscription_tier, subscription_status')
+        .select('subscription_tier, subscription_status, subscription_period_end')
         .eq('id', authStore.userId)
-        .single()
+        .single<any>()
 
       if (data) {
         tier.value = data.subscription_tier as SubscriptionTier
         status.value = data.subscription_status
+        periodEnd.value = data.subscription_period_end
       } else if (error && error.code !== 'PGRST116') {
          // PGRST116 is "Row not found", which might happen if profile trigger didn't run.
          // In that case, default to basic is fine.
@@ -55,7 +65,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       .update({ 
         subscription_tier: newTier,
         updated_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', authStore.userId)
 
     if (error) {
@@ -76,8 +86,10 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   return {
     tier,
     status,
+    periodEnd,
     isLoading,
     isPremium,
+    tierLabel,
     fetchSubscription,
     upgradeTier
   }

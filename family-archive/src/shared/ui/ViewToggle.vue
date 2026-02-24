@@ -9,8 +9,8 @@ const emit = defineEmits<{
 }>()
 
 const options = [
-  { value: 'cards' as const, label: 'Список' },
-  { value: 'tree' as const, label: 'Древо' }
+  { value: 'tree' as const, label: 'Древо' },
+  { value: 'cards' as const, label: 'Список' }
 ]
 </script>
 

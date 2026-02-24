@@ -4,18 +4,21 @@ interface Props {
   size?: 'sm' | 'md' | 'lg'
   full?: boolean
   center?: boolean
+  type?: 'button' | 'submit' | 'reset'
 }
 
 withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   full: false,
-  center: false
+  center: false,
+  type: 'submit'
 })
 </script>
 
 <template>
   <button 
+    :type="type"
     class="relative overflow-hidden rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 group"
     :class="[
       // Size

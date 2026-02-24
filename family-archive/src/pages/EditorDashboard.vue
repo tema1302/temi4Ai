@@ -24,6 +24,7 @@ import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
 import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
 import { useDialogStore } from '@/stores/dialogStore'
 import { Trash2, Eye, Plus } from 'lucide-vue-next'
+import type { RelationType } from '@/modules/family/domain/models'
 
 const store = useMemoryStore()
 const authStore = useAuthStore()
@@ -34,7 +35,7 @@ const access = useAuthAccess()
 const dialogs = useDialogStore()
 const router = useRouter()
 const route = useRoute()
-const { trackArchiveCreation, trackUpgrade, trackEvent } = useAnalytics()
+const { trackArchiveCreation, trackEvent } = useAnalytics()
 
 const isCreating = ref(false)
 const newFamilyName = ref('')
@@ -175,18 +176,20 @@ const startNewArchive = async () => {
   isCreating.value = true
   const newFamily = await store.createArchive(newFamilyName.value, authStore.userId!)
   
-  store.setFamily(newFamily)
-  await store.addMember() 
-  isCreating.value = false
-  newFamilyName.value = ''
-  
-  router.push(`/archive/${newFamily.id}/onboarding`)
-  await refreshFamilies()
-  trackArchiveCreation(newFamily.id)
+  if (newFamily) {
+    store.setFamily(newFamily)
+    await store.addMember() 
+    isCreating.value = false
+    newFamilyName.value = ''
+    
+    router.push(`/archive/${newFamily.id}/onboarding`)
+    await refreshFamilies()
+    trackArchiveCreation(newFamily.id)
+  }
 }
 
 const loadFamily = (family: any) => {
-  router.push({ name: 'ArchiveList', params: { archiveId: family.id } })
+  router.push({ name: 'ArchiveTree', params: { archiveId: family.id } })
 }
 
 const selectMemberForPreview = (id: string) => {
@@ -339,7 +342,7 @@ const showRelationConfirm = (targetMemberId: string) => {
 }
 
 // Обработка подтверждения из модалки
-const handleRelationConfirm = (relationType: 'parent' | 'spouse' | 'sibling' | 'child') => {
+const handleRelationConfirm = (relationType: RelationType) => {
   if (!store.pendingRelation || !assignTargetMemberId.value) return
 
   const sourceId = store.pendingRelation.memberId
@@ -897,13 +900,6 @@ const planName = computed(() => {
                 <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate">{{ store.familyName }}</span>
              </div>
              <div class="flex items-center gap-2 flex-shrink-0">
-                <button 
-                  v-if="route.name === 'ArchiveList' && access.canEditTree.value"
-                  @click="addMember"
-                  class="w-10 h-10 rounded-full bg-gold text-charcoal flex items-center justify-center pb-0.5 shadow-lg active:scale-95 transition-all"
-                >
-                  <Plus class="w-6 h-6" :stroke-width="3" />
-                </button>
                 <BaseButton v-if="access.canEditTree.value" size="sm" @click="saveChanges" :disabled="isSaving" class="dashboard__mobile-save-btn">{{ isSaving ? '...' : 'Сохр.' }}</BaseButton>
              </div>
           </div>
@@ -913,7 +909,7 @@ const planName = computed(() => {
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
           </div>
           
-          <div class="dashboard__mobile-view-wrapper flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div class="dashboard__mobile-view-wrapper flex-1 min-h-0 flex flex-col overflow-hidden relative">
              <!-- Mobile View Selector using router-view or conditions -->
              <MobileMemberList v-if="route.name === 'ArchiveList'" @select="selectMemberForPreview" @add="addMember" @delete="handleDeleteMemberById" class="dashboard__mobile-list" />
              <div v-else-if="route.name === 'ArchiveTree'" class="dashboard__mobile-tree h-full relative">
@@ -928,6 +924,17 @@ const planName = computed(() => {
                @assign-on-tree="handleAssignOnTree"
                class="dashboard__mobile-editor"
              />
+
+             <!-- Fixed CTA for adding member (Mobile) -->
+             <div v-if="(route.name === 'ArchiveList' || route.name === 'ArchiveTree') && access.canEditTree.value" class="dashboard__mobile-fab absolute bottom-6 right-6 z-20">
+                <button 
+                  @click="addMember"
+                  class="flex items-center gap-2 px-6 py-4 rounded-full bg-gold text-charcoal shadow-2xl shadow-gold/40 active:scale-95 transition-all font-bold uppercase text-xs tracking-widest"
+                >
+                  <Plus class="w-5 h-5" :stroke-width="3" />
+                  <span>Добавить</span>
+                </button>
+             </div>
           </div>
        </div>
     </div>

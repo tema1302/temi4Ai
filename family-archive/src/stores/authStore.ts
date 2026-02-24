@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
   const userId = computed(() => user.value?.id ?? null)
   const userEmail = computed(() => user.value?.email ?? null)
+  const userName = computed(() => user.value?.user_metadata?.full_name || user.value?.email?.split('@')[0] || 'Пользователь')
 
   // Initialize: check existing session
   async function initialize() {
@@ -23,8 +24,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       // Use getUser() instead of getSession() for fresher data from the server
-      const { data: { user } } = await supabase.auth.getUser()
-      user.value = user
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      user.value = currentUser
     } catch (err) {
       console.error('Auth init error:', err)
     } finally {
@@ -38,7 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Sign up with email/password
-  async function signUp(email: string, password: string) {
+  async function signUp(email: string, password: string, fullName?: string) {
     error.value = null
     isLoading.value = true
 
@@ -46,6 +47,11 @@ export const useAuthStore = defineStore('auth', () => {
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
       })
 
       if (authError) throw authError
@@ -122,6 +128,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(data: { fullName: string }) {
+    error.value = null
+    isLoading.value = true
+    try {
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+        data: { full_name: data.fullName }
+      })
+      if (updateError) throw updateError
+      user.value = updateData.user
+      return { success: true }
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update profile'
+      return { success: false, error: error.value }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     // State
     user,
@@ -131,6 +155,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userId,
     userEmail,
+    userName,
     // Actions
     initialize,
     signUp,
@@ -138,5 +163,6 @@ export const useAuthStore = defineStore('auth', () => {
     signOut,
     resetPassword,
     updatePassword,
+    updateProfile
   }
 })

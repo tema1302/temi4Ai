@@ -25,6 +25,7 @@ const successMessage = ref('')
 
 const email = ref('')
 const password = ref('')
+const fullName = ref('')
 const confirmPassword = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
@@ -45,6 +46,7 @@ const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
   isForgotPasswordMode.value = false
   errorMessage.value = ''
+  fullName.value = ''
 }
 
 const toggleForgotPassword = () => {
@@ -54,6 +56,7 @@ const toggleForgotPassword = () => {
 }
 
 const handleSubmit = async () => {
+  if (isSubmitting.value) return
   errorMessage.value = ''
   
   if (isForgotPasswordMode.value) {
@@ -62,9 +65,16 @@ const handleSubmit = async () => {
       return
     }
   } else if (!isResetPasswordMode.value) {
-    if (!email.value || !password.value) {
-      errorMessage.value = 'Пожалуйста, заполните все поля'
-      return
+    if (isLoginMode.value) {
+      if (!email.value || !password.value) {
+        errorMessage.value = 'Пожалуйста, заполните все поля'
+        return
+      }
+    } else {
+      if (!email.value || !password.value || !fullName.value) {
+        errorMessage.value = 'Пожалуйста, заполните все поля, включая имя'
+        return
+      }
     }
   } else {
     if (!password.value) {
@@ -110,7 +120,7 @@ const handleSubmit = async () => {
         trackLogin('email')
       }
     } else {
-      result = await authStore.signUp(email.value, password.value)
+      result = await authStore.signUp(email.value, password.value, fullName.value)
       if (result.success) {
         trackSignUp('email')
         successTitle.value = 'Спасибо за регистрацию!'
@@ -179,8 +189,21 @@ const handleSuccessContinue = () => {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-5">
+      <form @submit.prevent="handleSubmit" class="space-y-5" autocomplete="on">
         
+        <!-- Name (Registration only) -->
+        <div v-if="!isLoginMode && !isForgotPasswordMode && !isResetPasswordMode">
+          <label class="block text-sm text-gray-400 mb-2">Ваше имя</label>
+          <input
+            v-model="fullName"
+            type="text"
+            placeholder="Иван Иванов"
+            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+            required
+            autocomplete="name"
+          />
+        </div>
+
         <!-- Email -->
         <div v-if="!isResetPasswordMode">
           <label class="block text-sm text-gray-400 mb-2">Email</label>
@@ -190,6 +213,7 @@ const handleSuccessContinue = () => {
             placeholder="your@email.com"
             class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
             required
+            autocomplete="email"
           />
         </div>
 
@@ -214,6 +238,7 @@ const handleSuccessContinue = () => {
             placeholder="••••••••"
             class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
             required
+            :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
           />
         </div>
 
@@ -226,6 +251,7 @@ const handleSuccessContinue = () => {
             placeholder="••••••••"
             class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
             required
+            autocomplete="new-password"
           />
         </div>
 
