@@ -2,10 +2,11 @@
 import { ref, onMounted } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
+import BackButton from '@/shared/ui/BackButton.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter, useRoute } from 'vue-router'
 import { useAnalytics } from '@/composables/useAnalytics'
-import { 
+import {
   Check,
   X,
   Play
@@ -160,7 +161,12 @@ const handleSuccessContinue = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4">
+  <div class="min-h-screen flex items-center justify-center px-4 relative">
+    <!-- Back Button -->
+    <div class="absolute top-6 left-6">
+      <BackButton to="/" />
+    </div>
+
     <!-- Success State -->
     <BaseCard v-if="showSuccess" class="w-full max-w-md p-8 text-center">
        <div class="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 text-gold">
