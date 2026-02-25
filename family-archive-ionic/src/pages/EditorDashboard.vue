@@ -322,7 +322,7 @@ const planName = computed(() => {
             <!-- Create New -->
             <BaseCard class="p-10 text-center">
               <div class="text-6xl mb-6">📜</div>
-              <h2 class="text-3xl font-serif text-silk mb-4">Создать новый архив</h2>
+              <h2 class="text-3xl font-serif text-silk mb-4">Введите название семьи еще одного архива и нажмите "Создать"</h2>
               
               <div v-if="subscription.canAddFamily(store.userFamilies.length)" class="flex flex-col gap-4 max-w-md mx-auto">
                 <input

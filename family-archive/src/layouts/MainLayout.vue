@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
@@ -128,35 +128,84 @@ const navItems = [
         </a>
 
         <!-- Desktop Navigation -->
-        <div v-if="!props.fullHeight" class="hidden md:flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-3">
+          <!-- Landing Page Navigation -->
+          <template v-if="!props.fullHeight">
+            <!-- Guest User -->
+            <template v-if="!authStore.isAuthenticated">
+              <!-- Nav Links -->
+              <nav class="flex items-center gap-6 text-sm font-medium mr-4">
+                <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+                <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
+                <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+              </nav>
 
-          <!-- Guest User -->
-          <template v-if="!authStore.isAuthenticated">
-            <!-- Nav Links -->
-            <nav class="flex items-center gap-6 text-sm font-medium mr-4">
-              <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
-              <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
-              <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
-            </nav>
+              <!-- CTA Buttons -->
+              <BaseButton size="sm" @click="router.push('/auth?mode=signup')">
+                Создать архив
+              </BaseButton>
+              <BaseButton variant="outline" size="sm" @click="router.push('/auth?mode=login')">
+                Войти
+              </BaseButton>
+            </template>
 
-            <!-- CTA Buttons -->
-            <BaseButton size="sm" @click="router.push('/auth?mode=signup')">
-              Создать архив
-            </BaseButton>
-            <BaseButton variant="outline" size="sm" @click="router.push('/auth?mode=login')">
-              Войти
-            </BaseButton>
+            <!-- Authenticated User on Landing -->
+            <template v-else>
+              <!-- Nav Links -->
+              <nav class="flex items-center gap-6 text-sm font-medium mr-4">
+                <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+                <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
+                <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+              </nav>
+
+              <!-- User Menu -->
+              <div class="relative">
+                <button
+                  class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
+                  @click="toggleUserMenu"
+                >
+                  <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+                    <User class="w-4 h-4" />
+                  </div>
+                  <span class="text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
+                  <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
+                </button>
+
+                <!-- User Dropdown Menu -->
+                <transition name="dropdown">
+                  <div
+                    v-if="isUserMenuOpen"
+                    class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
+                  >
+                    <div class="px-4 py-3 border-b border-white/5">
+                      <p class="text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
+                      <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                    </div>
+                    <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                      <PenLine class="w-4 h-4" />
+                      Мои архивы
+                    </button>
+                    <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                      <Settings class="w-4 h-4" />
+                      Настройки
+                    </button>
+                    <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                      <CreditCard class="w-4 h-4" />
+                      Тарифы
+                    </button>
+                    <div class="h-px bg-white/5 my-1"></div>
+                    <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+                      <LogOut class="w-4 h-4" />
+                      Выйти
+                    </button>
+                  </div>
+                </transition>
+              </div>
+            </template>
           </template>
 
-          <!-- Authenticated User -->
-          <template v-else>
-            <!-- Nav Links -->
-            <nav class="flex items-center gap-6 text-sm font-medium mr-4">
-              <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
-              <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
-              <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
-            </nav>
-
+          <!-- Dashboard (ЛК) Navigation - Only User Menu -->
+          <template v-else-if="authStore.isAuthenticated">
             <!-- User Menu -->
             <div class="relative">
               <button
@@ -188,7 +237,7 @@ const navItems = [
                     <Settings class="w-4 h-4" />
                     Настройки
                   </button>
-                  <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <button @click="navigateTo('/#pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                     <CreditCard class="w-4 h-4" />
                     Тарифы
                   </button>
@@ -205,13 +254,25 @@ const navItems = [
 
         <!-- Mobile Header Actions -->
         <div class="flex items-center gap-2 md:hidden z-50 relative">
-          <button
-            class="text-silk p-2"
-            @click="toggleMobileMenu"
-          >
-            <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
-            <X v-else class="w-6 h-6" />
-          </button>
+          <!-- In Dashboard (ЛК) - show user avatar button -->
+          <template v-if="props.fullHeight && authStore.isAuthenticated">
+            <button
+              class="w-10 h-10 rounded-full bg-gold/10 border border-white/10 flex items-center justify-center text-gold"
+              @click="toggleMobileMenu"
+            >
+              <User class="w-5 h-5" />
+            </button>
+          </template>
+          <!-- On Landing page - show hamburger -->
+          <template v-else>
+            <button
+              class="text-silk p-2"
+              @click="toggleMobileMenu"
+            >
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
+              <X v-else class="w-6 h-6" />
+            </button>
+          </template>
         </div>
       </div>
     </header>
@@ -239,23 +300,25 @@ const navItems = [
 
           <!-- Bottom Content -->
           <div class="p-6 pb-12 space-y-8">
-            <!-- Nav Links -->
-            <div class="flex flex-col gap-4">
-              <button
-                v-for="item in navItems"
-                :key="item.id"
-                @click="scrollToSection(item.id)"
-                class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 hover:border-gold/20 transition-all"
-              >
-                <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
-                  <component :is="item.icon" class="w-5 h-5 text-gold" />
-                </div>
-                <span class="text-lg font-serif text-silk">{{ item.label }}</span>
-              </button>
-            </div>
+            <!-- Landing Page Nav Links (only on landing) -->
+            <template v-if="!props.fullHeight">
+              <div class="flex flex-col gap-4">
+                <button
+                  v-for="item in navItems"
+                  :key="item.id"
+                  @click="scrollToSection(item.id)"
+                  class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 hover:border-gold/20 transition-all"
+                >
+                  <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                    <component :is="item.icon" class="w-5 h-5 text-gold" />
+                  </div>
+                  <span class="text-lg font-serif text-silk">{{ item.label }}</span>
+                </button>
+              </div>
 
-            <!-- Divider -->
-            <div class="h-px bg-white/10"></div>
+              <!-- Divider -->
+              <div class="h-px bg-white/10"></div>
+            </template>
 
             <!-- Auth Buttons or User Menu -->
             <template v-if="!authStore.isAuthenticated">
@@ -269,7 +332,7 @@ const navItems = [
               </div>
             </template>
             <template v-else>
-              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+              <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold">
                   <User class="w-6 h-6" />
                 </div>

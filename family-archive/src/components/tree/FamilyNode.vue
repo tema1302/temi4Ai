@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import type { FamilyMember } from '@/modules/family/domain/models'
 
 interface Props {
@@ -23,6 +23,26 @@ const props = defineProps<Props>()
 
 const isHovered = ref(false)
 const activeMenu = ref<'top' | 'bottom' | 'left' | 'right' | null>(null)
+const isMobile = ref(false)
+
+// Detect mobile device
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768 || 'ontouchstart' in window
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
+// Show add buttons: always on mobile, on hover on desktop
+const showAddButtons = computed(() => {
+  return isMobile.value || (isHovered.value && props.data.isFilled && props.data.member)
+})
 
 const isSelf = computed(() => {
   const rel = props.data.member?.relationship?.toLowerCase() || ''
@@ -130,7 +150,7 @@ const closeMenu = () => {
   >
     <!-- Hover buttons for adding relatives (FigJam-style) -->
     <Transition name="fade">
-      <div v-show="isHovered && data.isFilled && data.member" class="family-node__add-container">
+      <div v-show="showAddButtons" class="family-node__add-container">
         <!-- Parent button (top) -->
         <div class="family-node__add-wrapper family-node__add-wrapper--top">
           <button
@@ -318,8 +338,15 @@ const closeMenu = () => {
   pointer-events: auto;
   cursor: pointer;
   border: none;
-  opacity: 0;
-  animation: family-node-pop-in 0.2s ease-out forwards;
+  opacity: 1;
+}
+
+/* On desktop, animate in on hover */
+@media (hover: hover) and (pointer: fine) {
+  .family-node__add-btn {
+    opacity: 0;
+    animation: family-node-pop-in 0.2s ease-out forwards;
+  }
 }
 
 .family-node__add-btn:hover {

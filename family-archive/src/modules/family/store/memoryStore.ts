@@ -179,12 +179,14 @@ export const useMemoryStore = defineStore('memory', () => {
     activeMemberId.value = newMember.id
     currentFamily.value.updatedAt = new Date().toISOString()
     isEditing.value = true
-    
-    // Persist immediately if logged in
+
+    // Persist in background (don't wait) for faster UI response
     const authStore = useAuthStore()
     if (authStore.userId) {
-      await saveCurrentFamily(authStore.userId)
+      saveCurrentFamily(authStore.userId).catch(console.error)
     }
+
+    return newMember.id
   }
 
   // Новое: Добавление члена с ролью

@@ -271,7 +271,7 @@ const handleDelete = async () => {
         <div class="relative group">
           <div
             @click="triggerMainPhotoUpload"
-            class="w-28 h-28 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 cursor-pointer shadow-xl shadow-gold/5"
+            class="w-32 h-32 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 cursor-pointer shadow-xl shadow-gold/5 flex items-center justify-center"
           >
             <img
               v-if="currentMember.photoUrl"
@@ -280,11 +280,19 @@ const handleDelete = async () => {
               decoding="async"
               class="w-full h-full object-cover"
             >
-            <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600 font-serif">
-              {{ currentMember.name ? currentMember.name[0] : '?' }}
+            <div v-else class="flex flex-col items-center justify-center gap-1 text-gray-500">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span class="text-[10px] uppercase tracking-wider">Загрузить</span>
             </div>
-            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-              <Edit2 class="w-6 h-6 text-white/70" />
+            <!-- Overlay on hover -->
+            <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Edit2 class="w-6 h-6 text-white/70 mb-1" />
+              <span class="text-white/70 text-[10px] uppercase tracking-wider">
+                {{ currentMember.photoUrl ? 'Сменить' : 'Загрузить' }}
+              </span>
             </div>
           </div>
           <!-- Remove main photo button -->
@@ -296,7 +304,7 @@ const handleDelete = async () => {
             <X class="w-4 h-4 text-white" />
           </button>
         </div>
-        
+
         <div class="w-full space-y-4">
           <BaseInput
             :modelValue="currentMember.name"
@@ -356,26 +364,6 @@ const handleDelete = async () => {
           type="date"
           label="Дата ухода"
         />
-      </div>
-
-      <!-- Photo URL -->
-      <div class="space-y-2">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest">Основное фото</label>
-        <div class="flex gap-2">
-          <input
-            :value="currentMember.photoUrl"
-            @input="updateField('photoUrl', ($event.target as HTMLInputElement).value)"
-            type="url"
-            placeholder="URL фотографии"
-            class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
-          />
-          <button @click="setMainPhotoByUrl" class="px-3 bg-white/5 border border-white/10 rounded-lg text-gold" title="Добавить по ссылке">
-            <Link class="w-5 h-5" />
-          </button>
-          <button @click="triggerMainPhotoUpload" class="px-3 bg-white/5 border border-white/10 rounded-lg text-gold" title="Загрузить файл">
-            <Plus class="w-5 h-5" />
-          </button>
-        </div>
       </div>
 
       <!-- Biography -->

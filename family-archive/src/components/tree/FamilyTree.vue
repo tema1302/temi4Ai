@@ -3,7 +3,7 @@ import { onMounted, watch, markRaw, shallowRef, ref } from 'vue'
 import { VueFlow, useVueFlow, Position } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import { Maximize, Minimize, Plus } from 'lucide-vue-next'
+import { Maximize, Minimize } from 'lucide-vue-next'
 import FamilyNode from './FamilyNode.vue'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 import { calculateDisplayRole } from '@/modules/family/domain/models'
@@ -477,36 +477,21 @@ onNodeClick(({ node }) => {
         </div>
 
         <div class="flex flex-col gap-3 items-end">
-          <button 
-            @click="toggleFullscreen" 
+          <button
+            @click="toggleFullscreen"
             class="pointer-events-auto p-3 bg-charcoal/80 backdrop-blur-md border border-white/10 rounded-full text-silk hover:text-gold hover:border-gold/30 transition-all shadow-2xl"
             :title="isFullscreen ? 'Свернуть' : 'На весь экран'"
           >
             <Minimize v-if="isFullscreen" class="w-5 h-5" />
             <Maximize v-else class="w-5 h-5" />
           </button>
-
-          <button 
-            @click="emit('addMember')"
-            class="pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-gold text-charcoal rounded-full font-bold text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
-          >
-            <Plus class="w-5 h-5" :stroke-width="3" />
-            <span>Добавить</span>
-          </button>
         </div>
       </div>
 
-      <!-- Bottom: Legend and Hint -->
-      <div class="flex flex-col gap-4 items-start max-w-sm">
-        <!-- Mobile hint (only visible on small screens) -->
-        <div class="md:hidden w-full">
-          <p class="text-center text-gray-400 text-[10px] bg-black/80 backdrop-blur-md rounded-2xl py-2 px-4 border border-white/5">
-            Свайп — навигация • Удержание — перемещение • Щипок — масштаб
-          </p>
-        </div>
-
+      <!-- Bottom: Legend (positioned to not overlap fullscreen button) -->
+      <div class="absolute bottom-6 left-6 z-20">
         <!-- Tree Legend -->
-        <div class="bg-charcoal/90 backdrop-blur-lg border border-white/10 p-4 md:p-6 rounded-3xl shadow-2xl pointer-events-auto w-full">
+        <div class="bg-charcoal/90 backdrop-blur-lg border border-white/10 p-4 md:p-6 rounded-3xl shadow-2xl pointer-events-auto max-w-xs">
           <p class="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gray-400 font-bold mb-4 opacity-80">Типы связей</p>
           <div class="flex flex-col gap-3 md:gap-4">
             <div class="flex items-center gap-3">

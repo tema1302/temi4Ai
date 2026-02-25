@@ -225,7 +225,7 @@ const resetToArchives = () => {
   router.push({ name: 'ArchiveDashboard' })
 }
 
-const deleteArchive = async (e: Event, familyId: string, slug: string) => {
+const deleteArchive = async (e: Event, slug: string) => {
   e.stopPropagation()
   if (!access.isOwner.value) {
     dialogs.alert('Только владелец может удалить архив.', 'Нет доступа')
@@ -271,13 +271,6 @@ const saveChanges = async () => {
       isSaving.value = false
     }
   }
-}
-
-const handleLogout = async () => {
-  await authStore.signOut()
-  store.resetStore()
-  permissions.resetPermissions()
-  router.push('/')
 }
 
 // Member Management
@@ -380,15 +373,15 @@ const handleRelationCancel = () => {
   store.pendingRelation = null
 }
 
-const handleTreeAddRelation = (data: { memberId: string; relationType: string; gender?: 'male' | 'female' }) => {
+const handleTreeAddRelation = async (data: { memberId: string; relationType: string; gender?: 'male' | 'female' }) => {
   if (!access.canEditTree.value) return
-  
+
   const sourceMember = store.members.find(m => m.id === data.memberId)
   let treePosition: { x: number; y: number } | undefined
 
   if (sourceMember?.treePosition) {
-    const offset = 220 
-    const verticalOffset = 180 
+    const offset = 220
+    const verticalOffset = 180
 
     switch (data.relationType) {
       case 'parent':
@@ -404,12 +397,12 @@ const handleTreeAddRelation = (data: { memberId: string; relationType: string; g
     }
   }
 
-  const newMember = store.addMemberWithRelation(
+  const newMember = await store.addMemberWithRelation(
     data.memberId,
     data.relationType as any,
     { name: 'Новый родственник', gender: data.gender, treePosition }
   )
-  
+
   if (newMember) {
     selectMemberForPreview(newMember.id)
   }
@@ -424,13 +417,6 @@ const handleUpdatePosition = (data: { memberId: string; position: { x: number; y
     store.saveCurrentFamily(authStore.userId)
   }
 }
-
-const previewLink = computed(() => {
-  if (store.currentFamily) {
-    return `/${store.currentFamily.id}`
-  }
-  return '#'
-})
 
 const planName = computed(() => {
   switch (subStore.tier) {
@@ -560,7 +546,7 @@ const planName = computed(() => {
                 <div class="dashboard__archive-actions flex items-center gap-4">
                   <button 
                     v-if="family.ownerId === authStore.userId"
-                    @click="(e) => deleteArchive(e, family.id, family.id)"
+                    @click="(e) => deleteArchive(e, family.id)"
                     class="dashboard__archive-delete p-2 text-gray-500 hover:text-red-400 transition-colors"
                   >
                     🗑️
@@ -575,7 +561,7 @@ const planName = computed(() => {
 
             <!-- Create New CTA -->
             <div class="dashboard__create-cta mt-8 pt-8 border-t border-white/5 text-center">
-              <h3 class="dashboard__create-title text-silk font-serif mb-6">Создать новый архив</h3>
+              <h3 class="dashboard__create-title text-silk font-serif mb-6">Введите название семьи еще одного архива и нажмите "Создать"</h3>
               <div class="dashboard__create-form flex gap-4 max-w-md mx-auto">
                 <input
                   v-model="newFamilyName"
@@ -809,17 +795,6 @@ const planName = computed(() => {
                   Пока нет других участников.
                 </p>
              </div>
-
-             <div class="dashboard__access-footer mt-12 pt-8 border-t border-white/5">
-                <button @click="backToMemberList" class="flex items-center gap-3 text-gray-400 hover:text-gold transition-colors group">
-                   <span class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-gold/5 transition-all">
-                      <svg class="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                         <path d="M19 12H5M12 19l-7-7 7-7"/>
-                      </svg>
-                   </span>
-                   <span class="text-sm">Вернуться в архив</span>
-                </button>
-             </div>
           </div>
         </div>
       </main>
@@ -873,7 +848,7 @@ const planName = computed(() => {
 
             <!-- Create New CTA (Mobile) -->
             <div class="dashboard__mobile-create mt-10 pt-8 border-t border-white/5 text-center">
-              <h3 class="dashboard__mobile-create-title text-silk font-serif mb-6">Создать новый архив</h3>
+              <h3 class="dashboard__mobile-create-title text-silk font-serif mb-6">Введите название семьи еще одного архива и нажмите "Создать"</h3>
               <div class="dashboard__mobile-create-form flex flex-col gap-4">
                 <input
                   v-model="newFamilyName"
@@ -902,13 +877,13 @@ const planName = computed(() => {
        <div v-else class="dashboard__mobile-content h-full flex flex-col">
           <!-- Mobile Archive View based on route.name -->
           <!-- Header only shown when NOT in member editor -->
-          <div v-if="!isAtMemberEditor" class="dashboard__mobile-header p-4 bg-charcoal border-b border-white/10 flex items-center gap-3 shrink-0">
+          <div v-if="!isAtMemberEditor" class="dashboard__mobile-header p-4 bg-charcoal border-b border-white/10 flex items-center shrink-0">
              <button @click="backToMemberList" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all flex-shrink-0">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                    <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
              </button>
-             <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate">{{ store.familyName }}</span>
+             <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate ml-3">{{ store.familyName }}</span>
           </div>
 
           <!-- Mobile View Toggle -->
@@ -933,16 +908,15 @@ const planName = computed(() => {
                class="dashboard__mobile-editor"
              />
 
-             <!-- Fixed CTA for adding member (Mobile) -->
-             <div v-if="(route.name === 'ArchiveList' || route.name === 'ArchiveTree') && access.canEditTree.value" class="dashboard__mobile-fab absolute bottom-6 right-6 z-20">
-                <button 
-                  @click="addMember"
-                  class="flex items-center gap-2 px-6 py-4 rounded-full bg-gold text-charcoal shadow-2xl shadow-gold/40 active:scale-95 transition-all font-bold uppercase text-xs tracking-widest"
-                >
-                  <Plus class="w-5 h-5" :stroke-width="3" />
-                  <span>Добавить</span>
-                </button>
-             </div>
+             <!-- FAB for adding member (Mobile) -->
+             <button
+               v-if="(route.name === 'ArchiveList' || route.name === 'ArchiveTree') && access.canEditTree.value"
+               @click="addMember"
+               class="absolute bottom-6 right-[3.5rem] z-30 w-14 h-14 bg-gold text-charcoal rounded-full shadow-2xl shadow-gold/30 flex items-center justify-center active:scale-95 transition-transform"
+               title="Добавить члена семьи"
+             >
+                <Plus class="w-7 h-7" :stroke-width="3" />
+             </button>
           </div>
        </div>
     </div>
@@ -974,5 +948,17 @@ const planName = computed(() => {
 .toast-leave-to {
   opacity: 0;
   transform: translate(-50%, -20px);
+}
+
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
 }
 </style>

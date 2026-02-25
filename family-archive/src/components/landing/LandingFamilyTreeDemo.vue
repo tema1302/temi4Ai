@@ -1,13 +1,92 @@
 <script setup lang="ts">
+import { ref, reactive } from 'vue'
 import FamilyTree from '@/components/tree/FamilyTree.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import { RURIK_FAMILY_DEMO, RURIK_STATS } from '@/data/demoRurikTree'
 import { useRouter } from 'vue-router'
+import { Plus, Trash2, RefreshCw } from 'lucide-vue-next'
+import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 
 const router = useRouter()
 
+// Local reactive state (resets on page reload)
+const localMembers = ref<FamilyMember[]>(JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.members)))
+const localRelations = ref<FamilyRelation[]>(JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.relations)))
+
+// Generate unique ID
+const generateId = () => `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+// Add new member
+const addMember = () => {
+  const newMember: FamilyMember = {
+    id: generateId(),
+    name: 'Новый родственник',
+    birthDate: '',
+    deathDate: null,
+    biography: '',
+    photos: [],
+    videos: [],
+    quotes: [],
+    lifePath: [],
+    relationship: '',
+    gender: 'male',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  localMembers.value.push(newMember)
+}
+
+// Delete member
+const deleteMember = (memberId: string) => {
+  localMembers.value = localMembers.value.filter(m => m.id !== memberId)
+  localRelations.value = localRelations.value.filter(
+    r => r.fromMemberId !== memberId && r.toMemberId !== memberId
+  )
+}
+
+// Reset to demo data
+const resetDemo = () => {
+  localMembers.value = JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.members))
+  localRelations.value = JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.relations))
+}
+
+// Handle member selection (for demo, just log)
+const handleSelectMember = (memberId: string) => {
+  console.log('Selected member:', memberId)
+}
+
+// Handle add relation
+const handleAddRelation = (data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }) => {
+  const newMember: FamilyMember = {
+    id: generateId(),
+    name: data.gender === 'male' ? 'Новый родственник' : 'Новая родственница',
+    birthDate: '',
+    deathDate: null,
+    biography: '',
+    photos: [],
+    videos: [],
+    quotes: [],
+    lifePath: [],
+    relationship: '',
+    gender: data.gender || 'male',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  localMembers.value.push(newMember)
+
+  // Add relation
+  const newRelation: FamilyRelation = {
+    id: generateId(),
+    fromMemberId: data.relationType === 'child' ? data.memberId : newMember.id,
+    toMemberId: data.relationType === 'child' ? newMember.id : data.memberId,
+    relationType: data.relationType === 'sibling' ? 'sibling' : data.relationType === 'child' ? 'parent' : data.relationType as RelationType,
+    createdAt: new Date().toISOString()
+  }
+  localRelations.value.push(newRelation)
+}
+
 const handleCreateOwn = () => {
-  router.push('/auth')
+  router.push('/auth?mode=signup')
 }
 </script>
 
@@ -23,13 +102,17 @@ const handleCreateOwn = () => {
       <!-- Header -->
       <div class="text-center mb-12">
         <span class="text-gold text-sm tracking-widest uppercase font-bold mb-4 block">
-          Пример
+          Попробуйте сами
         </span>
         <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">
-          Родословная Рюриковичей
+          Создайте такое же древо своей семьи
         </h2>
-        <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-          От Рюрика (862 г.) до Николая II (1918 г.) — более 1000 лет истории в одном древе
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
+          Нажимайте на + чтобы добавить родственников, удаляйте — это демо!
+        </p>
+        <p class="text-sm text-gold/70 max-w-xl mx-auto mb-8">
+          Всё происходит в вашей сессии. После перезагрузки данные сбросятся.
+          <span class="text-gold">В личном кабинете изменения сохраняются навсегда!</span>
         </p>
 
         <!-- Stats -->
@@ -43,24 +126,41 @@ const handleCreateOwn = () => {
             <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">лет истории</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ RURIK_STATS.rulers }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">правителей</div>
+            <div class="text-3xl md:text-4xl font-serif text-gold">{{ localMembers.length }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">человек в древе</div>
           </div>
         </div>
+      </div>
+
+      <!-- Demo Controls -->
+      <div class="flex justify-center gap-4 mb-6">
+        <button
+          @click="addMember"
+          class="flex items-center gap-2 px-4 py-2 bg-gold/10 border border-gold/30 rounded-full text-gold text-sm hover:bg-gold/20 transition-colors"
+        >
+          <Plus class="w-4 h-4" />
+          Добавить
+        </button>
+        <button
+          @click="resetDemo"
+          class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-gray-400 text-sm hover:text-gold hover:border-gold/30 transition-colors"
+        >
+          <RefreshCw class="w-4 h-4" />
+          Сбросить
+        </button>
       </div>
 
       <!-- Tree Container -->
       <div class="h-[500px] md:h-[600px] rounded-3xl border border-white/10 overflow-hidden bg-charcoal/50 relative">
         <FamilyTree
-          :members="RURIK_FAMILY_DEMO.members"
-          :relations="RURIK_FAMILY_DEMO.relations"
+          :members="localMembers"
+          :relations="localRelations"
           :family-name="RURIK_FAMILY_DEMO.name"
           :root-member-id="RURIK_FAMILY_DEMO.rootMemberId"
-          @select-member="() => {}"
+          @select-member="handleSelectMember"
+          @add-relation="handleAddRelation"
+          @add-member="addMember"
         />
-
-        <!-- Overlay gradient -->
-        <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-obsidian to-transparent pointer-events-none"></div>
       </div>
 
       <!-- Key Events Timeline -->
@@ -80,10 +180,10 @@ const handleCreateOwn = () => {
       <!-- CTA -->
       <div class="mt-12 text-center">
         <p class="text-gray-400 mb-6">
-          Создайте своё семейное древо и сохраните историю своей семьи
+          Понравилось? Создайте свой семейный архив и сохраняйте историю навсегда
         </p>
         <BaseButton size="lg" @click="handleCreateOwn">
-          Создать своё древо
+          Создать семейный архив
         </BaseButton>
       </div>
     </div>

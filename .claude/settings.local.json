@@ -5,7 +5,8 @@
       "Bash(npx vue-tsc:*)",
       "Bash(npm run build:*)",
       "WebSearch",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(true:*)"
     ]
   }
 }
