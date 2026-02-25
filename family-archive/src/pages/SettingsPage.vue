@@ -124,7 +124,7 @@ const vFocus = {
 </script>
 
 <template>
-  <MainLayout :fullHeight="true">
+  <MainLayout>
     <div class="max-w-2xl mx-auto p-4 md:p-8">
       <BackButton class="mb-6" />
 
