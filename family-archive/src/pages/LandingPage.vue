@@ -3,8 +3,8 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import LandingFamilyTreeDemo from '@/components/landing/LandingFamilyTreeDemo.vue'
-import { useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { onMounted, nextTick } from 'vue'
 import oldPhotos from '@/assets/oldPhotos.webp'
 import heroImage from '@/assets/hero-1.webp'
 import { useAnalytics } from '@/composables/useAnalytics'
@@ -25,6 +25,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const { trackCtaClick, trackPageScroll } = useAnalytics()
 
 // Предзагрузка критичных изображений для LCP
@@ -57,6 +58,18 @@ onMounted(() => {
   document.querySelectorAll('section[id]').forEach(section => {
     observer.observe(section)
   })
+
+  // Handle hash scroll on page load (e.g., from /editor -> /#pricing)
+  if (route.hash) {
+    nextTick(() => {
+      setTimeout(() => {
+        const element = document.getElementById(route.hash.slice(1))
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
+    })
+  }
 })
 
 const handleCtaClick = (location: string, label: string, route: string) => {
@@ -438,14 +451,14 @@ const pricingPlans = [
             Честные тарифы для вечной памяти.
           </p>
         </div>
-        <div class="grid md:grid-cols-3 gap-8 items-start">
-          <div 
-            v-for="(plan, index) in pricingPlans" 
+        <div class="grid md:grid-cols-3 gap-8 items-stretch">
+          <div
+            v-for="(plan, index) in pricingPlans"
             :key="index"
-            class="relative flex flex-col p-8 rounded-3xl border transition-all duration-300 hover:-translate-y-2 group"
+            class="relative flex flex-col h-full p-8 rounded-3xl border transition-all duration-300 hover:-translate-y-2 group"
             :class="[
-              plan.primary 
-                ? 'bg-white/5 border-gold/40 shadow-[0_0_40px_rgba(212,175,55,0.1)] scale-105 z-10' 
+              plan.primary
+                ? 'bg-white/5 border-gold/40 shadow-[0_0_40px_rgba(212,175,55,0.1)] scale-105 z-10'
                 : 'bg-transparent border-white/10 hover:bg-white/5'
             ]"
           >
@@ -459,8 +472,8 @@ const pricingPlans = [
             </div>
             <div class="w-full h-px bg-white/10 mb-6"></div>
             <ul class="space-y-4 mb-8 flex-1">
-              <li 
-                v-for="(feature, fIndex) in plan.features" 
+              <li
+                v-for="(feature, fIndex) in plan.features"
                 :key="fIndex"
                 class="flex items-start gap-3 text-sm"
                 :class="feature.included ? 'text-gray-300' : 'text-gray-600'"
@@ -470,8 +483,8 @@ const pricingPlans = [
                 <span>{{ feature.text }}</span>
               </li>
             </ul>
-            <BaseButton 
-              :variant="plan.primary ? 'primary' : 'secondary'" 
+            <BaseButton
+              :variant="plan.primary ? 'primary' : 'secondary'"
               :full="true"
               :disabled="plan.name !== 'Базовый'"
               :class="plan.name !== 'Базовый' ? 'opacity-50 cursor-not-allowed' : ''"

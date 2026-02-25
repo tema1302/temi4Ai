@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
+import BackButton from '@/shared/ui/BackButton.vue'
 import PlanSelector from './PlanSelector.vue'
 import PaymentForm from './PaymentForm.vue'
 import SpbPayment from './SpbPayment.vue'
 import { useBillingStore } from '../store/billingStore'
-import { CreditCard, QrCode, CheckCircle, ArrowLeft } from 'lucide-vue-next'
+import { CreditCard, QrCode, CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const store = useBillingStore()
@@ -30,9 +31,7 @@ const goToDashboard = () => {
       
       <!-- Back Link -->
       <div class="w-full max-w-4xl mb-8">
-        <button @click="goBack" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
-          <ArrowLeft class="w-4 h-4" /> Назад
-        </button>
+        <BackButton @click="goBack" />
       </div>
 
       <!-- Success State -->

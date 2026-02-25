@@ -36,9 +36,16 @@ const acceptPD = ref(false)
 const acceptNewsletter = ref(false)
 
 onMounted(() => {
+  // Handle password recovery
   if (route.query.type === 'recovery') {
     isResetPasswordMode.value = true
     isLoginMode.value = false
+  }
+  // Handle mode query param for login/signup
+  if (route.query.mode === 'signup') {
+    isLoginMode.value = false
+  } else if (route.query.mode === 'login') {
+    isLoginMode.value = true
   }
 })
 

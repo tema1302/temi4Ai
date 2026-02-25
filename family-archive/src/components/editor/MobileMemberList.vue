@@ -3,9 +3,7 @@ import { ref, computed } from 'vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Trash2, Eye } from 'lucide-vue-next'
-import BaseInput from '@/shared/ui/BaseInput.vue'
-import BaseButton from '@/shared/ui/BaseButton.vue'
+import { Trash2, Eye, Search } from 'lucide-vue-next'
 
 const store = useMemoryStore()
 const access = useAuthAccess()
@@ -59,15 +57,14 @@ const onSelect = (id: string) => {
   <div class="h-full flex flex-col bg-charcoal">
     <!-- Header / Search -->
     <div class="p-4 bg-obsidian/50 border-b border-white/10 sticky top-0 z-10 backdrop-blur-sm">
-      <div class="flex gap-2 mb-3">
-        <BaseInput 
-          v-model="searchQuery" 
-          placeholder="Поиск по имени..." 
-          class="flex-1"
+      <div class="relative mb-3">
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Поиск по имени..."
+          class="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
         />
-        <BaseButton @click="emit('add')" size="sm" class="shrink-0">
-          +
-        </BaseButton>
       </div>
       <div class="text-xs text-gray-400 flex justify-between">
         <span>Всего: {{ filteredMembers.length }}</span>
@@ -140,19 +137,24 @@ const onSelect = (id: string) => {
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="p-4 border-t border-white/10 flex justify-center gap-4 bg-obsidian/30">
-      <button 
-        @click="prevPage" 
+      <button
+        @click="prevPage"
         :disabled="currentPage === 1"
-        class="px-4 py-2 rounded bg-white/5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
+        class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 hover:bg-gold/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        ← Назад
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
       </button>
-      <button 
-        @click="nextPage" 
+      <span class="flex items-center text-sm text-gray-400">{{ currentPage }} / {{ totalPages }}</span>
+      <button
+        @click="nextPage"
         :disabled="currentPage === totalPages"
-        class="px-4 py-2 rounded bg-white/5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
+        class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 hover:bg-gold/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        Вперед →
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
       </button>
     </div>
   </div>

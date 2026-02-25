@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 import CookieConsent from '@/shared/ui/CookieConsent.vue'
 import Logo from '@/shared/ui/Logo.vue'
 import { useRouter, useRoute } from 'vue-router'
-import { 
-  Menu, 
-  X, 
-  User, 
-  ChevronDown, 
-  Settings, 
-  LogOut, 
-  Library, 
+import {
+  Menu,
+  X,
+  User,
+  ChevronDown,
+  Settings,
+  LogOut,
   CreditCard,
-  PenLine
+  PenLine,
+  Info,
+  Sparkles,
+  DollarSign
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
@@ -37,25 +39,39 @@ const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 
+// Close menus on outside click
+const closeAllMenus = () => {
+  isUserMenuOpen.value = false
+}
+
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
 }
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  document.addEventListener('click', closeAllMenus)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('click', closeAllMenus)
 })
 
 const scrollToSection = (id: string) => {
   isMobileMenuOpen.value = false
+  isUserMenuOpen.value = false
+
+  // If not on landing page, navigate there first
+  if (route.path !== '/') {
+    router.push('/#' + id)
+    return
+  }
+
+  // On landing page - scroll to section
   const element = document.getElementById(id)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' })
-  } else if (window.location.pathname !== '/') {
-    router.push('/#' + id)
   }
 }
 
@@ -63,7 +79,8 @@ const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 
-const toggleUserMenu = () => {
+const toggleUserMenu = (e: Event) => {
+  e.stopPropagation()
   isUserMenuOpen.value = !isUserMenuOpen.value
 }
 
@@ -81,16 +98,23 @@ const navigateTo = (path: string) => {
   isUserMenuOpen.value = false
   isMobileMenuOpen.value = false
 }
+
+// Nav items for mobile menu
+const navItems = [
+  { id: 'about', label: 'О сервисе', icon: Info },
+  { id: 'features', label: 'Возможности', icon: Sparkles },
+  { id: 'pricing', label: 'Тарифы', icon: DollarSign }
+]
 </script>
 
 <template>
-  <div 
-    class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col" 
-    :class="{ 'h-screen overflow-hidden': props.fullHeight }"
+  <div
+    class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col"
+    :class="{ 'h-screen overflow-hidden': props.fullHeight || isMobileMenuOpen }"
   >
-    
+
     <!-- Navigation Header -->
-    <header 
+    <header
       class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent"
       :class="[
         (isScrolled || props.fullHeight) ? 'bg-obsidian/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6',
@@ -103,150 +127,172 @@ const navigateTo = (path: string) => {
           <Logo />
         </a>
 
-        <!-- Desktop Nav -->
-        <nav v-if="!props.fullHeight" class="hidden md:flex items-center gap-8 text-sm font-medium">
-          <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
-          <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
-          <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
-        </nav>
+        <!-- Desktop Navigation -->
+        <div v-if="!props.fullHeight" class="hidden md:flex items-center gap-3">
 
-        <!-- CTA / User Menu (Desktop) -->
-        <div class="hidden md:flex items-center gap-4 relative">
+          <!-- Guest User -->
           <template v-if="!authStore.isAuthenticated">
-            <button 
-              class="text-sm text-silk hover:text-gold transition-colors font-medium border border-white/10 px-4 py-2 rounded-full"
-              @click="router.push('/auth')"
-            >
-              Войти
-            </button>
-            <BaseButton size="sm" @click="router.push('/auth')">
+            <!-- Nav Links -->
+            <nav class="flex items-center gap-6 text-sm font-medium mr-4">
+              <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+              <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
+              <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+            </nav>
+
+            <!-- CTA Buttons -->
+            <BaseButton size="sm" @click="router.push('/auth?mode=signup')">
               Создать архив
             </BaseButton>
+            <BaseButton variant="outline" size="sm" @click="router.push('/auth?mode=login')">
+              Войти
+            </BaseButton>
           </template>
-          <template v-else>
-            <!-- User Menu Trigger -->
-            <button 
-              class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
-              @click="toggleUserMenu"
-            >
-              <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
-                <User class="w-4 h-4" />
-              </div>
-              <span class="text-sm font-medium text-silk">{{ authStore.userName }}</span>
-              <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
-            </button>
 
-            <!-- User Dropdown Menu (Desktop) -->
-            <transition name="fade">
-              <div v-if="isUserMenuOpen" class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden">
-                <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
-                  <PenLine class="w-4 h-4" />
-                  Мои архивы
-                </button>
-                <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
-                  <Settings class="w-4 h-4" />
-                  Настройки
-                </button>
-                <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
-                  <CreditCard class="w-4 h-4" />
-                  Тарифы
-                </button>
-                <div class="h-px bg-white/5 my-1"></div>
-                <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
-                  <LogOut class="w-4 h-4" />
-                  Выйти из аккаунта
-                </button>
-              </div>
-            </transition>
+          <!-- Authenticated User -->
+          <template v-else>
+            <!-- Nav Links -->
+            <nav class="flex items-center gap-6 text-sm font-medium mr-4">
+              <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+              <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
+              <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+            </nav>
+
+            <!-- User Menu -->
+            <div class="relative">
+              <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
+                @click="toggleUserMenu"
+              >
+                <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+                  <User class="w-4 h-4" />
+                </div>
+                <span class="text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
+                <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
+              </button>
+
+              <!-- User Dropdown Menu -->
+              <transition name="dropdown">
+                <div
+                  v-if="isUserMenuOpen"
+                  class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
+                >
+                  <div class="px-4 py-3 border-b border-white/5">
+                    <p class="text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
+                    <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                  </div>
+                  <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <PenLine class="w-4 h-4" />
+                    Мои архивы
+                  </button>
+                  <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <Settings class="w-4 h-4" />
+                    Настройки
+                  </button>
+                  <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <CreditCard class="w-4 h-4" />
+                    Тарифы
+                  </button>
+                  <div class="h-px bg-white/5 my-1"></div>
+                  <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+                    <LogOut class="w-4 h-4" />
+                    Выйти
+                  </button>
+                </div>
+              </transition>
+            </div>
           </template>
         </div>
 
         <!-- Mobile Header Actions -->
         <div class="flex items-center gap-2 md:hidden z-50 relative">
-          <template v-if="authStore.isAuthenticated">
-            <!-- Mobile Auth User: show name + icon + arrow -->
-            <button 
-              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 active:scale-95 transition-all"
-              @click="toggleUserMenu"
-            >
-              <div class="w-6 h-6 rounded-full bg-gold/10 flex items-center justify-center text-gold">
-                <User class="w-3.5 h-3.5" />
-              </div>
-              <span class="text-xs font-medium text-silk max-w-[80px] truncate">{{ authStore.userName }}</span>
-              <ChevronDown class="w-3.5 h-3.5 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
-            </button>
-          </template>
-          <template v-else>
-            <!-- Mobile Guest: show burger -->
-            <button 
-              class="text-silk p-2"
-              @click="toggleMobileMenu"
-            >
-              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
-              <X v-else class="w-6 h-6" />
-            </button>
-          </template>
+          <button
+            class="text-silk p-2"
+            @click="toggleMobileMenu"
+          >
+            <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
+            <X v-else class="w-6 h-6" />
+          </button>
         </div>
       </div>
     </header>
 
-    <!-- Mobile Dropdown Menu (Overlay-like for authenticated) -->
+    <!-- Mobile Fullscreen Menu (Bottom-aligned content) -->
     <Teleport to="body">
-      <transition name="fade">
-        <div v-if="isUserMenuOpen" class="fixed inset-0 z-[100] md:hidden">
-          <div class="absolute inset-0 bg-obsidian/60 backdrop-blur-sm" @click="isUserMenuOpen = false"></div>
-          <div class="absolute top-[70px] right-4 left-4 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 overflow-hidden animate-slide-down">
-            <button @click="navigateTo('/editor')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
-              <PenLine class="w-5 h-5 text-gold" />
-              <span class="font-serif">Мои архивы</span>
-            </button>
-            <button @click="navigateTo('/settings')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
-              <Settings class="w-5 h-5 text-gold" />
-              <span class="font-serif">Настройки</span>
-            </button>
-            <button @click="navigateTo('/'); scrollToSection('pricing')" class="w-full px-6 py-4 flex items-center gap-4 text-silk hover:bg-white/5 active:bg-white/10 transition-colors">
-              <CreditCard class="w-5 h-5 text-gold" />
-              <span class="font-serif">Тарифы</span>
-            </button>
-            <div class="h-px bg-white/5 mx-6 my-2"></div>
-            <button @click="handleLogout" class="w-full px-6 py-4 flex items-center gap-4 text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-colors">
-              <LogOut class="w-5 h-5" />
-              <span class="font-serif font-bold">Выйти из аккаунта</span>
+      <transition name="slide-up">
+        <div
+          v-if="isMobileMenuOpen"
+          class="fixed inset-0 bg-obsidian z-[100] flex flex-col md:hidden"
+        >
+          <!-- Top bar with close -->
+          <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <Logo />
+            <button
+              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+              @click="toggleMobileMenu"
+            >
+              <X class="w-5 h-5" />
             </button>
           </div>
-        </div>
-      </transition>
-    </Teleport>
 
-    <!-- Guest Mobile Menu Overlay (Burger) -->
-    <Teleport to="body">
-      <transition name="fade">
-        <div 
-          v-if="isMobileMenuOpen && !authStore.isAuthenticated"
-          class="fixed inset-0 bg-obsidian z-[100] flex flex-col items-center justify-center space-y-8 md:hidden overflow-y-auto"
-        >
-          <!-- Close Button -->
-          <button 
-            class="absolute top-6 right-6 text-silk p-2 hover:text-gold transition-colors"
-            @click="toggleMobileMenu"
-          >
-            <X class="w-8 h-8" />
-          </button>
+          <!-- Spacer -->
+          <div class="flex-1"></div>
 
-          <button @click="scrollToSection('about')" class="text-3xl font-serif text-silk hover:text-gold transition-colors">О сервисе</button>
-          <button @click="scrollToSection('features')" class="text-3xl font-serif text-silk hover:text-gold transition-colors">Возможности</button>
-          <button @click="scrollToSection('pricing')" class="text-3xl font-serif text-silk hover:text-gold transition-colors">Тарифы</button>
-          
-          <div class="flex flex-col gap-6 mt-12 w-full max-w-xs px-4">
-            <BaseButton :full="true" size="lg" @click="router.push('/auth'); isMobileMenuOpen = false">
-              Создать архив
-            </BaseButton>
-            <button 
-              class="text-silk hover:text-gold transition-colors text-xl font-medium"
-              @click="router.push('/auth'); isMobileMenuOpen = false"
-            >
-              Войти
-            </button>
+          <!-- Bottom Content -->
+          <div class="p-6 pb-12 space-y-8">
+            <!-- Nav Links -->
+            <div class="flex flex-col gap-4">
+              <button
+                v-for="item in navItems"
+                :key="item.id"
+                @click="scrollToSection(item.id)"
+                class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 hover:border-gold/20 transition-all"
+              >
+                <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                  <component :is="item.icon" class="w-5 h-5 text-gold" />
+                </div>
+                <span class="text-lg font-serif text-silk">{{ item.label }}</span>
+              </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="h-px bg-white/10"></div>
+
+            <!-- Auth Buttons or User Menu -->
+            <template v-if="!authStore.isAuthenticated">
+              <div class="flex flex-col gap-3">
+                <BaseButton :full="true" size="lg" @click="router.push('/auth?mode=signup'); isMobileMenuOpen = false">
+                  Создать архив
+                </BaseButton>
+                <BaseButton variant="outline" :full="true" size="lg" @click="router.push('/auth?mode=login'); isMobileMenuOpen = false">
+                  Войти
+                </BaseButton>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold">
+                  <User class="w-6 h-6" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-silk font-medium truncate">{{ authStore.userName }}</p>
+                  <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <button @click="navigateTo('/editor')" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                  <PenLine class="w-5 h-5 text-gold" />
+                  <span class="text-xs text-gray-300">Архивы</span>
+                </button>
+                <button @click="navigateTo('/settings')" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                  <Settings class="w-5 h-5 text-gold" />
+                  <span class="text-xs text-gray-300">Настройки</span>
+                </button>
+              </div>
+              <button @click="handleLogout" class="w-full py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-medium flex items-center justify-center gap-2">
+                <LogOut class="w-5 h-5" />
+                Выйти из аккаунта
+              </button>
+            </template>
           </div>
         </div>
       </transition>
@@ -257,7 +303,7 @@ const navigateTo = (path: string) => {
     <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-50"></div>
 
     <!-- Content Slot -->
-    <main 
+    <main
       class="flex-1"
       :class="[
         props.fullHeight ? 'pt-[64px] overflow-hidden' : 'pt-20 md:pt-20'
@@ -285,15 +331,31 @@ const navigateTo = (path: string) => {
   50% { opacity: 0.6; }
 }
 
-@keyframes slide-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
 }
 
-.animate-slide-down {
-  animation: slide-down 0.3s ease-out forwards;
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
 }
 
+/* Slide up animation for mobile menu */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* Fade for backdrop */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;

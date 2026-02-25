@@ -505,84 +505,21 @@ const planName = computed(() => {
 
       <!-- Main Content (Desktop) -->
       <main class="dashboard__main flex-1 overflow-y-auto p-8 scrollbar-thin flex flex-col">
-        
-        <!-- Top Header (Contextual) -->
-        <div class="dashboard__header flex items-center justify-between mb-8 pb-6 border-b border-white/10 shrink-0">
-          <div class="flex items-center gap-6">
-            <BackButton 
-              v-if="!currentArchiveId"
-              to="/" 
-              label="На главную" 
-              class="dashboard__header-back px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/5" 
-            />
-            <BaseButton 
-              v-else
-              variant="ghost" 
-              size="sm" 
-              @click="backToMemberList" 
-              class="dashboard__header-btn"
-            >
-              ← Назад
-            </BaseButton>
-
-            <div v-if="currentArchiveId" class="dashboard__header-info">
-              <div v-if="isEditingSettings" class="dashboard__settings flex flex-col gap-3 max-w-xl">
-                <div class="dashboard__settings-row flex items-center gap-3">
-                  <span class="dashboard__settings-label text-gray-400 text-xl font-serif">Название:</span>
-                  <input
-                    v-model="editingFamilyName"
-                    type="text"
-                    class="dashboard__settings-input text-xl font-serif text-silk bg-transparent border-b border-gold focus:outline-none px-1 flex-1"
-                    placeholder="Название семьи"
-                  />
-                </div>
-                <div class="dashboard__settings-row flex items-center gap-3">
-                  <span class="dashboard__settings-label text-gray-400 text-sm">URL ID:</span>
-                  <input
-                    v-model="editingSlug"
-                    type="text"
-                    class="dashboard__settings-input dashboard__settings-input--slug text-sm text-gold bg-transparent border-b border-white/20 focus:border-gold outline-none px-1 flex-1"
-                    placeholder="URL-идентификатор"
-                  />
-                </div>
-                <div class="dashboard__settings-actions flex gap-2 mt-1">
-                  <BaseButton size="sm" @click="saveSettings" :disabled="isSaving">Сохранить</BaseButton>
-                  <BaseButton variant="ghost" size="sm" @click="cancelEditSettings">Отмена</BaseButton>
-                </div>
-              </div>
-              <div v-else class="dashboard__header-title-group flex flex-col">
-                  <div class="flex items-center gap-3">
-                    <span class="dashboard__header-context text-gray-400 text-xl font-serif">Архив:</span>
-                    <h1
-                      @click="startEditSettings"
-                      class="dashboard__header-title text-xl font-serif text-silk transition-colors group cursor-pointer hover:text-gold"
-                    >
-                      {{ store.familyName || 'Без названия' }}
-                      <span v-if="access.canEditTree.value" class="dashboard__header-edit-icon text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">✏️</span>
-                    </h1>
-                  </div>
-                  <div v-if="!isEditingSettings" class="dashboard__header-meta text-xs mt-1">
-                    <p class="dashboard__header-tariff text-gray-500 italic">Тариф: <span :class="subStore.isPremium ? 'text-gold' : 'text-gray-400'">{{ planName }}</span></p>
-                  </div>
-              </div>
-            </div>
-            <div v-else class="dashboard__header-info">
-              <h1 class="dashboard__header-title text-2xl font-serif text-silk">Мои архивы</h1>
-            </div>
-          </div>
-
-          <div class="dashboard__header-right flex items-center gap-4">
-             <template v-if="currentArchiveId">
-               <BaseButton variant="ghost" size="sm" @click="router.push({ name: 'AccessManagement', params: { archiveId: currentArchiveId } })" class="dashboard__header-btn">
-                 👥 Доступ
-               </BaseButton>
-             </template>
-          </div>
-        </div>
 
         <!-- Dashboard (Archive List) View -->
         <div v-if="isAtDashboard" class="dashboard__view dashboard__view--archives max-w-4xl mx-auto w-full">
-          
+
+          <!-- Top Header (Contextual) -->
+          <div class="dashboard__header flex items-center justify-between mb-8 pb-6 border-b border-white/10 shrink-0">
+            <div class="flex items-center gap-6">
+              <BackButton to="/" />
+
+              <div class="dashboard__header-info">
+                <h1 class="dashboard__header-title text-2xl font-serif text-silk">Мои архивы</h1>
+              </div>
+            </div>
+          </div>
+
           <!-- Loading State -->
           <div v-if="store.isFetching" class="dashboard__loading space-y-4">
              <Skeleton className="h-7 w-48 mb-4" />
@@ -666,8 +603,70 @@ const planName = computed(() => {
         </div>
 
         <!-- Archive Content View (Route-Driven) -->
-        <div v-else-if="currentArchiveId" class="dashboard__content-view flex-1 flex flex-col h-full">
-          
+        <div v-else-if="currentArchiveId" class="dashboard__content-view flex-1 flex flex-col h-full max-w-6xl mx-auto w-full">
+
+          <!-- Top Header -->
+          <div class="dashboard__header flex items-center justify-between mb-8 pb-6 border-b border-white/10 shrink-0">
+            <div class="flex items-center gap-6">
+              <button
+                @click="backToMemberList"
+                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 hover:bg-gold/5 transition-all"
+                title="Назад"
+              >
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+
+              <div class="dashboard__header-info">
+                <div v-if="isEditingSettings" class="dashboard__settings flex flex-col gap-3 max-w-xl">
+                  <div class="dashboard__settings-row flex items-center gap-3">
+                    <span class="dashboard__settings-label text-gray-400 text-xl font-serif">Название:</span>
+                    <input
+                      v-model="editingFamilyName"
+                      type="text"
+                      class="dashboard__settings-input text-xl font-serif text-silk bg-transparent border-b border-gold focus:outline-none px-1 flex-1"
+                      placeholder="Название семьи"
+                    />
+                  </div>
+                  <div class="dashboard__settings-row flex items-center gap-3">
+                    <span class="dashboard__settings-label text-gray-400 text-sm">URL ID:</span>
+                    <input
+                      v-model="editingSlug"
+                      type="text"
+                      class="dashboard__settings-input dashboard__settings-input--slug text-sm text-gold bg-transparent border-b border-white/20 focus:border-gold outline-none px-1 flex-1"
+                      placeholder="URL-идентификатор"
+                    />
+                  </div>
+                  <div class="dashboard__settings-actions flex gap-2 mt-1">
+                    <BaseButton size="sm" @click="saveSettings" :disabled="isSaving">Сохранить</BaseButton>
+                    <BaseButton variant="ghost" size="sm" @click="cancelEditSettings">Отмена</BaseButton>
+                  </div>
+                </div>
+                <div v-else class="dashboard__header-title-group flex flex-col">
+                  <div class="flex items-center gap-3">
+                    <h1
+                      @click="startEditSettings"
+                      class="dashboard__header-title text-xl font-serif text-silk transition-colors group cursor-pointer hover:text-gold"
+                    >
+                      {{ store.familyName || 'Без названия' }}
+                      <span v-if="access.canEditTree.value" class="dashboard__header-edit-icon text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">✏️</span>
+                    </h1>
+                  </div>
+                  <div v-if="!isEditingSettings" class="dashboard__header-meta text-xs mt-1">
+                    <p class="dashboard__header-tariff text-gray-500 italic">Тариф: <span :class="subStore.isPremium ? 'text-gold' : 'text-gray-400'">{{ planName }}</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dashboard__header-right flex items-center gap-4">
+              <BaseButton variant="ghost" size="sm" @click="router.push({ name: 'AccessManagement', params: { archiveId: currentArchiveId } })" class="dashboard__header-btn">
+                👥 Доступ
+              </BaseButton>
+            </div>
+          </div>
+
           <!-- View Toggle Area -->
           <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__toggle-area flex items-center justify-center gap-6 mb-12 shrink-0">
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
@@ -812,8 +811,13 @@ const planName = computed(() => {
              </div>
 
              <div class="dashboard__access-footer mt-12 pt-8 border-t border-white/5">
-                <button @click="backToMemberList" class="dashboard__access-back text-gray-400 hover:text-gold transition-colors text-sm flex items-center gap-2">
-                   ← Вернуться в архив
+                <button @click="backToMemberList" class="flex items-center gap-3 text-gray-400 hover:text-gold transition-colors group">
+                   <span class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-gold/5 transition-all">
+                      <svg class="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      </svg>
+                   </span>
+                   <span class="text-sm">Вернуться в архив</span>
                 </button>
              </div>
           </div>
@@ -825,8 +829,12 @@ const planName = computed(() => {
     <div class="dashboard dashboard--mobile md:hidden h-[calc(100vh-64px)] overflow-hidden flex flex-col">
        <!-- Similar Route-Driven logic for Mobile -->
        <div v-if="isAtDashboard" class="dashboard__mobile-archives p-4 overflow-y-auto">
-          <BackButton to="/" label="На главную" class="dashboard__mobile-back mb-4" />
-          
+          <!-- Header with Back Button and Title on same row -->
+          <div class="flex items-center gap-4 mb-6">
+            <BackButton to="/" />
+            <h1 class="dashboard__mobile-title text-xl font-serif text-silk">Мои архивы</h1>
+          </div>
+
           <!-- Loading State (Mobile) -->
           <div v-if="store.isFetching" class="dashboard__mobile-loading space-y-4">
              <Skeleton className="h-6 w-32 mb-6" />
@@ -843,7 +851,6 @@ const planName = computed(() => {
 
           <!-- Existing Archives (Mobile) -->
           <div v-else-if="store.userFamilies.length > 0">
-            <h1 class="dashboard__mobile-title text-xl font-serif text-silk mb-6">Мои архивы</h1>
             <div 
               v-for="family in store.userFamilies" 
               :key="family.id" 
@@ -894,14 +901,14 @@ const planName = computed(() => {
        </div>
        <div v-else class="dashboard__mobile-content h-full flex flex-col">
           <!-- Mobile Archive View based on route.name -->
-          <div class="dashboard__mobile-header p-4 bg-charcoal border-b border-white/10 flex items-center justify-between shrink-0">
-             <div class="flex items-center gap-3 min-w-0">
-                <button @click="backToMemberList" class="dashboard__mobile-back-btn text-gray-400 text-xs flex-shrink-0">← Назад</button>
-                <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate">{{ store.familyName }}</span>
-             </div>
-             <div class="flex items-center gap-2 flex-shrink-0">
-                <BaseButton v-if="access.canEditTree.value" size="sm" @click="saveChanges" :disabled="isSaving" class="dashboard__mobile-save-btn">{{ isSaving ? '...' : 'Сохр.' }}</BaseButton>
-             </div>
+          <!-- Header only shown when NOT in member editor -->
+          <div v-if="!isAtMemberEditor" class="dashboard__mobile-header p-4 bg-charcoal border-b border-white/10 flex items-center gap-3 shrink-0">
+             <button @click="backToMemberList" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all flex-shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+             </button>
+             <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate">{{ store.familyName }}</span>
           </div>
 
           <!-- Mobile View Toggle -->
@@ -915,11 +922,12 @@ const planName = computed(() => {
              <div v-else-if="route.name === 'ArchiveTree'" class="dashboard__mobile-tree h-full relative">
                 <FamilyTree :members="store.members" :relations="store.relations" :family-name="store.familyName" @select-member="handleTreeMemberSelect" />
              </div>
-             <MobileMemberEditor 
-               v-else-if="isAtMemberEditor" 
-               :member-id="route.params.memberId as string" 
-               @back="backToMemberList" 
-               @save="saveChanges" 
+             <MobileMemberEditor
+               v-else-if="isAtMemberEditor"
+               :member-id="route.params.memberId as string"
+               :family-name="store.familyName"
+               @back="backToMemberList"
+               @save="saveChanges"
                @delete="deleteActiveMember"
                @assign-on-tree="handleAssignOnTree"
                class="dashboard__mobile-editor"

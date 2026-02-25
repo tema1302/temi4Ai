@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface Props {
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
   size?: 'sm' | 'md' | 'lg'
   full?: boolean
   center?: boolean
@@ -29,6 +29,7 @@ withDefaults(defineProps<Props>(), {
       // Variants
       variant === 'primary' ? 'bg-gradient-to-r from-gold to-yellow-600 text-obsidian shadow-lg shadow-gold/20 hover:shadow-gold/40' : '',
       variant === 'secondary' ? 'bg-white/10 text-silk border border-white/10 hover:bg-white/20' : '',
+      variant === 'outline' ? 'bg-transparent text-gold border border-gold hover:bg-gold/10' : '',
       variant === 'ghost' ? 'text-silk/70 hover:text-gold hover:bg-white/5' : '',
 
       // Layout

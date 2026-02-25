@@ -11,6 +11,7 @@ import { Eye, Edit2, Trash2, Plus, ArrowLeft, X, RefreshCw, Link } from 'lucide-
 
 const props = defineProps<{
   memberId: string
+  familyName?: string
 }>()
 
 const emit = defineEmits<{
@@ -204,11 +205,18 @@ const handleDelete = async () => {
     
     <!-- Sticky Header -->
     <div class="sticky top-0 z-30 bg-charcoal/95 backdrop-blur border-b border-white/10 p-4 flex justify-between items-center shadow-lg shrink-0">
-      <div class="flex items-center gap-3">
-        <div>
-          <h2 class="text-silk font-serif leading-none">{{ currentMember.name || 'Новый профиль' }}</h2>
-          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
-            {{ viewMode === 'edit' ? 'Редактирование' : 'Предпросмотр' }}
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Pinterest-style back button -->
+        <button
+          @click="emit('back')"
+          class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all flex-shrink-0"
+        >
+          <ArrowLeft class="w-5 h-5" />
+        </button>
+        <div class="min-w-0">
+          <h2 class="text-silk font-serif leading-none truncate">{{ currentMember.name || 'Новый профиль' }}</h2>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1 truncate">
+            {{ props.familyName || 'Семейный архив' }}
           </p>
         </div>
       </div>
