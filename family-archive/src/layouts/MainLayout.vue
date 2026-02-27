@@ -361,9 +361,9 @@ const navItems = [
       </transition>
     </Teleport>
 
-    <!-- Global Ambient Lights -->
-    <div class="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-50 animate-pulse-slow"></div>
-    <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-50"></div>
+    <!-- Global Ambient Lights - optimized: reduced blur radius -->
+    <div class="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/15 rounded-full blur-xl pointer-events-none mix-blend-screen opacity-60"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/8 rounded-full blur-xl pointer-events-none mix-blend-screen opacity-60"></div>
 
     <!-- Content Slot -->
     <main

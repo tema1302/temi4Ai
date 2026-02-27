@@ -55,7 +55,7 @@ onMounted(() => {
     <div class="relative z-10 container mx-auto px-4 py-32 text-center">
       
       <!-- Family Badge -->
-      <div class="inline-block mb-6 px-4 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm text-gold tracking-widest uppercase">
+      <div class="inline-block mb-6 px-4 py-1 rounded-full border border-white/10 bg-white/10 text-sm text-gold tracking-widest uppercase">
         {{ familyName }}
       </div>
 
@@ -71,7 +71,7 @@ onMounted(() => {
 
       <!-- Portrait Circle -->
       <div v-if="member.photoUrl" class="relative w-48 h-48 md:w-64 md:h-64 mx-auto mb-12">
-        <div class="absolute inset-0 rounded-full bg-gradient-to-br from-gold/20 to-purple-500/20 blur-2xl"></div>
+        <div class="absolute inset-0 rounded-full bg-gradient-to-br from-gold/25 to-purple-500/25 blur-xl"></div>
         <img
           :src="member.photoUrl"
           :alt="member.name"

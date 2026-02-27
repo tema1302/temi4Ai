@@ -143,10 +143,10 @@ const pricingPlans = [
     <!-- 1. HERO SCREEN -->
     <section id="hero" class="relative min-h-[90vh] flex items-center justify-center px-4 py-20 overflow-hidden bg-obsidian">
       
-      <!-- Animated Background Blobs -->
+      <!-- Animated Background Blobs - optimized: reduced blur radius -->
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-20 -left-20 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[100px] opacity-30 animate-pulse-slow"></div>
-        <div class="absolute top-1/2 -right-20 w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px] opacity-40"></div>
+        <div class="absolute -top-20 -left-20 w-[600px] h-[600px] bg-gold/8 rounded-full blur-xl opacity-40"></div>
+        <div class="absolute top-1/2 -right-20 w-[500px] h-[500px] bg-indigo-900/25 rounded-full blur-xl opacity-50"></div>
       </div>
 
       <!-- Hero Image Overlay -->
@@ -199,9 +199,9 @@ const pricingPlans = [
           :initial="{ x: 50, opacity: 0 }"
           :enter="{ x: 0, opacity: 1, transition: { duration: 1000, delay: 200 } }"
         >
-          <div class="absolute inset-0 bg-gold/20 blur-[60px] rounded-full transform rotate-12"></div>
-          
-          <div class="relative bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-700">
+          <div class="absolute inset-0 bg-gold/25 blur-lg rounded-full transform rotate-12"></div>
+
+          <div class="relative bg-white/5 border border-white/10 rounded-2xl p-4 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
              <img
                :src="heroImage"
                class="w-full h-[500px] object-cover rounded-lg filter sepia-[0.2]"
@@ -209,7 +209,7 @@ const pricingPlans = [
                loading="eager"
                fetchpriority="high"
              />
-             <div class="absolute bottom-8 left-8 right-8 bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/10">
+             <div class="absolute bottom-8 left-8 right-8 bg-black/70 p-4 rounded-xl border border-white/10">
                 <p class="text-silk font-serif text-lg">"Дедушка всегда говорил, что счастье любит тишину..."</p>
                 <p class="text-gold text-xs mt-2 uppercase tracking-wider">— 1964 год</p>
              </div>
@@ -433,7 +433,7 @@ const pricingPlans = [
                    class="rounded-lg shadow-2xl"
                  />
               </div>
-              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gold/10 blur-[80px] rounded-full"></div>
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gold/15 blur-lg rounded-full"></div>
            </div>
         </div>
       </div>
@@ -500,7 +500,7 @@ const pricingPlans = [
     <!-- 7. FOOTER / FINAL CTA -->
     <section class="py-32 px-4 relative overflow-hidden bg-charcoal">
       <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
+      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold/8 blur-xl rounded-full pointer-events-none"></div>
       <div class="relative z-10 max-w-4xl mx-auto text-center">
         <h2 class="text-4xl md:text-7xl font-serif text-silk mb-8 leading-tight">
           Оставьте след <br/> в истории

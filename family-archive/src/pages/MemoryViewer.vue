@@ -145,7 +145,7 @@ const setActiveMember = (id: string) => {
     <div v-else class="relative z-10">
       
       <!-- Member Navigation (Sticky) -->
-      <div v-if="store.members.length > 1" class="sticky top-0 z-50 bg-obsidian/80 backdrop-blur-md border-b border-white/10 py-4 overflow-x-auto">
+      <div v-if="store.members.length > 1" class="sticky top-0 z-50 bg-obsidian/95 border-b border-white/10 py-4 overflow-x-auto">
         <div class="container mx-auto px-4 flex justify-center gap-4">
           <button 
             v-for="member in store.members" 

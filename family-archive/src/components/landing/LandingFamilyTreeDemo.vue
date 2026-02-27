@@ -92,10 +92,10 @@ const handleCreateOwn = () => {
 
 <template>
   <section class="py-20 md:py-32 px-4 bg-obsidian relative overflow-hidden">
-    <!-- Background decoration -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/3 rounded-full blur-3xl"></div>
+    <!-- Background decoration - optimized: removed expensive blur filters -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/[0.03] rounded-full"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/[0.02] rounded-full"></div>
     </div>
 
     <div class="max-w-7xl mx-auto relative">

@@ -334,7 +334,7 @@ const buildTree = (force = false) => {
       return
     }
 
-    let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2, strokeDasharray: '5,5' }
+    let edgeStyle: any = { stroke: '#d4af37', strokeWidth: 2 }
     let edgeType = 'smoothstep'
     let animated = false
 
@@ -479,7 +479,7 @@ onNodeClick(({ node }) => {
         <div class="flex flex-col gap-3 items-end">
           <button
             @click="toggleFullscreen"
-            class="pointer-events-auto p-3 bg-charcoal/80 backdrop-blur-md border border-white/10 rounded-full text-silk hover:text-gold hover:border-gold/30 transition-all shadow-2xl"
+            class="pointer-events-auto p-3 bg-charcoal/90 border border-white/10 rounded-full text-silk hover:text-gold hover:border-gold/30 transition-colors shadow-lg"
             :title="isFullscreen ? 'Свернуть' : 'На весь экран'"
           >
             <Minimize v-if="isFullscreen" class="w-5 h-5" />
@@ -491,7 +491,7 @@ onNodeClick(({ node }) => {
       <!-- Bottom: Legend (positioned to not overlap fullscreen button) -->
       <div class="absolute bottom-6 left-6 z-20">
         <!-- Tree Legend -->
-        <div class="bg-charcoal/90 backdrop-blur-lg border border-white/10 p-4 md:p-6 rounded-3xl shadow-2xl pointer-events-auto max-w-xs">
+        <div class="bg-charcoal/95 border border-white/10 p-4 md:p-6 rounded-3xl shadow-lg pointer-events-auto max-w-xs">
           <p class="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gray-400 font-bold mb-4 opacity-80">Типы связей</p>
           <div class="flex flex-col gap-3 md:gap-4">
             <div class="flex items-center gap-3">
@@ -521,7 +521,7 @@ onNodeClick(({ node }) => {
 }
 
 .vue-flow__edge-path {
-  stroke-dasharray: 5;
+  /* Removed stroke-dasharray for better performance */
 }
 
 .vue-flow__controls {
@@ -540,6 +540,6 @@ onNodeClick(({ node }) => {
 }
 
 .vue-flow__controls-button:hover {
-  background: rgba(212,175,55,0.1);
+  background: rgba(212,175,55,0.15);
 }
 </style>

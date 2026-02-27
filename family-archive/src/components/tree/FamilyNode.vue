@@ -63,14 +63,17 @@ const isComplete = computed(() => {
 
 const nodeClasses = computed(() => {
   if (props.data.isFilled) {
-    let classes = 'bg-charcoal border-white/10 text-silk transition-all duration-500 '
-    
+    // Optimized: use specific transitions instead of transition-all
+    let classes = 'bg-charcoal border-white/10 text-silk transition-[opacity,transform,border-color] duration-300 will-change-transform '
+    // Note: removed grayscale filter - very expensive on older hardware
+
     if (isSelf.value) {
-      classes += 'ring-4 ring-gold/30 shadow-[0_0_30px_rgba(212,175,55,0.4)] '
+      // Simplified shadow - smaller blur radius
+      classes += 'ring-4 ring-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.3)] '
     } else if (!isComplete.value) {
-      classes += 'opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 '
+      classes += 'opacity-40 hover:opacity-100 '
     }
-    
+
     return classes
   }
   return 'bg-white/5 border-white/10 text-gray-500'
@@ -254,7 +257,7 @@ const closeMenu = () => {
     </Transition>
 
     <div
-      class="family-node__content px-4 py-3 rounded-xl border-2 transition-all duration-300 min-w-[160px] text-center cursor-pointer hover:scale-105"
+      class="family-node__content px-4 py-3 rounded-xl border-2 min-w-[160px] text-center cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
       :class="[nodeClasses, borderClasses]"
     >
     <!-- Filled State -->
@@ -333,12 +336,13 @@ const closeMenu = () => {
   align-items: center;
   justify-content: center;
   padding: 0 0 1px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   pointer-events: auto;
   cursor: pointer;
   border: none;
   opacity: 1;
+  will-change: transform;
 }
 
 /* On desktop, animate in on hover */
@@ -350,8 +354,8 @@ const closeMenu = () => {
 }
 
 .family-node__add-btn:hover {
-  transform: scale(1.2);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .family-node__add-btn--active {
@@ -476,7 +480,7 @@ const closeMenu = () => {
   background: #1a1a1f;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   min-width: 100px;
   z-index: 50;
@@ -540,38 +544,38 @@ const closeMenu = () => {
   opacity: 0;
 }
 
-/* Menu transitions */
+/* Menu transitions - optimized */
 .menu-enter-active,
 .menu-leave-active {
-  transition: all 0.15s ease;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .menu-enter-from,
 .menu-leave-to {
   opacity: 0;
-  transform: translateX(-50%) scale(0.9);
+  transform: translateX(-50%) scale(0.95);
 }
 
 .menu-left-enter-active,
 .menu-left-leave-active {
-  transition: all 0.15s ease;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .menu-left-enter-from,
 .menu-left-leave-to {
   opacity: 0;
-  transform: translateY(-50%) translateX(-8px) scale(0.9);
+  transform: translateY(-50%) translateX(-6px) scale(0.95);
 }
 
 .menu-right-enter-active,
 .menu-right-leave-active {
-  transition: all 0.15s ease;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .menu-right-enter-from,
 .menu-right-leave-to {
   opacity: 0;
-  transform: translateY(-50%) translateX(8px) scale(0.9);
+  transform: translateY(-50%) translateX(6px) scale(0.95);
 }
 
 .family-node {
