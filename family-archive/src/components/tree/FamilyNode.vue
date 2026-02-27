@@ -293,8 +293,8 @@ const closeMenu = () => {
     </div>
 
     <!-- Handles for Vue Flow connections -->
-    <Handle type="target" :position="Position.Top" class="!bg-gold/30 !border-none !w-2 !h-2" />
-    <Handle type="source" :position="Position.Bottom" class="!bg-gold/30 !border-none !w-2 !h-2" />
+    <Handle type="target" :position="Position.Top" id="top" class="!bg-gold/30 !border-none !w-2 !h-2" />
+    <Handle type="source" :position="Position.Bottom" id="bottom" class="!bg-gold/30 !border-none !w-2 !h-2" />
     <!-- Side handles for spouse/sibling connections -->
     <Handle type="source" :position="Position.Left" id="left" class="!bg-pink-400/30 !border-none !w-2 !h-2" />
     <Handle type="target" :position="Position.Left" id="left-target" class="!bg-pink-400/30 !border-none !w-2 !h-2" />

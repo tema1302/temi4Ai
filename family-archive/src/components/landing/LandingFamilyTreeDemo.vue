@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import FamilyTree from '@/components/tree/FamilyTree.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import { RURIK_FAMILY_DEMO, RURIK_STATS } from '@/data/demoRurikTree'
 import { useRouter } from 'vue-router'
-import { Plus, Trash2, RefreshCw } from 'lucide-vue-next'
+import { Plus, RefreshCw } from 'lucide-vue-next'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 
 const router = useRouter()
@@ -22,7 +22,7 @@ const addMember = () => {
     id: generateId(),
     name: 'Новый родственник',
     birthDate: '',
-    deathDate: null,
+    deathDate: undefined,
     biography: '',
     photos: [],
     videos: [],
@@ -30,18 +30,9 @@ const addMember = () => {
     lifePath: [],
     relationship: '',
     gender: 'male',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    photoUrl: '',
   }
   localMembers.value.push(newMember)
-}
-
-// Delete member
-const deleteMember = (memberId: string) => {
-  localMembers.value = localMembers.value.filter(m => m.id !== memberId)
-  localRelations.value = localRelations.value.filter(
-    r => r.fromMemberId !== memberId && r.toMemberId !== memberId
-  )
 }
 
 // Reset to demo data
@@ -61,7 +52,7 @@ const handleAddRelation = (data: { memberId: string; relationType: RelationType 
     id: generateId(),
     name: data.gender === 'male' ? 'Новый родственник' : 'Новая родственница',
     birthDate: '',
-    deathDate: null,
+    deathDate: undefined,
     biography: '',
     photos: [],
     videos: [],
@@ -69,8 +60,7 @@ const handleAddRelation = (data: { memberId: string; relationType: RelationType 
     lifePath: [],
     relationship: '',
     gender: data.gender || 'male',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    photoUrl: '',
   }
   localMembers.value.push(newMember)
 

@@ -153,6 +153,7 @@ const calculateGenerations = () => {
 }
 
 // Layout function - использует сохранённые позиции или вычисляет новые
+// Snake layout: поколения идут змейкой (вправо → влево → вправо → ...)
 const layoutNodes = (
   nodesList: any[],
   edgesList: any[],
@@ -172,11 +173,12 @@ const layoutNodes = (
 
   console.log(`[FamilyTree] Total saved positions: ${savedPositions.size} / ${members.length}`)
 
-  // Константы для layout
+  // Константы для snake layout
   const nodeWidth = 180
   const nodeHeight = 100
-  const horizontalGap = 40
-  const verticalGap = 80
+  const horizontalGap = 50
+  const verticalGap = 120
+  const diagonalOffset = 80 // Смещение каждого следующего поколения вправо
 
   // Сначала назначаем сохранённые позиции
   const positions = new Map<string, { x: number; y: number }>()
@@ -195,8 +197,8 @@ const layoutNodes = (
       const pos = positions.get(node.id)!
       return {
         ...node,
-        targetPosition: Position.Top,
-        sourcePosition: Position.Bottom,
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
         position: pos,
       }
     })
@@ -223,12 +225,25 @@ const layoutNodes = (
     }
   })
 
-  // Сортируем узлы внутри каждого поколения: супруги рядом
+  // Создаём Map id -> member для доступа к данным
+  const memberMap = new Map<string, FamilyMember>()
+  members.forEach(m => memberMap.set(m.id, m))
+
+  // Сортируем узлы внутри поколения: супруги рядом, по дате рождения
   genGroups.forEach((ids, gen) => {
     const sorted: string[] = []
     const used = new Set<string>()
 
-    ids.forEach(id => {
+    // Сортируем по дате рождения (если есть)
+    const sortedByBirth = [...ids].sort((a, b) => {
+      const memberA = memberMap.get(a)
+      const memberB = memberMap.get(b)
+      const yearA = memberA?.birthDate ? parseInt(memberA.birthDate.replace('~', '').replace('?', '0')) : 9999
+      const yearB = memberB?.birthDate ? parseInt(memberB.birthDate.replace('~', '').replace('?', '0')) : 9999
+      return yearA - yearB
+    })
+
+    sortedByBirth.forEach(id => {
       if (used.has(id)) return
 
       sorted.push(id)
@@ -245,23 +260,39 @@ const layoutNodes = (
     genGroups.set(gen, sorted)
   })
 
-  // Находим максимальную ширину для центрирования
-  let maxWidth = 0
+  // Находим максимальное количество узлов в поколении
+  let maxNodesInGen = 0
   genGroups.forEach(ids => {
-    const width = ids.length * nodeWidth + (ids.length - 1) * horizontalGap
-    if (width > maxWidth) maxWidth = width
+    if (ids.length > maxNodesInGen) maxNodesInGen = ids.length
   })
 
-  // Расставляем узлы без сохранённых позиций
+  // Расставляем узлы змейкой
   const sortedGens = Array.from(genGroups.keys()).sort((a, b) => a - b)
+
   sortedGens.forEach((gen, genIndex) => {
     const ids = genGroups.get(gen)!
-    const totalWidth = ids.length * nodeWidth + (ids.length - 1) * horizontalGap
-    const startX = (maxWidth - totalWidth) / 2
+
+    // Базовое смещение по X для диагонального эффекта
+    // Каждое следующее поколение смещается вправо
+    const baseX = genIndex * diagonalOffset
+
+    // Y позиция - каждое поколение ниже предыдущего
     const y = genIndex * (nodeHeight + verticalGap)
 
+    // Чередуем направление: чётные поколения → вправо, нечётные ← влево
+    const goRight = genIndex % 2 === 0
+
     ids.forEach((id, posIndex) => {
-      const x = startX + posIndex * (nodeWidth + horizontalGap)
+      let x: number
+
+      if (goRight) {
+        // Слева направо
+        x = baseX + posIndex * (nodeWidth + horizontalGap)
+      } else {
+        // Справа налево - разворачиваем порядок
+        x = baseX + (ids.length - 1 - posIndex) * (nodeWidth + horizontalGap)
+      }
+
       positions.set(id, { x, y })
     })
   })
@@ -272,8 +303,8 @@ const layoutNodes = (
     const pos = positions.get(node.id) || { x: 0, y: 0 }
     return {
       ...node,
-      targetPosition: Position.Top,
-      sourcePosition: Position.Bottom,
+      targetPosition: Position.Left,
+      sourcePosition: Position.Right,
       position: pos,
     }
   })
@@ -299,11 +330,19 @@ const buildTree = (force = false) => {
 
   const newNodes: any[] = []
   const newEdges: any[] = []
-  const generationMap = calculateGenerations()
+
+  // Используем generation из данных члена, либо вычисляем через calculateGenerations
+  const calculatedGenerations = calculateGenerations()
+  const generationMap = new Map<string, number>()
+  members.forEach(member => {
+    // Приоритет: member.generation > вычисленное > 0
+    const gen = member.generation ?? calculatedGenerations.get(member.id) ?? 0
+    generationMap.set(member.id, gen)
+  })
 
   // Create nodes for all members
   members.forEach(member => {
-    const gen = generationMap.get(member.id) ?? member.generation ?? 0
+    const gen = generationMap.get(member.id) ?? 0
 
     // Вычисляем displayRole относительно корневого члена
     const calculatedRole = calculateDisplayRole(member.id, props.rootMemberId, members, relations)
@@ -353,6 +392,10 @@ const buildTree = (force = false) => {
       // Для супругов и сиблингов - строго горизонтальные соединения
       sourceHandle = 'right'
       targetHandle = 'left'
+    } else {
+      // Для parent/child связей - вертикальные соединения между поколениями
+      sourceHandle = 'bottom'
+      targetHandle = 'top'
     }
 
     newEdges.push({
