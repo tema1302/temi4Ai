@@ -36,12 +36,24 @@ const acceptOffer = ref(false)
 const acceptPD = ref(false)
 const acceptNewsletter = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
+  // Handle email verification (signup, magiclink, email_change)
+  if (route.query.type === 'signup' || route.query.type === 'magiclink' || route.query.type === 'email_change') {
+    // Supabase auto-processes the token, just show success
+    successTitle.value = 'Email подтверждён!'
+    successMessage.value = 'Ваш email успешно подтверждён. Теперь вы можете войти в систему.'
+    showSuccess.value = true
+    // Clear URL params
+    router.replace({ query: {} })
+    return
+  }
+
   // Handle password recovery
   if (route.query.type === 'recovery') {
     isResetPasswordMode.value = true
     isLoginMode.value = false
   }
+
   // Handle mode query param for login/signup
   if (route.query.mode === 'signup') {
     isLoginMode.value = false

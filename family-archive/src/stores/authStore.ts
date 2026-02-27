@@ -98,8 +98,9 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     isLoading.value = true
     try {
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
+        redirectTo: `${siteUrl}/auth?type=recovery`,
       })
       if (resetError) throw resetError
       return { success: true }

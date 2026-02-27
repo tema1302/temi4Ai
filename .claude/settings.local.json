@@ -6,7 +6,8 @@
       "Bash(npm run build:*)",
       "WebSearch",
       "Bash(tail:*)",
-      "Bash(true:*)"
+      "Bash(true:*)",
+      "Bash(cd:*)"
     ]
   }
 }
