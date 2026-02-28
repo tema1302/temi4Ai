@@ -531,9 +531,10 @@ const handleNodeDragStop = (event: { node: { id: string; position: { x: number; 
 
 onMounted(() => {
   buildTree(true)
-  setTimeout(() => {
+  // Use requestAnimationFrame for smoother fitView
+  requestAnimationFrame(() => {
     fitView({ padding: 0.2 })
-  }, 100)
+  })
 })
 
 // Debounced build для частых обновлений (50ms debounce)

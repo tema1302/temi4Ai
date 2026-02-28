@@ -471,29 +471,6 @@ const removeLifeEvent = (index: number) => {
           </div>
         </div>
       </BaseCard>
-
-      <!-- Delete Button (Bottom of form) -->
-      <div v-if="store.members.length > 1" class="pt-6">
-        <button
-          @click="emit('delete')"
-          class="w-full py-3 rounded-xl border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/5 transition-all flex items-center justify-center gap-2"
-        >
-          <Trash2 class="w-4 h-4" /> Удалить карточку
-        </button>
-      </div>
-
-      <!-- Save Button (Bottom) -->
-      <div class="pt-8 border-t border-white/5">
-        <BaseButton 
-          full 
-          size="lg" 
-          @click="emit('save')"
-          class="shadow-[0_10px_30px_rgba(212,175,55,0.1)]"
-        >
-          💾 Сохранить изменения
-        </BaseButton>
-      </div>
-
       <!-- Media (Photos & Videos) -->
       <BaseCard
         class="p-4 border-white/5 transition-all"
@@ -600,6 +577,27 @@ const removeLifeEvent = (index: number) => {
            </div>
         </div>
       </BaseCard>
+
+      <!-- Delete Button (Bottom of form) -->
+      <div v-if="store.members.length > 1" class="pt-6">
+        <button
+          @click="emit('delete')"
+          class="w-full py-3 rounded-xl border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/5 transition-all flex items-center justify-center gap-2"
+        >
+          <Trash2 class="w-4 h-4" /> Удалить карточку
+        </button>
+      </div>
+
+      <!-- Save Button (Bottom) -->
+        <BaseButton 
+          full 
+          size="lg" 
+          @click="emit('save')"
+          class="shadow-[0_10px_30px_rgba(212,175,55,0.1)]"
+        >
+          💾 Сохранить изменения
+        </BaseButton>
+
 
     </div>
   </div>

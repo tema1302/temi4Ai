@@ -662,7 +662,7 @@ const planName = computed(() => {
           </div>
 
           <!-- Cards List -->
-          <div v-if="route.name === 'ArchiveList'" class="dashboard__member-list flex-1">
+          <div v-show="route.name === 'ArchiveList'" class="dashboard__member-list flex-1">
             <div v-if="store.isFetching" class="dashboard__member-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-8 max-w-[1600px] mx-auto">
                <div v-for="i in 5" :key="i" class="dashboard__member-skeleton space-y-4">
                   <Skeleton className="aspect-[3/4] rounded-2xl w-full" />
@@ -715,7 +715,7 @@ const planName = computed(() => {
           </div>
 
           <!-- Tree Canvas -->
-          <div v-else-if="route.name === 'ArchiveTree'" class="dashboard__tree-canvas flex-1 min-h-[500px] rounded-3xl border border-white/5 overflow-hidden bg-obsidian relative">
+          <div v-show="route.name === 'ArchiveTree'" class="dashboard__tree-canvas flex-1 min-h-[500px] rounded-3xl border border-white/5 overflow-hidden bg-obsidian relative">
             <div v-if="store.isFetching" class="dashboard__tree-loading absolute inset-0 flex items-center justify-center bg-obsidian z-10">
                <div class="space-y-8 w-full max-w-2xl px-10">
                   <div class="flex justify-center"><Skeleton className="h-20 w-40 rounded-xl" /></div>
@@ -735,6 +735,7 @@ const planName = computed(() => {
               :relations="store.relations"
               :family-name="store.familyName"
               :root-member-id="store.currentFamily?.rootMemberId"
+              :selectable="true"
               @select-member="handleTreeMemberSelect"
               @add-relation="handleTreeAddRelation"
               @update-position="handleUpdatePosition"
@@ -893,13 +894,14 @@ const planName = computed(() => {
           
           <div class="dashboard__mobile-view-wrapper flex-1 min-h-0 flex flex-col overflow-hidden relative">
              <!-- Mobile View Selector using router-view or conditions -->
-             <MobileMemberList v-if="route.name === 'ArchiveList'" @select="selectMemberForPreview" @add="addMember" @delete="handleDeleteMemberById" class="dashboard__mobile-list" />
-             <div v-else-if="route.name === 'ArchiveTree'" class="dashboard__mobile-tree h-full relative">
+             <MobileMemberList v-show="route.name === 'ArchiveList'" @select="selectMemberForPreview" @add="addMember" @delete="handleDeleteMemberById" class="dashboard__mobile-list" />
+             <div v-show="route.name === 'ArchiveTree'" class="dashboard__mobile-tree h-full relative">
                 <FamilyTree
                   :members="store.members"
                   :relations="store.relations"
                   :family-name="store.familyName"
                   :root-member-id="store.currentFamily?.rootMemberId"
+                  :selectable="true"
                   @select-member="handleTreeMemberSelect"
                   @add-relation="handleTreeAddRelation"
                   @update-position="handleUpdatePosition"

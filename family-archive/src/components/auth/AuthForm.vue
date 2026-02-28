@@ -193,19 +193,19 @@ const handleSuccessContinue = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 relative">
+  <div class="auth-form min-h-screen flex items-center justify-center px-4 relative">
     <!-- Back Button -->
-    <div class="absolute top-6 left-6">
+    <div class="auth-form__back absolute top-6 left-6">
       <BackButton to="/" />
     </div>
 
     <!-- Success State -->
-    <BaseCard v-if="showSuccess" class="w-full max-w-md p-8 text-center">
-       <div class="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 text-gold">
+    <BaseCard v-if="showSuccess" class="auth-form__success w-full max-w-md p-8 text-center">
+       <div class="auth-form__success-icon w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 text-gold">
          <Check class="w-8 h-8" />
        </div>
-       <h2 class="text-2xl font-serif text-silk mb-4">{{ successTitle }}</h2>
-       <p class="text-gray-400 mb-8 leading-relaxed">
+       <h2 class="auth-form__success-title text-2xl font-serif text-silk mb-4">{{ successTitle }}</h2>
+       <p class="auth-form__success-message text-gray-400 mb-8 leading-relaxed">
          {{ successMessage }}
        </p>
        <BaseButton full @click="handleSuccessContinue">
@@ -213,83 +213,83 @@ const handleSuccessContinue = () => {
        </BaseButton>
     </BaseCard>
 
-    <BaseCard v-else class="w-full max-w-md p-8">
-      
+    <BaseCard v-else class="auth-form__card w-full max-w-md p-8">
+
       <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-serif text-silk mb-2">
+      <div class="auth-form__header text-center mb-8">
+        <h1 class="auth-form__title text-3xl font-serif text-silk mb-2">
           <template v-if="isForgotPasswordMode">Восстановление пароля</template>
           <template v-else-if="isResetPasswordMode">Новый пароль</template>
           <template v-else>{{ isLoginMode ? 'Вход' : 'Создать аккаунт' }}</template>
         </h1>
-        <p class="text-gray-400">
+        <p class="auth-form__subtitle text-gray-400">
           <template v-if="isForgotPasswordMode">Введите email для получения ссылки</template>
           <template v-else-if="isResetPasswordMode">Установите новый пароль для входа</template>
           <template v-else>{{ isLoginMode ? 'Войдите, чтобы управлять архивами' : 'Начните сохранять историю вашей семьи' }}</template>
         </p>
       </div>
-      
-      <div v-if="errorMessage" class="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+
+      <div v-if="errorMessage" class="auth-form__error mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
         {{ errorMessage }}
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-5" autocomplete="on">
-        
+      <form @submit.prevent="handleSubmit" class="auth-form__form space-y-5" autocomplete="on">
+
         <!-- Name (Registration only) -->
-        <div v-if="!isLoginMode && !isForgotPasswordMode && !isResetPasswordMode">
-          <label class="block text-sm text-gray-400 mb-2">Ваше имя</label>
+        <div v-if="!isLoginMode && !isForgotPasswordMode && !isResetPasswordMode" class="auth-form__field">
+          <label class="auth-form__label block text-sm text-gray-400 mb-2">Ваше имя</label>
           <input
             v-model="fullName"
             type="text"
             placeholder="Иван Иванов"
-            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+            class="auth-form__input w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
             required
             autocomplete="name"
           />
         </div>
 
         <!-- Email -->
-        <div v-if="!isResetPasswordMode">
-          <label class="block text-sm text-gray-400 mb-2">Email</label>
+        <div v-if="!isResetPasswordMode" class="auth-form__field">
+          <label class="auth-form__label block text-sm text-gray-400 mb-2">Email</label>
           <input
             v-model="email"
             type="email"
             placeholder="your@email.com"
-            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+            class="auth-form__input w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
             required
             autocomplete="email"
           />
         </div>
 
         <!-- Password -->
-        <div v-if="!isForgotPasswordMode">
-          <div class="flex justify-between items-center mb-2">
-            <label class="block text-sm text-gray-400">
+        <div v-if="!isForgotPasswordMode" class="auth-form__field">
+          <div class="auth-form__label-row flex justify-between items-center mb-2">
+            <label class="auth-form__label block text-sm text-gray-400">
               {{ isResetPasswordMode ? 'Новый пароль' : 'Пароль' }}
             </label>
             <button
               v-if="isLoginMode"
               type="button"
-              class="text-xs text-gray-500 hover:text-gold transition-colors"
+              class="auth-form__forgot-link text-xs text-gray-500 hover:text-gold transition-colors"
               @click="toggleForgotPassword"
             >
               Забыли пароль?
             </button>
           </div>
-          <div class="relative">
+          <div class="auth-form__input-wrapper relative">
             <input
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
               placeholder="••••••••"
-              class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+              class="auth-form__input auth-form__input--with-icon w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
               required
               :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
             />
             <button
               type="button"
               @click="showPassword = !showPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
+              class="auth-form__toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
               :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
             >
               <Eye v-if="!showPassword" class="w-5 h-5" />
@@ -299,21 +299,21 @@ const handleSuccessContinue = () => {
         </div>
 
         <!-- Confirm Password -->
-        <div v-if="!isLoginMode && !isForgotPasswordMode">
-          <label class="block text-sm text-gray-400 mb-2">Подтвердите пароль</label>
-          <div class="relative">
+        <div v-if="!isLoginMode && !isForgotPasswordMode" class="auth-form__field">
+          <label class="auth-form__label block text-sm text-gray-400 mb-2">Подтвердите пароль</label>
+          <div class="auth-form__input-wrapper relative">
             <input
               v-model="confirmPassword"
               :type="showConfirmPassword ? 'text' : 'password'"
               placeholder="••••••••"
-              class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+              class="auth-form__input auth-form__input--with-icon w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
               required
               autocomplete="new-password"
             />
             <button
               type="button"
               @click="showConfirmPassword = !showConfirmPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
+              class="auth-form__toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
               :title="showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'"
             >
               <Eye v-if="!showConfirmPassword" class="w-5 h-5" />
@@ -323,49 +323,49 @@ const handleSuccessContinue = () => {
         </div>
 
         <!-- Registration Checkboxes -->
-        <div v-if="!isLoginMode && !isForgotPasswordMode && !isResetPasswordMode" class="space-y-4 py-2">
-          <label class="flex items-start gap-3 cursor-pointer group">
-            <input 
+        <div v-if="!isLoginMode && !isForgotPasswordMode && !isResetPasswordMode" class="auth-form__checkboxes space-y-4 py-2">
+          <label class="auth-form__checkbox flex items-start gap-3 cursor-pointer group">
+            <input
               v-model="acceptOffer"
-              type="checkbox" 
-              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
+              type="checkbox"
+              class="auth-form__checkbox-input mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
-            <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
-              Я ознакомлен с условиями 
-              <router-link to="/offer" class="text-gold hover:underline" @click.stop>Публичной оферты</router-link>
+            <span class="auth-form__checkbox-label text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+              Я ознакомлен с условиями
+              <router-link to="/offer" class="auth-form__link text-gold hover:underline" @click.stop>Публичной оферты</router-link>
             </span>
           </label>
 
-          <label class="flex items-start gap-3 cursor-pointer group">
-            <input 
+          <label class="auth-form__checkbox flex items-start gap-3 cursor-pointer group">
+            <input
               v-model="acceptPD"
-              type="checkbox" 
-              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
+              type="checkbox"
+              class="auth-form__checkbox-input mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
-            <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
-              Я даю согласие на 
-              <router-link to="/pd-consent" class="text-gold hover:underline" @click.stop>Обработку персональных данных</router-link> 
-              в соответствии с 
-              <router-link to="/pd-policy" class="text-gold hover:underline" @click.stop>Политикой обработки персональных данных</router-link>
+            <span class="auth-form__checkbox-label text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+              Я даю согласие на
+              <router-link to="/pd-consent" class="auth-form__link text-gold hover:underline" @click.stop>Обработку персональных данных</router-link>
+              в соответствии с
+              <router-link to="/pd-policy" class="auth-form__link text-gold hover:underline" @click.stop>Политикой обработки персональных данных</router-link>
             </span>
           </label>
 
-          <label class="flex items-start gap-3 cursor-pointer group">
-            <input 
+          <label class="auth-form__checkbox flex items-start gap-3 cursor-pointer group">
+            <input
               v-model="acceptNewsletter"
-              type="checkbox" 
-              class="mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
+              type="checkbox"
+              class="auth-form__checkbox-input mt-1 w-5 h-5 shrink-0 rounded border-white/10 bg-white/5 text-gold focus:ring-gold/50 cursor-pointer"
             />
-            <span class="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
-              Я даю 
-              <router-link to="/newsletter-consent" class="text-gold hover:underline" @click.stop>Согласие на получение информационно-рекламных рассылок</router-link>
+            <span class="auth-form__checkbox-label text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+              Я даю
+              <router-link to="/newsletter-consent" class="auth-form__link text-gold hover:underline" @click.stop>Согласие на получение информационно-рекламных рассылок</router-link>
             </span>
           </label>
         </div>
 
         <!-- Submit Button -->
-        <BaseButton 
-          type="submit" 
+        <BaseButton
+          type="submit"
           full
           :disabled="isSubmitting"
         >
@@ -378,20 +378,20 @@ const handleSuccessContinue = () => {
       </form>
 
       <!-- Toggle Mode -->
-      <div class="mt-6 text-center">
+      <div class="auth-form__toggle mt-6 text-center">
         <template v-if="isForgotPasswordMode || isResetPasswordMode">
-          <button 
+          <button
             @click="isForgotPasswordMode = false; isResetPasswordMode = false; isLoginMode = true"
-            class="text-gold hover:text-white transition-colors font-bold"
+            class="auth-form__toggle-btn text-gold hover:text-white transition-colors font-bold"
           >
             Назад к входу
           </button>
         </template>
-        <p v-else class="text-gray-400 text-sm">
+        <p v-else class="auth-form__toggle-text text-gray-400 text-sm">
           {{ isLoginMode ? "Нет аккаунта?" : 'Уже есть аккаунт?' }}
-          <button 
+          <button
             @click="toggleMode"
-            class="text-gold hover:text-white transition-colors font-bold ml-1"
+            class="auth-form__toggle-btn text-gold hover:text-white transition-colors font-bold ml-1"
           >
             {{ isLoginMode ? "Создать" : "Войти" }}
           </button>

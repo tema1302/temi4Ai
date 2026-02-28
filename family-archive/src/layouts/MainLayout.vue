@@ -119,35 +119,35 @@ const navItems = [
 
 <template>
   <div
-    class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col"
-    :class="{ 'h-screen overflow-hidden': props.fullHeight }"
+    class="layout min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col"
+    :class="{ 'layout--full-height h-screen overflow-hidden': props.fullHeight }"
   >
 
     <!-- Navigation Header -->
     <header
-      class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent"
+      class="layout__header fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent"
       :class="[
-        (isScrolled || props.fullHeight) ? 'bg-obsidian/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6',
-        isMobileMenuOpen ? 'bg-obsidian border-white/10' : ''
+        (isScrolled || props.fullHeight) ? 'layout__header--scrolled bg-obsidian/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6',
+        isMobileMenuOpen ? 'layout__header--menu-open bg-obsidian border-white/10' : ''
       ]"
     >
-      <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+      <div class="layout__header-inner max-w-7xl mx-auto px-4 flex items-center justify-between">
         <!-- Logo -->
-        <a href="/" class="z-50 relative">
+        <a href="/" class="layout__logo z-50 relative">
           <Logo />
         </a>
 
         <!-- Desktop Navigation -->
-        <div class="hidden md:flex items-center gap-3">
+        <div class="layout__desktop-nav hidden md:flex items-center gap-3">
           <!-- Landing Page Navigation -->
           <template v-if="!props.fullHeight">
             <!-- Guest User -->
             <template v-if="!authStore.isAuthenticated">
               <!-- Nav Links -->
-              <nav class="flex items-center gap-6 text-sm font-medium mr-4">
-                <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
-                <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
-                <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+              <nav class="layout__nav flex items-center gap-6 text-sm font-medium mr-4">
+                <button @click="scrollToSection('about')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+                <button @click="scrollToSection('features')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">Возможности</button>
+                <button @click="scrollToSection('pricing')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">Тарифы</button>
               </nav>
 
               <!-- CTA Buttons -->
@@ -162,49 +162,49 @@ const navItems = [
             <!-- Authenticated User on Landing -->
             <template v-else>
               <!-- Nav Links -->
-              <nav class="flex items-center gap-6 text-sm font-medium mr-4">
-                <button @click="scrollToSection('about')" class="text-gray-400 hover:text-gold transition-colors">О сервисе</button>
-                <button @click="scrollToSection('features')" class="text-gray-400 hover:text-gold transition-colors">Возможности</button>
-                <button @click="scrollToSection('pricing')" class="text-gray-400 hover:text-gold transition-colors">Тарифы</button>
+              <nav class="layout__nav flex items-center gap-6 text-sm font-medium mr-4">
+                <button @click="scrollToSection('about')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">О сервисе</button>
+                <button @click="scrollToSection('features')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">Возможности</button>
+                <button @click="scrollToSection('pricing')" class="layout__nav-link text-gray-400 hover:text-gold transition-colors">Тарифы</button>
               </nav>
 
               <!-- User Menu -->
-              <div class="relative">
+              <div class="layout__user-menu relative">
                 <button
-                  class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
+                  class="layout__user-btn flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
                   @click="toggleUserMenu"
                 >
-                  <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+                  <div class="layout__user-avatar w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
                     <User class="w-4 h-4" />
                   </div>
-                  <span class="text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
-                  <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
+                  <span class="layout__user-name text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
+                  <ChevronDown class="layout__user-chevron w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
                 </button>
 
                 <!-- User Dropdown Menu -->
                 <transition name="dropdown">
                   <div
                     v-if="isUserMenuOpen"
-                    class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
+                    class="layout__dropdown absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
                   >
-                    <div class="px-4 py-3 border-b border-white/5">
-                      <p class="text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
-                      <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                    <div class="layout__dropdown-header px-4 py-3 border-b border-white/5">
+                      <p class="layout__dropdown-name text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
+                      <p class="layout__dropdown-email text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
                     </div>
-                    <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <button @click="navigateTo('/editor')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                       <PenLine class="w-4 h-4" />
                       Мои архивы
                     </button>
-                    <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <button @click="navigateTo('/settings')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                       <Settings class="w-4 h-4" />
                       Настройки
                     </button>
-                    <button @click="scrollToSection('pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                    <button @click="scrollToSection('pricing')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                       <CreditCard class="w-4 h-4" />
                       Тарифы
                     </button>
-                    <div class="h-px bg-white/5 my-1"></div>
-                    <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+                    <div class="layout__dropdown-divider h-px bg-white/5 my-1"></div>
+                    <button @click="handleLogout" class="layout__dropdown-item layout__dropdown-item--danger w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
                       <LogOut class="w-4 h-4" />
                       Выйти
                     </button>
@@ -217,42 +217,42 @@ const navItems = [
           <!-- Dashboard (ЛК) Navigation - Only User Menu -->
           <template v-else-if="authStore.isAuthenticated">
             <!-- User Menu -->
-            <div class="relative">
+            <div class="layout__user-menu relative">
               <button
-                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
+                class="layout__user-btn flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-gold/50 transition-all group"
                 @click="toggleUserMenu"
               >
-                <div class="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+                <div class="layout__user-avatar w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
                   <User class="w-4 h-4" />
                 </div>
-                <span class="text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
-                <ChevronDown class="w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
+                <span class="layout__user-name text-sm font-medium text-silk max-w-[120px] truncate">{{ authStore.userName }}</span>
+                <ChevronDown class="layout__user-chevron w-4 h-4 text-gray-500 transition-transform duration-300" :class="{ 'rotate-180': isUserMenuOpen }" />
               </button>
 
               <!-- User Dropdown Menu -->
               <transition name="dropdown">
                 <div
                   v-if="isUserMenuOpen"
-                  class="absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
+                  class="layout__dropdown absolute top-full right-0 mt-2 w-56 bg-charcoal border border-white/10 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden"
                 >
-                  <div class="px-4 py-3 border-b border-white/5">
-                    <p class="text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
-                    <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                  <div class="layout__dropdown-header px-4 py-3 border-b border-white/5">
+                    <p class="layout__dropdown-name text-sm font-medium text-silk truncate">{{ authStore.userName }}</p>
+                    <p class="layout__dropdown-email text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
                   </div>
-                  <button @click="navigateTo('/editor')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <button @click="navigateTo('/editor')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                     <PenLine class="w-4 h-4" />
                     Мои архивы
                   </button>
-                  <button @click="navigateTo('/settings')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <button @click="navigateTo('/settings')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                     <Settings class="w-4 h-4" />
                     Настройки
                   </button>
-                  <button @click="navigateTo('/#pricing')" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
+                  <button @click="navigateTo('/#pricing')" class="layout__dropdown-item w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-300 hover:bg-white/5 hover:text-gold transition-colors">
                     <CreditCard class="w-4 h-4" />
                     Тарифы
                   </button>
-                  <div class="h-px bg-white/5 my-1"></div>
-                  <button @click="handleLogout" class="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+                  <div class="layout__dropdown-divider h-px bg-white/5 my-1"></div>
+                  <button @click="handleLogout" class="layout__dropdown-item layout__dropdown-item--danger w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
                     <LogOut class="w-4 h-4" />
                     Выйти
                   </button>
@@ -263,11 +263,11 @@ const navItems = [
         </div>
 
         <!-- Mobile Header Actions -->
-        <div class="flex items-center gap-2 md:hidden z-50 relative">
+        <div class="layout__mobile-toggle flex items-center gap-2 md:hidden z-50 relative">
           <!-- In Dashboard (ЛК) - show user avatar button -->
           <template v-if="props.fullHeight && authStore.isAuthenticated">
             <button
-              class="w-10 h-10 rounded-full bg-gold/10 border border-white/10 flex items-center justify-center text-gold"
+              class="layout__mobile-avatar w-10 h-10 rounded-full bg-gold/10 border border-white/10 flex items-center justify-center text-gold"
               @click="toggleMobileMenu"
             >
               <User class="w-5 h-5" />
@@ -276,7 +276,7 @@ const navItems = [
           <!-- On Landing page - show hamburger -->
           <template v-else>
             <button
-              class="text-silk p-2"
+              class="layout__burger text-silk p-2"
               @click="toggleMobileMenu"
             >
               <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
@@ -292,13 +292,13 @@ const navItems = [
       <transition name="slide-up">
         <div
           v-if="isMobileMenuOpen"
-          class="fixed inset-0 bg-obsidian z-[100] flex flex-col md:hidden"
+          class="mobile-menu fixed inset-0 bg-obsidian z-[100] flex flex-col md:hidden"
         >
           <!-- Top bar with close -->
-          <div class="flex items-center justify-between p-4 border-b border-white/10">
+          <div class="mobile-menu__top flex items-center justify-between p-4 border-b border-white/10">
             <Logo />
             <button
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+              class="mobile-menu__close w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
               @click="toggleMobileMenu"
             >
               <X class="w-5 h-5" />
@@ -306,33 +306,33 @@ const navItems = [
           </div>
 
           <!-- Spacer -->
-          <div class="flex-1"></div>
+          <div class="mobile-menu__spacer flex-1"></div>
 
           <!-- Bottom Content -->
-          <div class="p-6 pb-12 space-y-8">
+          <div class="mobile-menu__content p-6 pb-12 space-y-8">
             <!-- Landing Page Nav Links (only on landing) -->
             <template v-if="!props.fullHeight">
-              <div class="flex flex-col gap-4">
+              <div class="mobile-menu__nav flex flex-col gap-4">
                 <button
                   v-for="item in navItems"
                   :key="item.id"
                   @click="scrollToSection(item.id)"
-                  class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 hover:border-gold/20 transition-all"
+                  class="mobile-menu__nav-item flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 hover:border-gold/20 transition-all"
                 >
-                  <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                  <div class="mobile-menu__nav-icon w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
                     <component :is="item.icon" class="w-5 h-5 text-gold" />
                   </div>
-                  <span class="text-lg font-serif text-silk">{{ item.label }}</span>
+                  <span class="mobile-menu__nav-label text-lg font-serif text-silk">{{ item.label }}</span>
                 </button>
               </div>
 
               <!-- Divider -->
-              <div class="h-px bg-white/10"></div>
+              <div class="mobile-menu__divider h-px bg-white/10"></div>
             </template>
 
             <!-- Auth Buttons or User Menu -->
             <template v-if="!authStore.isAuthenticated">
-              <div class="flex flex-col gap-3">
+              <div class="mobile-menu__auth flex flex-col gap-3">
                 <BaseButton :full="true" size="lg" @click="navigateToAuth('signup')">
                   Создать архив
                 </BaseButton>
@@ -342,26 +342,26 @@ const navItems = [
               </div>
             </template>
             <template v-else>
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold">
+              <div class="mobile-menu__user flex items-center gap-4">
+                <div class="mobile-menu__user-avatar w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center text-gold">
                   <User class="w-6 h-6" />
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-silk font-medium truncate">{{ authStore.userName }}</p>
-                  <p class="text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
+                <div class="mobile-menu__user-info flex-1 min-w-0">
+                  <p class="mobile-menu__user-name text-silk font-medium truncate">{{ authStore.userName }}</p>
+                  <p class="mobile-menu__user-email text-xs text-gray-500 truncate">{{ authStore.userEmail }}</p>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <button @click="navigateTo('/editor')" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+              <div class="mobile-menu__actions grid grid-cols-2 gap-3">
+                <button @click="navigateTo('/editor')" class="mobile-menu__action flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                   <PenLine class="w-5 h-5 text-gold" />
-                  <span class="text-xs text-gray-300">Архивы</span>
+                  <span class="mobile-menu__action-label text-xs text-gray-300">Архивы</span>
                 </button>
-                <button @click="navigateTo('/settings')" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                <button @click="navigateTo('/settings')" class="mobile-menu__action flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                   <Settings class="w-5 h-5 text-gold" />
-                  <span class="text-xs text-gray-300">Настройки</span>
+                  <span class="mobile-menu__action-label text-xs text-gray-300">Настройки</span>
                 </button>
               </div>
-              <button @click="handleLogout" class="w-full py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-medium flex items-center justify-center gap-2">
+              <button @click="handleLogout" class="mobile-menu__logout w-full py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-medium flex items-center justify-center gap-2">
                 <LogOut class="w-5 h-5" />
                 Выйти из аккаунта
               </button>
@@ -372,14 +372,14 @@ const navItems = [
     </Teleport>
 
     <!-- Global Ambient Lights - optimized: reduced blur radius -->
-    <div class="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-60"></div>
-    <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/8 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-60"></div>
+    <div class="layout__ambient layout__ambient--purple fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-60"></div>
+    <div class="layout__ambient layout__ambient--gold fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/8 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-60"></div>
 
     <!-- Content Slot -->
     <main
-      class="flex-1"
+      class="layout__main flex-1"
       :class="[
-        props.fullHeight ? 'pt-[64px] overflow-hidden' : 'pt-20 md:pt-20'
+        props.fullHeight ? 'layout__main--full pt-[64px] overflow-hidden' : 'layout__main--normal pt-20 md:pt-20'
       ]"
     >
       <slot />

@@ -33,37 +33,37 @@ const handleCreateOwn = () => {
 </script>
 
 <template>
-  <section class="py-20 md:py-32 px-4 bg-obsidian relative overflow-hidden">
+  <section class="tree-demo py-20 md:py-32 px-4 bg-obsidian relative overflow-hidden">
     <!-- Background decoration -->
-    <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/[0.03] rounded-full"></div>
-      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/[0.02] rounded-full"></div>
+    <div class="tree-demo__bg absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="tree-demo__bg-circle tree-demo__bg-circle--1 absolute top-1/4 left-1/4 w-96 h-96 bg-gold/[0.03] rounded-full"></div>
+      <div class="tree-demo__bg-circle tree-demo__bg-circle--2 absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/[0.02] rounded-full"></div>
     </div>
 
-    <div class="max-w-7xl mx-auto relative">
+    <div class="tree-demo__container max-w-7xl mx-auto relative">
       <!-- Header -->
-      <div class="text-center mb-12">
-        <span class="text-gold text-sm tracking-widest uppercase font-bold mb-4 block">
+      <div class="tree-demo__header text-center mb-12">
+        <span class="tree-demo__badge text-gold text-sm tracking-widest uppercase font-bold mb-4 block">
           Попробуйте сами
         </span>
-        <h2 class="text-3xl md:text-5xl font-serif text-silk mb-6">
+        <h2 class="tree-demo__title text-3xl md:text-5xl font-serif text-silk mb-6">
           Создайте такое же древо своей семьи
         </h2>
-        <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
+        <p class="tree-demo__subtitle text-xl text-gray-400 max-w-2xl mx-auto mb-4">
           Перетаскивайте карточки, изучайте связи между родственниками!
         </p>
-        <p class="text-sm text-gold/70 max-w-xl mx-auto mb-8">
+        <p class="tree-demo__hint text-sm text-gold/70 max-w-xl mx-auto mb-8">
           Это демо-режим. Выберите пример древа и попробуйте управлять им.
-          <span class="text-gold">Создайте свой архив, чтобы добавлять родственников!</span>
+          <span class="tree-demo__hint-highlight text-gold">Создайте свой архив, чтобы добавлять родственников!</span>
         </p>
 
         <!-- Tree Mode Switcher -->
-        <div class="flex justify-center gap-2 mb-8">
+        <div class="tree-demo__switcher flex justify-center gap-2 mb-8">
           <button
             @click="treeMode = 'simple'"
-            class="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+            class="tree-demo__switcher-btn flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
             :class="treeMode === 'simple'
-              ? 'bg-gold text-obsidian font-bold'
+              ? 'tree-demo__switcher-btn--active bg-gold text-obsidian font-bold'
               : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gold hover:border-gold/30'"
           >
             <Users class="w-4 h-4" />
@@ -71,9 +71,9 @@ const handleCreateOwn = () => {
           </button>
           <button
             @click="treeMode = 'rurik'"
-            class="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+            class="tree-demo__switcher-btn flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
             :class="treeMode === 'rurik'
-              ? 'bg-gold text-obsidian font-bold'
+              ? 'tree-demo__switcher-btn--active bg-gold text-obsidian font-bold'
               : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gold hover:border-gold/30'"
           >
             <Crown class="w-4 h-4" />
@@ -82,24 +82,24 @@ const handleCreateOwn = () => {
         </div>
 
         <!-- Stats -->
-        <div class="flex flex-wrap justify-center gap-8 mb-8">
-          <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ currentStats.generations }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">поколений</div>
+        <div class="tree-demo__stats flex flex-wrap justify-center gap-8 mb-8">
+          <div class="tree-demo__stat text-center">
+            <div class="tree-demo__stat-value text-3xl md:text-4xl font-serif text-gold">{{ currentStats.generations }}</div>
+            <div class="tree-demo__stat-label text-xs text-gray-500 uppercase tracking-widest mt-1">поколений</div>
           </div>
-          <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ currentStats.totalYears }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">лет истории</div>
+          <div class="tree-demo__stat text-center">
+            <div class="tree-demo__stat-value text-3xl md:text-4xl font-serif text-gold">{{ currentStats.totalYears }}</div>
+            <div class="tree-demo__stat-label text-xs text-gray-500 uppercase tracking-widest mt-1">лет истории</div>
           </div>
-          <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ localMembers.length }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">человек в древе</div>
+          <div class="tree-demo__stat text-center">
+            <div class="tree-demo__stat-value text-3xl md:text-4xl font-serif text-gold">{{ localMembers.length }}</div>
+            <div class="tree-demo__stat-label text-xs text-gray-500 uppercase tracking-widest mt-1">человек в древе</div>
           </div>
         </div>
       </div>
 
       <!-- Tree Container -->
-      <div class="h-[500px] md:h-[600px] rounded-3xl border border-white/10 overflow-hidden bg-charcoal/50 relative">
+      <div class="tree-demo__canvas h-[500px] md:h-[600px] rounded-3xl border border-white/10 overflow-hidden bg-charcoal/50 relative">
         <FamilyTree
           :key="treeMode"
           :members="localMembers"
@@ -111,22 +111,22 @@ const handleCreateOwn = () => {
       </div>
 
       <!-- Key Events Timeline -->
-      <div class="mt-12 overflow-x-auto pb-4">
-        <div class="flex gap-4 min-w-max">
+      <div class="tree-demo__timeline mt-12 overflow-x-auto pb-4">
+        <div class="tree-demo__timeline-inner flex gap-4 min-w-max">
           <div
             v-for="event in currentStats.keyEvents"
             :key="event.year"
-            class="flex-shrink-0 px-4 py-3 bg-white/5 rounded-lg border border-white/10"
+            class="tree-demo__event flex-shrink-0 px-4 py-3 bg-white/5 rounded-lg border border-white/10"
           >
-            <span class="text-gold font-mono text-sm">{{ event.year }}</span>
-            <span class="text-gray-400 text-sm ml-2">{{ event.event }}</span>
+            <span class="tree-demo__event-year text-gold font-mono text-sm">{{ event.year }}</span>
+            <span class="tree-demo__event-text text-gray-400 text-sm ml-2">{{ event.event }}</span>
           </div>
         </div>
       </div>
 
       <!-- CTA -->
-      <div class="mt-12 text-center">
-        <p class="text-gray-400 mb-6">
+      <div class="tree-demo__cta mt-12 text-center">
+        <p class="tree-demo__cta-text text-gray-400 mb-6">
           Понравилось? Создайте свой семейный архив и сохраняйте историю навсегда
         </p>
         <BaseButton size="lg" @click="handleCreateOwn">
