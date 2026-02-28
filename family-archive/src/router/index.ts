@@ -7,6 +7,7 @@ import type { Capability } from '@/modules/access/constants/roles'
 // Lazy load components
 const LandingPage = () => import('@/pages/LandingPage.vue')
 const MemoryViewer = () => import('@/pages/MemoryViewer.vue')
+const TreeViewer = () => import('@/pages/TreeViewer.vue')
 const EditorDashboard = () => import('@/pages/EditorDashboard.vue')
 const SettingsPage = () => import('@/pages/SettingsPage.vue')
 const AuthPage = () => import('@/pages/AuthPage.vue')
@@ -154,6 +155,11 @@ const routes: Array<RouteRecordRaw> = [
     component: MemoryViewer,
   },
   {
+    path: '/archive/:id/tree',
+    name: 'TreeViewer',
+    component: TreeViewer,
+  },
+  {
     path: '/:id',
     name: 'MemoryViewerRoot',
     component: MemoryViewer,
@@ -163,7 +169,7 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     return new Promise((resolve) => {
       setTimeout(() => {
         if (savedPosition) {

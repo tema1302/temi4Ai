@@ -54,9 +54,12 @@ interface Props {
   relations: FamilyRelation[]
   familyName: string
   rootMemberId?: string
+  selectable?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  selectable: false
+})
 const emit = defineEmits<{
   selectMember: [memberId: string]
   addRelation: [data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }]
@@ -379,6 +382,7 @@ const buildTree = (force = false) => {
         years: `${member.birthDate} ${member.deathDate ? '- ' + member.deathDate : ''}`,
         displayRole: calculatedRole,
         photoUrl: member.photoUrl,
+        selectable: props.selectable,
         onAddRelative: (relationType: 'parent' | 'child' | 'spouse' | 'sibling', gender?: 'male' | 'female') => {
           emit('addRelation', { memberId: member.id, relationType, gender })
         }
@@ -496,7 +500,7 @@ watch(
 )
 
 onNodeClick(({ node }) => {
-  if (node.data.isFilled && node.data.member) {
+  if (props.selectable && node.data.isFilled && node.data.member) {
     emit('selectMember', node.data.member.id)
   }
 })

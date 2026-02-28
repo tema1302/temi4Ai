@@ -15,6 +15,7 @@ interface Props {
     generation?: number
     displayRole?: string
     photoUrl?: string
+    selectable?: boolean
     onAddRelative?: (relationType: 'parent' | 'child' | 'spouse' | 'sibling', gender?: 'male' | 'female') => void
   }
 }
@@ -257,8 +258,12 @@ const closeMenu = () => {
     </Transition>
 
     <div
-      class="family-node__content px-4 py-3 rounded-xl border-2 min-w-[160px] text-center cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-      :class="[nodeClasses, borderClasses]"
+      class="family-node__content px-4 py-3 rounded-xl border-2 min-w-[160px] text-center hover:scale-[1.02] active:scale-[0.98]"
+      :class="[
+        nodeClasses,
+        borderClasses,
+        { 'cursor-pointer': data.selectable }
+      ]"
     >
     <!-- Filled State -->
     <div v-if="data.isFilled" class="family-node__info-wrapper flex flex-col gap-2">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import HeroSection from '@/components/viewer/HeroSection.vue'
@@ -9,13 +9,16 @@ import TimelineSection from '@/components/viewer/TimelineSection.vue'
 import PhotoGalleryModal from '@/components/viewer/PhotoGalleryModal.vue'
 import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import type { FamilyArchive } from '@/modules/family/domain/models'
+import { GitBranch, Copy, Check } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const store = useMemoryStore()
 
 const familyId = computed(() => route.params.id as string)
 const isLoading = ref(true)
 const notFound = ref(false)
+const shareCopied = ref(false)
 
 // Gallery State
 const isGalleryOpen = ref(false)
@@ -109,6 +112,31 @@ const setActiveMember = (id: string) => {
   store.setActiveMember(id)
   window.scrollTo({ top: 0 })
 }
+
+// Navigate to tree view
+const goToTree = () => {
+  router.push(`/archive/${familyId.value}/tree`)
+}
+
+// Share tree link
+const shareTreeUrl = computed(() => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/archive/${familyId.value}/tree`
+  }
+  return ''
+})
+
+const copyTreeLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareTreeUrl.value)
+    shareCopied.value = true
+    setTimeout(() => {
+      shareCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
 </script>
 
 <template>
@@ -146,29 +174,89 @@ const setActiveMember = (id: string) => {
       
       <!-- Member Navigation (Sticky) -->
       <div v-if="store.members.length > 1" class="sticky top-0 z-50 bg-obsidian/95 border-b border-white/10 py-4 overflow-x-auto">
-        <div class="container mx-auto px-4 flex justify-center gap-4">
-          <button 
-            v-for="member in store.members" 
-            :key="member.id"
-            @click="setActiveMember(member.id)"
-            class="flex items-center gap-2 px-4 py-2 rounded-full transition-all border"
-            :class="store.activeMemberId === member.id 
-              ? 'bg-gold/20 border-gold text-gold' 
-              : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-silk'"
-          >
-            <div class="w-6 h-6 rounded-full overflow-hidden bg-charcoal">
-              <img
-                v-if="member.photoUrl"
-                :src="member.photoUrl"
-                loading="lazy"
-                decoding="async"
-                class="w-full h-full object-cover"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center text-[10px] text-gray-500">
-                {{ member.name[0] || '?' }}
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <!-- Member Buttons -->
+          <div class="flex justify-center gap-2 flex-wrap">
+            <button
+              v-for="member in store.members"
+              :key="member.id"
+              @click="setActiveMember(member.id)"
+              class="flex items-center gap-2 px-4 py-2 rounded-full transition-all border"
+              :class="store.activeMemberId === member.id
+                ? 'bg-gold/20 border-gold text-gold'
+                : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-silk'"
+            >
+              <div class="w-6 h-6 rounded-full overflow-hidden bg-charcoal">
+                <img
+                  v-if="member.photoUrl"
+                  :src="member.photoUrl"
+                  loading="lazy"
+                  decoding="async"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-[10px] text-gray-500">
+                  {{ member.name[0] || '?' }}
+                </div>
               </div>
-            </div>
-            <span class="text-sm font-medium whitespace-nowrap">{{ member.name }}</span>
+              <span class="text-sm font-medium whitespace-nowrap">{{ member.name }}</span>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2">
+            <!-- Tree View Button -->
+            <button
+              @click="goToTree"
+              class="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold hover:bg-gold/20 transition-colors"
+            >
+              <GitBranch class="w-4 h-4" />
+              <span class="text-sm font-medium">Семейное древо</span>
+            </button>
+
+            <!-- Share Button -->
+            <button
+              @click="copyTreeLink"
+              class="flex items-center gap-2 px-4 py-2 rounded-full transition-all border"
+              :class="shareCopied
+                ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+              :title="shareTreeUrl"
+            >
+              <Check v-if="shareCopied" class="w-4 h-4" />
+              <Copy v-else class="w-4 h-4" />
+              <span class="text-sm font-medium hidden sm:inline">
+                {{ shareCopied ? 'Скопировано!' : 'Поделиться древом' }}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons (shown when only one member or as secondary) -->
+      <div v-if="store.members.length === 1" class="sticky top-0 z-50 bg-obsidian/95 border-b border-white/10 py-4">
+        <div class="container mx-auto px-4 flex justify-center gap-3">
+          <!-- Tree View Button -->
+          <button
+            @click="goToTree"
+            class="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold hover:bg-gold/20 transition-colors"
+          >
+            <GitBranch class="w-4 h-4" />
+            <span class="text-sm font-medium">Семейное древо</span>
+          </button>
+
+          <!-- Share Button -->
+          <button
+            @click="copyTreeLink"
+            class="flex items-center gap-2 px-4 py-2 rounded-full transition-all border"
+            :class="shareCopied
+              ? 'bg-green-500/20 border-green-500/50 text-green-400'
+              : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+          >
+            <Check v-if="shareCopied" class="w-4 h-4" />
+            <Copy v-else class="w-4 h-4" />
+            <span class="text-sm font-medium">
+              {{ shareCopied ? 'Скопировано!' : 'Поделиться древом' }}
+            </span>
           </button>
         </div>
       </div>
