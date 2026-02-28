@@ -655,6 +655,15 @@ onNodeClick(({ node }) => {
   /* Removed stroke-dasharray for better performance */
 }
 
+/* Optimize rendering for many nodes */
+.vue-flow {
+  contain: strict;
+}
+
+.vue-flow__viewport {
+  contain: content;
+}
+
 .vue-flow__controls {
   background: #24242d;
   border: 1px solid rgba(255,255,255,0.1);

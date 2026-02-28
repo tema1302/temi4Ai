@@ -8,7 +8,8 @@
       "Bash(tail:*)",
       "Bash(true:*)",
       "Bash(cd:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(timeout 10 npm run:*)"
     ]
   }
 }

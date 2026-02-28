@@ -5,8 +5,8 @@ defineProps<{
 </script>
 
 <template>
-  <div 
-    class="animate-pulse bg-white/10 rounded" 
+  <div
+    class="skeleton animate-pulse bg-white/10 rounded"
     :class="className"
   ></div>
 </template>

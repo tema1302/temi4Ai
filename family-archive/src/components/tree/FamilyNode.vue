@@ -595,5 +595,11 @@ const closeMenu = () => {
 
 .family-node {
   position: relative;
+  contain: layout style;
+}
+
+/* Optimize VueFlow node rendering */
+.vue-flow__node {
+  contain: layout style;
 }
 </style>

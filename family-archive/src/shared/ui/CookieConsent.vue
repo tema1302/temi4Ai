@@ -36,12 +36,12 @@ const enableAnalytics = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed bottom-0 left-0 right-0 bg-charcoal border-t border-white/10 p-4 z-50 animate-slide-up">
-    <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-      <p class="text-sm text-gray-400 text-center md:text-left">
-        Мы используем файлы <router-link to="/cookie-rules" class="text-gold hover:underline">Cookie</router-link> для анализа работы сервиса. 
-        Продолжая, вы соглашаетесь с нашей 
-        <router-link to="/privacy" class="text-gold hover:underline">политикой конфиденциальности</router-link>.
+  <div v-if="isOpen" class="cookie-consent fixed bottom-0 left-0 right-0 bg-charcoal border-t border-white/10 p-4 z-50 animate-slide-up">
+    <div class="cookie-consent__inner container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="cookie-consent__text text-sm text-gray-400 text-center md:text-left">
+        Мы используем файлы <router-link to="/cookie-rules" class="cookie-consent__link text-gold hover:underline">Cookie</router-link> для анализа работы сервиса.
+        Продолжая, вы соглашаетесь с нашей
+        <router-link to="/privacy" class="cookie-consent__link text-gold hover:underline">политикой конфиденциальности</router-link>.
       </p>
       <BaseButton size="sm" @click="accept">
         Хорошо
@@ -51,7 +51,7 @@ const enableAnalytics = () => {
 </template>
 
 <style scoped>
-.animate-slide-up {
+.cookie-consent {
   animation: slideUp 0.5s ease-out;
 }
 @keyframes slideUp {

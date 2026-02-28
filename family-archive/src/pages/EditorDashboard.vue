@@ -700,8 +700,8 @@ const planName = computed(() => {
                   </div>
 
                   <div @click="selectMemberForPreview(member.id)" class="dashboard__member-inner cursor-pointer">
-                    <div class="dashboard__member-image-wrapper aspect-[3/4] max-h-[350px] rounded-2xl overflow-hidden border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
-                       <img v-if="member.photoUrl" :src="member.photoUrl" class="dashboard__member-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div class="dashboard__member-image-wrapper aspect-[3/4] max-h-[350px] rounded-2xl border-2 border-white/5 group-hover:border-gold/50 transition-all mb-4 relative shadow-2xl">
+                       <img v-if="member.photoUrl" :src="member.photoUrl" loading="lazy" decoding="async" class="dashboard__member-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                        <div v-else class="dashboard__member-placeholder w-full h-full bg-white/5 flex items-center justify-center text-4xl text-gray-600 font-serif">{{ member.name[0] }}</div>
                        <div class="dashboard__member-overlay absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60"></div>
                        <div class="dashboard__member-action absolute inset-0 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
@@ -744,7 +744,7 @@ const planName = computed(() => {
           </div>
 
           <!-- Member Editor -->
-          <div v-else-if="isAtMemberEditor" class="dashboard__editor-view max-w-4xl mx-auto w-full pb-20">
+          <div v-if="isAtMemberEditor" class="dashboard__editor-view max-w-4xl mx-auto w-full pb-20">
              <div class="dashboard__editor-header flex items-center justify-end mb-8 pb-4 border-b border-white/5">
                 <div class="dashboard__editor-actions flex gap-3">
                    <BaseButton variant="ghost" @click="store.toggleEditing" class="dashboard__editor-toggle">
@@ -764,7 +764,7 @@ const planName = computed(() => {
           </div>
 
           <!-- Access Management View -->
-          <div v-else-if="isAtAccessManager" class="dashboard__access-view max-w-3xl mx-auto w-full py-10">
+          <div v-if="isAtAccessManager" class="dashboard__access-view max-w-3xl mx-auto w-full py-10">
              <div class="dashboard__access-header flex items-center justify-between mb-8">
                 <div class="dashboard__access-info">
                    <h2 class="dashboard__access-title text-2xl font-serif text-silk">Участники архива</h2>
@@ -909,7 +909,7 @@ const planName = computed(() => {
                 />
              </div>
              <MobileMemberEditor
-               v-else-if="isAtMemberEditor"
+               v-if="isAtMemberEditor"
                :member-id="route.params.memberId as string"
                :family-name="store.familyName"
                @back="backToMemberList"
