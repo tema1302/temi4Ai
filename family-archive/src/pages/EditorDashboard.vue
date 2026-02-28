@@ -23,7 +23,7 @@ import { useAnalytics } from '@/composables/useAnalytics'
 import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
 import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Trash2, Eye, Plus, Share2, Users, Check } from 'lucide-vue-next'
+import { Trash2, Eye, Plus, Share2, Users, Check, Search } from 'lucide-vue-next'
 import type { RelationType } from '@/modules/family/domain/models'
 
 const store = useMemoryStore()
@@ -42,6 +42,9 @@ const newFamilyName = ref('')
 const isSaving = ref(false)
 const showSaved = ref(false)
 const showPricing = ref(false)
+
+// Desktop search
+const desktopSearchQuery = ref('')
 
 // Sharing state
 const shareTreeCopied = ref(false)
@@ -449,6 +452,13 @@ const planName = computed(() => {
     default: return 'Базовый'
   }
 })
+
+// Desktop filtered members
+const desktopFilteredMembers = computed(() => {
+  if (!desktopSearchQuery.value) return store.members
+  const query = desktopSearchQuery.value.toLowerCase()
+  return store.members.filter(m => m.name.toLowerCase().includes(query))
+})
 </script>
 
 <template>
@@ -678,27 +688,53 @@ const planName = computed(() => {
           </div>
 
           <!-- View Toggle Area -->
-          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__toggle-area flex items-center justify-center gap-4 md:gap-6 mb-12 shrink-0">
-             <!-- Share Button -->
-             <button
-               @click="copyTreeLink"
-               class="flex items-center gap-2 px-4 py-2 rounded-xl transition-all"
-               :class="shareTreeCopied
-                 ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                 : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
-             >
-               <Check v-if="shareTreeCopied" class="w-4 h-4" />
-               <Share2 v-else class="w-4 h-4" />
-               <span class="text-sm font-medium hidden sm:inline">{{ shareTreeCopied ? 'Скопировано!' : 'Поделиться' }}</span>
-             </button>
+          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__toggle-area relative flex items-center justify-center mb-8 shrink-0">
+             <!-- Left: Share Button (absolute) -->
+             <div class="absolute left-0 flex items-center gap-3">
+               <button
+                 @click="copyTreeLink"
+                 class="flex items-center gap-2 px-4 py-2 rounded-xl transition-all"
+                 :class="shareTreeCopied
+                   ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                   : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+               >
+                 <Check v-if="shareTreeCopied" class="w-4 h-4" />
+                 <Share2 v-else class="w-4 h-4" />
+                 <span class="text-sm font-medium hidden sm:inline">{{ shareTreeCopied ? 'Скопировано!' : 'Поделиться' }}</span>
+               </button>
+             </div>
+
+             <!-- Center: ViewToggle -->
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
-             <BaseButton v-if="route.name === 'ArchiveList' && access.canEditTree.value" size="sm" @click="addMember" class="dashboard__add-btn-desktop">
-                <Plus class="w-4 h-4 mr-2" :stroke-width="3" /> Добавить человека
-             </BaseButton>
+
+             <!-- Right: Add Button (absolute) -->
+             <div v-if="route.name === 'ArchiveList' && access.canEditTree.value" class="absolute right-0">
+               <BaseButton size="sm" @click="addMember" class="dashboard__add-btn-desktop">
+                  <Plus class="w-4 h-4 mr-2" :stroke-width="3" /> Добавить человека
+               </BaseButton>
+             </div>
           </div>
 
           <!-- Cards List -->
           <div v-show="route.name === 'ArchiveList'" class="dashboard__member-list flex-1">
+            <!-- Desktop Search & Count -->
+            <div v-if="!store.isFetching && store.members.length > 0" class="dashboard__list-header flex items-center justify-between mb-6 max-w-[1600px] mx-auto">
+              <div class="flex items-center gap-4">
+                <div class="relative">
+                  <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  <input
+                    v-model="desktopSearchQuery"
+                    type="text"
+                    placeholder="Поиск по имени..."
+                    class="w-64 pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors text-sm"
+                  />
+                </div>
+              </div>
+              <div class="text-sm text-gray-500">
+                {{ desktopFilteredMembers.length }} {{ desktopFilteredMembers.length === 1 ? 'человек' : desktopFilteredMembers.length > 1 && desktopFilteredMembers.length < 5 ? 'человека' : 'человек' }}
+              </div>
+            </div>
+
             <div v-if="store.isFetching" class="dashboard__member-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-8 max-w-[1600px] mx-auto">
                <div v-for="i in 5" :key="i" class="dashboard__member-skeleton space-y-4">
                   <Skeleton className="aspect-[3/4] rounded-2xl w-full" />
@@ -709,12 +745,15 @@ const planName = computed(() => {
               <h3 class="dashboard__empty-title text-2xl font-serif text-silk mb-6">В архиве пока пусто</h3>
               <BaseButton v-if="access.canEditTree.value" @click="addMember" class="dashboard__add-btn">+ Добавить человека</BaseButton>
             </div>
+            <div v-else-if="desktopFilteredMembers.length === 0" class="text-center py-20 text-gray-500">
+              Никого не найдено
+            </div>
             <div v-else class="dashboard__member-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-8 max-w-[1600px] mx-auto">
-               <div v-for="member in store.members" :key="member.id" class="dashboard__member-card group relative">
+               <div v-for="member in desktopFilteredMembers" :key="member.id" class="dashboard__member-card group relative">
                   <!-- Floating Action Buttons -->
                   <div class="absolute -top-2 -right-2 z-20 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                     <!-- Public View Link -->
-                    <a 
+                    <a
                       :href="`/${currentArchiveId}?member=${member.id}`"
                       target="_blank"
                       class="w-8 h-8 bg-gold text-charcoal rounded-full flex items-center justify-center hover:scale-110 shadow-xl"
@@ -725,7 +764,7 @@ const planName = computed(() => {
                     </a>
 
                     <!-- Delete Button -->
-                    <button 
+                    <button
                       v-if="access.canEditTree.value"
                       @click.stop="handleDeleteMemberById(member.id, member.name)"
                       class="dashboard__member-delete w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-110 shadow-xl"
@@ -920,11 +959,19 @@ const planName = computed(() => {
                    <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
              </button>
-             <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate ml-3">{{ store.familyName }}</span>
+             <span class="dashboard__mobile-family-name text-silk font-serif text-sm truncate ml-3 flex-1">{{ store.familyName }}</span>
+             <!-- Access Button -->
+             <button
+               @click="router.push({ name: 'AccessManagement', params: { archiveId: currentArchiveId } })"
+               class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all flex-shrink-0"
+               title="Управление доступом"
+             >
+                <Users class="w-5 h-5" />
+             </button>
           </div>
 
           <!-- Mobile View Toggle -->
-          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__mobile-toggle px-4 py-3 flex items-center justify-center gap-4 bg-charcoal/50 border-b border-white/5 shrink-0">
+          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__mobile-toggle px-4 py-3 flex items-center justify-between gap-4 bg-charcoal/50 border-b border-white/5 shrink-0">
              <!-- Share Button -->
              <button
                @click="copyTreeLink"
@@ -937,6 +984,8 @@ const planName = computed(() => {
                <Share2 v-else class="w-4 h-4" />
                <span class="text-xs font-medium">{{ shareTreeCopied ? 'Готово!' : 'Поделиться' }}</span>
              </button>
+
+             <!-- ViewToggle in center -->
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
           </div>
           
@@ -966,6 +1015,64 @@ const planName = computed(() => {
                @assign-on-tree="handleAssignOnTree"
                class="dashboard__mobile-editor"
              />
+
+             <!-- Mobile Access Management View -->
+             <div v-if="isAtAccessManager" class="dashboard__mobile-access flex-1 overflow-y-auto p-4">
+                <div class="dashboard__mobile-access-header flex items-center justify-between mb-6">
+                   <div>
+                      <h2 class="text-xl font-serif text-silk">Участники архива</h2>
+                      <p class="text-gray-400 text-xs mt-1">Приглашайте близких для совместной работы</p>
+                   </div>
+                   <BaseButton v-if="access.canManageUsers.value" size="sm" @click="showInviteModal = true">
+                      + Пригласить
+                   </BaseButton>
+                </div>
+
+                <!-- List of current participants -->
+                <div class="space-y-3">
+                   <BaseCard class="p-4 bg-white/5 border-white/5 flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                         <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold text-sm">
+                           {{ authStore.user?.email?.[0]?.toUpperCase() || 'Я' }}
+                         </div>
+                         <div>
+                            <p class="text-silk font-medium text-sm">{{ authStore.user?.email }}</p>
+                            <p class="text-[10px] text-gold uppercase tracking-widest font-bold">Владелец</p>
+                         </div>
+                      </div>
+                      <div class="text-xs text-gray-500">
+                         Полный доступ
+                      </div>
+                   </BaseCard>
+
+                   <p v-if="permissions.members.length === 0" class="text-center py-8 text-gray-500 italic border border-dashed border-white/5 rounded-xl text-sm">
+                     Пока нет других участников.
+                   </p>
+
+                   <BaseCard
+                     v-for="perm in permissions.members"
+                     :key="perm.user_id"
+                     class="p-4 bg-white/5 border-white/5 flex items-center justify-between"
+                   >
+                      <div class="flex items-center gap-3">
+                         <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-400 font-bold text-sm">
+                           {{ perm.email?.[0]?.toUpperCase() || '?' }}
+                         </div>
+                         <div>
+                            <p class="text-silk font-medium text-sm">{{ perm.email }}</p>
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest">{{ perm.role === 'admin' ? 'Администратор' : 'Редактор' }}</p>
+                         </div>
+                      </div>
+                      <button
+                        v-if="access.canManageUsers.value"
+                        @click="handleRemovePermission(perm.user_id)"
+                        class="text-red-400 hover:text-red-300 text-xs"
+                      >
+                        Удалить
+                      </button>
+                   </BaseCard>
+                </div>
+             </div>
 
              <!-- FAB for adding member (Mobile) -->
              <button
