@@ -23,7 +23,7 @@ import { useAnalytics } from '@/composables/useAnalytics'
 import { usePermissionsStore } from '@/modules/access/store/usePermissionsStore'
 import { useAuthAccess } from '@/modules/access/composables/useAuthAccess'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Trash2, Eye, Plus } from 'lucide-vue-next'
+import { Trash2, Eye, Plus, Share2, Users, Check } from 'lucide-vue-next'
 import type { RelationType } from '@/modules/family/domain/models'
 
 const store = useMemoryStore()
@@ -42,6 +42,30 @@ const newFamilyName = ref('')
 const isSaving = ref(false)
 const showSaved = ref(false)
 const showPricing = ref(false)
+
+// Sharing state
+const shareTreeCopied = ref(false)
+
+// Share URL for tree
+const shareTreeUrl = computed(() => {
+  if (typeof window !== 'undefined' && store.currentFamily?.id) {
+    return `${window.location.origin}/archive/${store.currentFamily.id}/tree`
+  }
+  return ''
+})
+
+const copyTreeLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareTreeUrl.value)
+    shareTreeCopied.value = true
+    trackEvent('share_tree', { family_id: store.currentFamily?.id })
+    setTimeout(() => {
+      shareTreeCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
 
 // Active route state
 const isAtDashboard = computed(() => route.name === 'ArchiveDashboard')
@@ -654,7 +678,19 @@ const planName = computed(() => {
           </div>
 
           <!-- View Toggle Area -->
-          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__toggle-area flex items-center justify-center gap-6 mb-12 shrink-0">
+          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__toggle-area flex items-center justify-center gap-4 md:gap-6 mb-12 shrink-0">
+             <!-- Share Button -->
+             <button
+               @click="copyTreeLink"
+               class="flex items-center gap-2 px-4 py-2 rounded-xl transition-all"
+               :class="shareTreeCopied
+                 ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                 : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+             >
+               <Check v-if="shareTreeCopied" class="w-4 h-4" />
+               <Share2 v-else class="w-4 h-4" />
+               <span class="text-sm font-medium hidden sm:inline">{{ shareTreeCopied ? 'Скопировано!' : 'Поделиться' }}</span>
+             </button>
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
              <BaseButton v-if="route.name === 'ArchiveList' && access.canEditTree.value" size="sm" @click="addMember" class="dashboard__add-btn-desktop">
                 <Plus class="w-4 h-4 mr-2" :stroke-width="3" /> Добавить человека
@@ -888,7 +924,19 @@ const planName = computed(() => {
           </div>
 
           <!-- Mobile View Toggle -->
-          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__mobile-toggle px-4 py-3 flex justify-center bg-charcoal/50 border-b border-white/5 shrink-0">
+          <div v-if="!isAtMemberEditor && !isAtAccessManager" class="dashboard__mobile-toggle px-4 py-3 flex items-center justify-center gap-4 bg-charcoal/50 border-b border-white/5 shrink-0">
+             <!-- Share Button -->
+             <button
+               @click="copyTreeLink"
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all"
+               :class="shareTreeCopied
+                 ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                 : 'bg-white/5 border border-white/10 text-gray-400'"
+             >
+               <Check v-if="shareTreeCopied" class="w-4 h-4" />
+               <Share2 v-else class="w-4 h-4" />
+               <span class="text-xs font-medium">{{ shareTreeCopied ? 'Готово!' : 'Поделиться' }}</span>
+             </button>
              <ViewToggle :modelValue="store.viewMode" @update:modelValue="handleViewChange" />
           </div>
           

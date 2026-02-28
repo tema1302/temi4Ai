@@ -7,7 +7,7 @@ import EditorPreview from '@/components/editor/EditorPreview.vue'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Eye, Edit2, Trash2, Plus, ArrowLeft, X, RefreshCw, Link, Share2, Check, Users } from 'lucide-vue-next'
+import { Eye, Edit2, Trash2, Plus, ArrowLeft, X, RefreshCw, Link } from 'lucide-vue-next'
 
 const props = defineProps<{
   memberId: string
@@ -29,55 +29,10 @@ const uploadType = ref<'main' | 'gallery'>('main')
 const viewMode = ref<'edit' | 'preview'>('edit')
 const replacePhotoIndex = ref<number | null>(null)
 
-// Sharing state
-const shareProfileCopied = ref(false)
-const shareTreeCopied = ref(false)
-
 const currentMember = computed(() => {
   return store.members.find(m => m.id === props.memberId) || store.activeMember
 })
 const errors = ref({ name: '' })
-
-// Share URLs
-const shareProfileUrl = computed(() => {
-  if (typeof window !== 'undefined' && store.currentFamily?.id && currentMember.value) {
-    return `${window.location.origin}/archive/${store.currentFamily.id}?member=${currentMember.value.id}`
-  }
-  return ''
-})
-
-const shareTreeUrl = computed(() => {
-  if (typeof window !== 'undefined' && store.currentFamily?.id) {
-    return `${window.location.origin}/archive/${store.currentFamily.id}/tree`
-  }
-  return ''
-})
-
-const copyProfileLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareProfileUrl.value)
-    shareProfileCopied.value = true
-    trackEvent('share_profile_mobile', { member_id: currentMember.value?.id })
-    setTimeout(() => {
-      shareProfileCopied.value = false
-    }, 2000)
-  } catch (err) {
-    console.error('Failed to copy:', err)
-  }
-}
-
-const copyTreeLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareTreeUrl.value)
-    shareTreeCopied.value = true
-    trackEvent('share_tree_mobile', { family_id: store.currentFamily?.id })
-    setTimeout(() => {
-      shareTreeCopied.value = false
-    }, 2000)
-  } catch (err) {
-    console.error('Failed to copy:', err)
-  }
-}
 
 const updateField = (field: string, value: any) => {
   store.updateMember(props.memberId, { [field]: value })
@@ -392,32 +347,6 @@ const handleDelete = async () => {
             </div>
             <span class="text-gold">→</span>
           </button>
-
-          <!-- Share buttons -->
-          <div class="grid grid-cols-2 gap-2 mt-3">
-            <button
-              @click="copyProfileLink"
-              class="p-3 rounded-xl flex items-center justify-center gap-2 transition-all"
-              :class="shareProfileCopied
-                ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'"
-            >
-              <Check v-if="shareProfileCopied" class="w-4 h-4" />
-              <Share2 v-else class="w-4 h-4" />
-              <span class="text-xs font-medium">{{ shareProfileCopied ? 'Готово!' : 'Профиль' }}</span>
-            </button>
-            <button
-              @click="copyTreeLink"
-              class="p-3 rounded-xl flex items-center justify-center gap-2 transition-all"
-              :class="shareTreeCopied
-                ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'"
-            >
-              <Check v-if="shareTreeCopied" class="w-4 h-4" />
-              <Users v-else class="w-4 h-4" />
-              <span class="text-xs font-medium">{{ shareTreeCopied ? 'Готово!' : 'Древо' }}</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -433,7 +362,7 @@ const handleDelete = async () => {
           :modelValue="currentMember.deathDate || ''"
           @update:modelValue="updateField('deathDate', $event)"
           type="date"
-          label="Дата ухода"
+          label="Дата ухода (если больше с нами нет)"
         />
       </div>
 

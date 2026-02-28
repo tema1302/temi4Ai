@@ -7,7 +7,7 @@ import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Trash2, Plus, Quote, GitBranch, Share2, Check, Users } from 'lucide-vue-next'
+import { Trash2, Plus, Quote, GitBranch, User, Edit2, X } from 'lucide-vue-next'
 import { ROLE_DICTIONARY } from '@/shared/utils/roleDictionary'
 
 const emit = defineEmits<{
@@ -21,51 +21,6 @@ const dialogs = useDialogStore()
 const { trackEvent } = useAnalytics()
 const currentMember = computed(() => store.activeMember)
 const isDragging = ref(false)
-
-// Sharing state
-const shareProfileCopied = ref(false)
-const shareTreeCopied = ref(false)
-
-// Share URLs
-const shareProfileUrl = computed(() => {
-  if (typeof window !== 'undefined' && store.currentFamily?.id && currentMember.value) {
-    return `${window.location.origin}/archive/${store.currentFamily.id}?member=${currentMember.value.id}`
-  }
-  return ''
-})
-
-const shareTreeUrl = computed(() => {
-  if (typeof window !== 'undefined' && store.currentFamily?.id) {
-    return `${window.location.origin}/archive/${store.currentFamily.id}/tree`
-  }
-  return ''
-})
-
-const copyProfileLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareProfileUrl.value)
-    shareProfileCopied.value = true
-    trackEvent('share_profile', { member_id: currentMember.value?.id })
-    setTimeout(() => {
-      shareProfileCopied.value = false
-    }, 2000)
-  } catch (err) {
-    console.error('Failed to copy:', err)
-  }
-}
-
-const copyTreeLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareTreeUrl.value)
-    shareTreeCopied.value = true
-    trackEvent('share_tree', { family_id: store.currentFamily?.id })
-    setTimeout(() => {
-      shareTreeCopied.value = false
-    }, 2000)
-  } catch (err) {
-    console.error('Failed to copy:', err)
-  }
-}
 
 const mainPhotoInput = ref<HTMLInputElement | null>(null)
 const galleryInput = ref<HTMLInputElement | null>(null)
@@ -262,7 +217,56 @@ const removeLifeEvent = (index: number) => {
 
     <!-- Form Fields -->
     <div v-if="currentMember" class="space-y-8 pb-10">
-      
+
+      <!-- Main Photo (at top - like mobile version) -->
+      <div class="flex flex-col items-center">
+        <div class="relative group">
+          <div
+            @click="mainPhotoInput?.click()"
+            class="w-32 h-32 rounded-full border-2 border-gold/30 overflow-hidden bg-white/5 cursor-pointer shadow-xl shadow-gold/5 flex items-center justify-center"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="onDrop($event, false)"
+            :class="{ 'ring-2 ring-gold': isDragging }"
+          >
+            <img
+              v-if="currentMember.photoUrl"
+              :src="currentMember.photoUrl"
+              :alt="currentMember.name"
+              loading="lazy"
+              decoding="async"
+              class="w-full h-full object-cover"
+            >
+            <div v-else class="flex flex-col items-center justify-center gap-1 text-gray-500">
+              <User class="w-10 h-10" />
+              <span class="text-[10px] uppercase tracking-wider">Загрузить</span>
+            </div>
+            <!-- Overlay on hover -->
+            <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Edit2 class="w-6 h-6 text-white/70 mb-1" />
+              <span class="text-white/70 text-[10px] uppercase tracking-wider">
+                {{ currentMember.photoUrl ? 'Сменить' : 'Загрузить' }}
+              </span>
+            </div>
+          </div>
+          <!-- Remove main photo button -->
+          <button
+            v-if="currentMember.photoUrl"
+            @click.stop="removeMainPhoto"
+            class="absolute -top-1 -right-1 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <X class="w-4 h-4 text-white" />
+          </button>
+        </div>
+        <input
+          type="file"
+          ref="mainPhotoInput"
+          class="hidden"
+          accept="image/*"
+          @change="(e) => onFileChange(e, false)"
+        />
+      </div>
+
       <!-- Name -->
       <div>
         <label class="block text-sm text-gray-400 mb-2">Полное имя</label>
@@ -292,35 +296,6 @@ const removeLifeEvent = (index: number) => {
         >
           🧬 Назначить на древе (Связи)
         </button>
-
-        <!-- Share buttons -->
-        <div class="mt-4 grid grid-cols-2 gap-2">
-          <button
-            @click="copyProfileLink"
-            class="py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2"
-            :class="shareProfileCopied
-              ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-              : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
-            :title="shareProfileUrl"
-          >
-            <Check v-if="shareProfileCopied" class="w-3.5 h-3.5" />
-            <Share2 v-else class="w-3.5 h-3.5" />
-            <span>{{ shareProfileCopied ? 'Готово!' : 'Профиль' }}</span>
-          </button>
-          <button
-            @click="copyTreeLink"
-            class="py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2"
-            :class="shareTreeCopied
-              ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-              : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
-            :title="shareTreeUrl"
-          >
-            <Check v-if="shareTreeCopied" class="w-3.5 h-3.5" />
-            <Users v-else class="w-3.5 h-3.5" />
-            <span>{{ shareTreeCopied ? 'Готово!' : 'Древо' }}</span>
-          </button>
-        </div>
-        <p class="text-[10px] text-gray-500 text-center mt-1">Поделиться ссылкой</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -337,59 +312,13 @@ const removeLifeEvent = (index: number) => {
 
         <!-- Death Date -->
         <div>
-          <label class="block text-sm text-gray-400 mb-2">Дата ухода</label>
+          <label class="block text-sm text-gray-400 mb-2">Дата ухода (если больше с нами нет)</label>
           <input
             :value="currentMember.deathDate"
             @input="updateField('deathDate', ($event.target as HTMLInputElement).value)"
             type="date"
             class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk focus:outline-none focus:border-gold/50 transition-colors"
           />
-        </div>
-      </div>
-
-      <!-- Photo URL -->
-      <div>
-        <label class="block text-sm text-gray-400 mb-2">Основное фото</label>
-        <div class="flex gap-2 mb-2">
-           <input
-             :value="currentMember.photoUrl"
-             @input="updateField('photoUrl', ($event.target as HTMLInputElement).value)"
-             type="url"
-             placeholder="Введите URL фотографии"
-             class="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-silk text-sm focus:outline-none focus:border-gold/50"
-           />
-           <input
-             type="file"
-             ref="mainPhotoInput"
-             class="hidden"
-             accept="image/*"
-             @change="(e) => onFileChange(e, false)"
-           />
-           <BaseButton variant="secondary" size="sm" @click="setMainPhotoByUrl" title="Добавить по ссылке">
-             🔗
-           </BaseButton>
-           <BaseButton variant="secondary" size="sm" @click="mainPhotoInput?.click()">
-             📁 Загрузить
-           </BaseButton>
-           <BaseButton
-             v-if="currentMember.photoUrl"
-             variant="secondary"
-             size="sm"
-             @click="removeMainPhoto"
-             class="!border-red-500/30 !text-red-400 hover:!bg-red-500/10"
-             title="Удалить фото"
-           >
-             ✕
-           </BaseButton>
-        </div>
-        <div
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="onDrop($event, false)"
-          class="relative group h-20 border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center text-gray-500 text-xs hover:border-gold/30 hover:bg-gold/5 transition-all"
-          :class="{ 'border-gold bg-gold/5 ring-1 ring-gold/20': isDragging }"
-        >
-           {{ isDragging ? 'Отпустите для загрузки' : 'Или перетащите файл сюда' }}
         </div>
       </div>
 

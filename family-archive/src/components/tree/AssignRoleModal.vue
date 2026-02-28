@@ -19,14 +19,36 @@ const emit = defineEmits<{
 
 const getIcon = (role: string) => {
   const icons: Record<string, string> = {
-    father: '👴', mother: '👵', husband: '🤵', wife: '👰',
-    son: '👦', daughter: '👧', brother: '👱', sister: '👩',
-    parent: '👤', child: '👶', spouse: '💑', sibling: '👥'
+    // Родители
+    father: '👴', mother: '👵', parent: '👤',
+    // Дети
+    son: '👦', daughter: '👧', child: '👶',
+    // Супруги
+    husband: '🤵', wife: '👰', spouse: '💑',
+    // Братья/сёстры
+    brother: '👱', sister: '👩', sibling: '👥',
+    // Дедушки/бабушки
+    grandfather: '👴', grandmother: '👵',
+    // Внуки
+    grandson: '👦', granddaughter: '👧',
+    // Прадеды/прабабки
+    great_grandfather: '👴', great_grandmother: '👵',
+    // Правнуки
+    great_grandson: '👦', great_granddaughter: '👧',
+    // Дяди/тёти
+    uncle: '👨', aunt: '👩',
+    // Племянники
+    nephew: '👦', niece: '👧',
+    // Двоюродные
+    cousin_male: '👱', cousin_female: '👩',
+    // Дальние родственники
+    ancestor: '🏛️', descendant: '🌱'
   }
   return icons[role] || '👤'
 }
 
-const relationOptions = ROLE_DICTIONARY.filter(r => 
+// Фильтруем только конкретные роли (не общие типа "Родитель", "Ребёнок")
+const relationOptions = ROLE_DICTIONARY.filter(r =>
   !['parent', 'child', 'spouse', 'sibling'].includes(r.value)
 )
 
@@ -49,6 +71,17 @@ watch(() => props.isOpen, (isOpen) => {
       'sibling': 'brother',
       'brother': 'brother',
       'sister': 'sister',
+      // Новые роли
+      'grandfather': 'father',
+      'grandmother': 'mother',
+      'grandson': 'son',
+      'granddaughter': 'daughter',
+      'uncle': 'brother',
+      'aunt': 'sister',
+      'nephew': 'son',
+      'niece': 'daughter',
+      'cousin_male': 'brother',
+      'cousin_female': 'sister',
     }
     selectedRelation.value = roleMap[props.suggestedRole] || 'father'
   }
