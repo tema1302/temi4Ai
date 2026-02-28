@@ -218,10 +218,20 @@ const layoutNodes = (
   // Находим связи супругов для сортировки
   const spousePairs = new Map<string, string>()
   edgesList.forEach(edge => {
-    const isSpouse = edge.style?.stroke === '#ec4899'
-    if (isSpouse) {
+    if (edge.data?.relationType === 'spouse') {
       spousePairs.set(edge.source, edge.target)
       spousePairs.set(edge.target, edge.source)
+    }
+  })
+
+  // Находим связи сиблингов для сортировки
+  const siblingPairs = new Map<string, Set<string>>()
+  edgesList.forEach(edge => {
+    if (edge.data?.relationType === 'sibling') {
+      if (!siblingPairs.has(edge.source)) siblingPairs.set(edge.source, new Set())
+      if (!siblingPairs.has(edge.target)) siblingPairs.set(edge.target, new Set())
+      siblingPairs.get(edge.source)!.add(edge.target)
+      siblingPairs.get(edge.target)!.add(edge.source)
     }
   })
 
@@ -229,7 +239,7 @@ const layoutNodes = (
   const memberMap = new Map<string, FamilyMember>()
   members.forEach(m => memberMap.set(m.id, m))
 
-  // Сортируем узлы внутри поколения: супруги рядом, по дате рождения
+  // Сортируем узлы внутри поколения: супруги рядом, сиблинги рядом, по дате рождения
   genGroups.forEach((ids, gen) => {
     const sorted: string[] = []
     const used = new Set<string>()
@@ -254,6 +264,17 @@ const layoutNodes = (
       if (spouseId && !used.has(spouseId) && ids.includes(spouseId)) {
         sorted.push(spouseId)
         used.add(spouseId)
+      }
+
+      // Если есть сиблинги в том же поколении, добавляем их рядом
+      const siblings = siblingPairs.get(id)
+      if (siblings) {
+        siblings.forEach(siblingId => {
+          if (!used.has(siblingId) && ids.includes(siblingId)) {
+            sorted.push(siblingId)
+            used.add(siblingId)
+          }
+        })
       }
     })
 
@@ -406,7 +427,8 @@ const buildTree = (force = false) => {
       targetHandle,
       animated,
       style: edgeStyle,
-      type: edgeType
+      type: edgeType,
+      data: { relationType: relation.relationType }
     })
   })
 

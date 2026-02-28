@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import FamilyTree from '@/components/tree/FamilyTree.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import { RURIK_FAMILY_DEMO, RURIK_STATS } from '@/data/demoRurikTree'
+import { SIMPLE_FAMILY_DEMO, SIMPLE_FAMILY_STATS } from '@/data/demoSimpleFamily'
 import { useRouter } from 'vue-router'
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus, RefreshCw, Users, Crown } from 'lucide-vue-next'
 import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
 
 const router = useRouter()
 
+// Tree mode: 'rurik' or 'simple'
+const treeMode = ref<'rurik' | 'simple'>('simple')
+
+// Get current demo data based on mode
+const currentDemo = computed(() => treeMode.value === 'rurik' ? RURIK_FAMILY_DEMO : SIMPLE_FAMILY_DEMO)
+const currentStats = computed(() => treeMode.value === 'rurik' ? RURIK_STATS : SIMPLE_FAMILY_STATS)
+
 // Local reactive state (resets on page reload)
-const localMembers = ref<FamilyMember[]>(JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.members)))
-const localRelations = ref<FamilyRelation[]>(JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.relations)))
+const localMembers = ref<FamilyMember[]>(JSON.parse(JSON.stringify(currentDemo.value.members)))
+const localRelations = ref<FamilyRelation[]>(JSON.parse(JSON.stringify(currentDemo.value.relations)))
+
+// Watch for mode changes and reset data
+watch(treeMode, () => {
+  localMembers.value = JSON.parse(JSON.stringify(currentDemo.value.members))
+  localRelations.value = JSON.parse(JSON.stringify(currentDemo.value.relations))
+})
 
 // Generate unique ID
 const generateId = () => `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -37,8 +51,8 @@ const addMember = () => {
 
 // Reset to demo data
 const resetDemo = () => {
-  localMembers.value = JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.members))
-  localRelations.value = JSON.parse(JSON.stringify(RURIK_FAMILY_DEMO.relations))
+  localMembers.value = JSON.parse(JSON.stringify(currentDemo.value.members))
+  localRelations.value = JSON.parse(JSON.stringify(currentDemo.value.relations))
 }
 
 // Handle member selection (for demo, just log)
@@ -46,8 +60,42 @@ const handleSelectMember = (memberId: string) => {
   console.log('Selected member:', memberId)
 }
 
+// Calculate position for new member based on relation type
+// Only used when source member has a known position
+const calculateNewMemberPosition = (
+  sourceMemberId: string,
+  relationType: RelationType | 'child' | 'sibling'
+): { x: number; y: number } | undefined => {
+  const sourceMember = localMembers.value.find(m => m.id === sourceMemberId)
+  if (!sourceMember || !sourceMember.treePosition) return undefined
+
+  const { x, y } = sourceMember.treePosition
+  const offsetX = 230 // Node width + gap
+  const offsetY = 120 // Vertical gap
+
+  switch (relationType) {
+    case 'sibling':
+      // Place sibling to the right of source
+      return { x: x + offsetX, y }
+    case 'spouse':
+      // Place spouse to the right
+      return { x: x + offsetX, y }
+    case 'parent':
+      // Place parent above (lower Y = higher on screen)
+      return { x, y: y - offsetY }
+    case 'child':
+      // Place child below
+      return { x, y: y + offsetY }
+    default:
+      return { x: x + offsetX, y }
+  }
+}
+
 // Handle add relation
 const handleAddRelation = (data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }) => {
+  // Calculate position for new member
+  const newPosition = calculateNewMemberPosition(data.memberId, data.relationType)
+
   const newMember: FamilyMember = {
     id: generateId(),
     name: data.gender === 'male' ? 'Новый родственник' : 'Новая родственница',
@@ -61,6 +109,8 @@ const handleAddRelation = (data: { memberId: string; relationType: RelationType 
     relationship: '',
     gender: data.gender || 'male',
     photoUrl: '',
+    // Set calculated position
+    treePosition: newPosition,
   }
   localMembers.value.push(newMember)
 
@@ -105,14 +155,38 @@ const handleCreateOwn = () => {
           <span class="text-gold">В личном кабинете изменения сохраняются навсегда!</span>
         </p>
 
+        <!-- Tree Mode Switcher -->
+        <div class="flex justify-center gap-2 mb-8">
+          <button
+            @click="treeMode = 'simple'"
+            class="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+            :class="treeMode === 'simple'
+              ? 'bg-gold text-obsidian font-bold'
+              : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gold hover:border-gold/30'"
+          >
+            <Users class="w-4 h-4" />
+            Простая семья
+          </button>
+          <button
+            @click="treeMode = 'rurik'"
+            class="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+            :class="treeMode === 'rurik'
+              ? 'bg-gold text-obsidian font-bold'
+              : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gold hover:border-gold/30'"
+          >
+            <Crown class="w-4 h-4" />
+            Рюриковичи и Романовы
+          </button>
+        </div>
+
         <!-- Stats -->
         <div class="flex flex-wrap justify-center gap-8 mb-8">
           <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ RURIK_STATS.generations }}</div>
+            <div class="text-3xl md:text-4xl font-serif text-gold">{{ currentStats.generations }}</div>
             <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">поколений</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl md:text-4xl font-serif text-gold">{{ RURIK_STATS.totalYears }}</div>
+            <div class="text-3xl md:text-4xl font-serif text-gold">{{ currentStats.totalYears }}</div>
             <div class="text-xs text-gray-500 uppercase tracking-widest mt-1">лет истории</div>
           </div>
           <div class="text-center">
@@ -143,10 +217,11 @@ const handleCreateOwn = () => {
       <!-- Tree Container -->
       <div class="h-[500px] md:h-[600px] rounded-3xl border border-white/10 overflow-hidden bg-charcoal/50 relative">
         <FamilyTree
+          :key="treeMode"
           :members="localMembers"
           :relations="localRelations"
-          :family-name="RURIK_FAMILY_DEMO.name"
-          :root-member-id="RURIK_FAMILY_DEMO.rootMemberId"
+          :family-name="currentDemo.name"
+          :root-member-id="currentDemo.rootMemberId"
           @select-member="handleSelectMember"
           @add-relation="handleAddRelation"
           @add-member="addMember"
@@ -157,7 +232,7 @@ const handleCreateOwn = () => {
       <div class="mt-12 overflow-x-auto pb-4">
         <div class="flex gap-4 min-w-max">
           <div
-            v-for="event in RURIK_STATS.keyEvents"
+            v-for="event in currentStats.keyEvents"
             :key="event.year"
             class="flex-shrink-0 px-4 py-3 bg-white/5 rounded-lg border border-white/10"
           >
