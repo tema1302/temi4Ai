@@ -895,7 +895,16 @@ const planName = computed(() => {
              <!-- Mobile View Selector using router-view or conditions -->
              <MobileMemberList v-if="route.name === 'ArchiveList'" @select="selectMemberForPreview" @add="addMember" @delete="handleDeleteMemberById" class="dashboard__mobile-list" />
              <div v-else-if="route.name === 'ArchiveTree'" class="dashboard__mobile-tree h-full relative">
-                <FamilyTree :members="store.members" :relations="store.relations" :family-name="store.familyName" @select-member="handleTreeMemberSelect" />
+                <FamilyTree
+                  :members="store.members"
+                  :relations="store.relations"
+                  :family-name="store.familyName"
+                  :root-member-id="store.currentFamily?.rootMemberId"
+                  @select-member="handleTreeMemberSelect"
+                  @add-relation="handleTreeAddRelation"
+                  @update-position="handleUpdatePosition"
+                  @add-member="addMember"
+                />
              </div>
              <MobileMemberEditor
                v-else-if="isAtMemberEditor"

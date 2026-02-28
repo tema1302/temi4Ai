@@ -161,6 +161,7 @@ const closeMenu = () => {
         <div class="family-node__add-wrapper family-node__add-wrapper--top">
           <button
             @click="toggleMenu('top', $event)"
+            @pointerdown.stop
             class="family-node__add-btn family-node__add-btn--gold"
             :class="{ 'family-node__add-btn--active': activeMenu === 'top' }"
             title="Добавить родителя"
@@ -174,6 +175,7 @@ const closeMenu = () => {
                 v-for="option in topMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
+                @pointerdown.stop
                 class="family-node__dropdown-item"
               >
                 {{ option.label }}
@@ -186,6 +188,7 @@ const closeMenu = () => {
         <div class="family-node__add-wrapper family-node__add-wrapper--bottom">
           <button
             @click="toggleMenu('bottom', $event)"
+            @pointerdown.stop
             class="family-node__add-btn family-node__add-btn--gold"
             :class="{ 'family-node__add-btn--active': activeMenu === 'bottom' }"
             title="Добавить ребёнка"
@@ -199,6 +202,7 @@ const closeMenu = () => {
                 v-for="option in bottomMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
+                @pointerdown.stop
                 class="family-node__dropdown-item"
               >
                 {{ option.label }}
@@ -211,6 +215,7 @@ const closeMenu = () => {
         <div class="family-node__add-wrapper family-node__add-wrapper--left">
           <button
             @click="toggleMenu('left', $event)"
+            @pointerdown.stop
             class="family-node__add-btn family-node__add-btn--pink"
             :class="{ 'family-node__add-btn--active': activeMenu === 'left' }"
             title="Добавить родственника"
@@ -224,6 +229,7 @@ const closeMenu = () => {
                 v-for="option in sideMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
+                @pointerdown.stop
                 class="family-node__dropdown-item family-node__dropdown-item--pink"
               >
                 {{ option.label }}
@@ -236,6 +242,7 @@ const closeMenu = () => {
         <div class="family-node__add-wrapper family-node__add-wrapper--right">
           <button
             @click="toggleMenu('right', $event)"
+            @pointerdown.stop
             class="family-node__add-btn family-node__add-btn--pink"
             :class="{ 'family-node__add-btn--active': activeMenu === 'right' }"
             title="Добавить родственника"
@@ -249,6 +256,7 @@ const closeMenu = () => {
                 v-for="option in sideMenuOptions"
                 :key="option.label"
                 @click="selectOption(option, $event)"
+                @pointerdown.stop
                 class="family-node__dropdown-item family-node__dropdown-item--pink"
               >
                 {{ option.label }}
