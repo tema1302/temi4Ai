@@ -55,10 +55,12 @@ interface Props {
   familyName: string
   rootMemberId?: string
   selectable?: boolean
+  readonly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  selectable: false
+  selectable: false,
+  readonly: false
 })
 const emit = defineEmits<{
   selectMember: [memberId: string]
@@ -439,6 +441,7 @@ const buildTree = (force = false) => {
         displayRole: calculatedRole,
         photoUrl: member.photoUrl,
         selectable: props.selectable,
+        readonly: props.readonly,
         onAddRelative: (relationType: 'parent' | 'child' | 'spouse' | 'sibling', gender?: 'male' | 'female') => {
           emit('addRelation', { memberId: member.id, relationType, gender })
         }

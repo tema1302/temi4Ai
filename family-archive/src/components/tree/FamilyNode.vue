@@ -16,6 +16,7 @@ interface Props {
     displayRole?: string
     photoUrl?: string
     selectable?: boolean
+    readonly?: boolean
     onAddRelative?: (relationType: 'parent' | 'child' | 'spouse' | 'sibling', gender?: 'male' | 'female') => void
   }
 }
@@ -40,8 +41,9 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
 })
 
-// Show add buttons: always on mobile, on hover on desktop
+// Show add buttons: always on mobile, on hover on desktop, but not in readonly mode
 const showAddButtons = computed(() => {
+  if (props.data.readonly) return false
   return isMobile.value || (isHovered.value && props.data.isFilled && props.data.member)
 })
 

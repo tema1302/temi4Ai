@@ -5,8 +5,8 @@ import BaseButton from '@/shared/ui/BaseButton.vue'
 import { RURIK_FAMILY_DEMO, RURIK_STATS } from '@/data/demoRurikTree'
 import { SIMPLE_FAMILY_DEMO, SIMPLE_FAMILY_STATS } from '@/data/demoSimpleFamily'
 import { useRouter } from 'vue-router'
-import { Plus, RefreshCw, Users, Crown } from 'lucide-vue-next'
-import type { FamilyMember, FamilyRelation, RelationType } from '@/modules/family/domain/models'
+import { Users, Crown } from 'lucide-vue-next'
+import type { FamilyMember, FamilyRelation } from '@/modules/family/domain/models'
 
 const router = useRouter()
 
@@ -26,68 +26,6 @@ watch(treeMode, () => {
   localMembers.value = JSON.parse(JSON.stringify(currentDemo.value.members))
   localRelations.value = JSON.parse(JSON.stringify(currentDemo.value.relations))
 })
-
-// Generate unique ID
-const generateId = () => `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-// Add new member
-const addMember = () => {
-  const newMember: FamilyMember = {
-    id: generateId(),
-    name: 'Новый родственник',
-    birthDate: '',
-    deathDate: undefined,
-    biography: '',
-    photos: [],
-    videos: [],
-    quotes: [],
-    lifePath: [],
-    relationship: '',
-    gender: 'male',
-    photoUrl: '',
-  }
-  localMembers.value.push(newMember)
-}
-
-// Reset to demo data
-const resetDemo = () => {
-  localMembers.value = JSON.parse(JSON.stringify(currentDemo.value.members))
-  localRelations.value = JSON.parse(JSON.stringify(currentDemo.value.relations))
-}
-
-// Handle member selection (for demo, just log)
-const handleSelectMember = (memberId: string) => {
-  console.log('Selected member:', memberId)
-}
-
-// Handle add relation
-const handleAddRelation = (data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }) => {
-  const newMember: FamilyMember = {
-    id: generateId(),
-    name: data.gender === 'male' ? 'Новый родственник' : 'Новая родственница',
-    birthDate: '',
-    deathDate: undefined,
-    biography: '',
-    photos: [],
-    videos: [],
-    quotes: [],
-    lifePath: [],
-    relationship: '',
-    gender: data.gender || 'male',
-    photoUrl: '',
-  }
-  localMembers.value.push(newMember)
-
-  // Add relation
-  const newRelation: FamilyRelation = {
-    id: generateId(),
-    fromMemberId: data.relationType === 'child' ? data.memberId : newMember.id,
-    toMemberId: data.relationType === 'child' ? newMember.id : data.memberId,
-    relationType: data.relationType === 'sibling' ? 'sibling' : data.relationType === 'child' ? 'parent' : data.relationType as RelationType,
-    createdAt: new Date().toISOString()
-  }
-  localRelations.value.push(newRelation)
-}
 
 const handleCreateOwn = () => {
   router.push('/auth?mode=signup')
@@ -112,11 +50,11 @@ const handleCreateOwn = () => {
           Создайте такое же древо своей семьи
         </h2>
         <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
-          Нажимайте на + чтобы добавить родственников, перетаскивайте карточки!
+          Перетаскивайте карточки, изучайте связи между родственниками!
         </p>
         <p class="text-sm text-gold/70 max-w-xl mx-auto mb-8">
-          Это демо-режим. После перезагрузки страницы изменения сбросятся.
-          <span class="text-gold">В личном кабинете изменения сохраняются навсегда!</span>
+          Это демо-режим. Выберите пример древа и попробуйте управлять им.
+          <span class="text-gold">Создайте свой архив, чтобы добавлять родственников!</span>
         </p>
 
         <!-- Tree Mode Switcher -->
@@ -160,24 +98,6 @@ const handleCreateOwn = () => {
         </div>
       </div>
 
-      <!-- Demo Controls -->
-      <div class="flex justify-center gap-4 mb-6">
-        <button
-          @click="addMember"
-          class="flex items-center gap-2 px-4 py-2 bg-gold/10 border border-gold/30 rounded-full text-gold text-sm hover:bg-gold/20 transition-colors"
-        >
-          <Plus class="w-4 h-4" />
-          Добавить
-        </button>
-        <button
-          @click="resetDemo"
-          class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-gray-400 text-sm hover:text-gold hover:border-gold/30 transition-colors"
-        >
-          <RefreshCw class="w-4 h-4" />
-          Сбросить
-        </button>
-      </div>
-
       <!-- Tree Container -->
       <div class="h-[500px] md:h-[600px] rounded-3xl border border-white/10 overflow-hidden bg-charcoal/50 relative">
         <FamilyTree
@@ -186,9 +106,7 @@ const handleCreateOwn = () => {
           :relations="localRelations"
           :family-name="currentDemo.name"
           :root-member-id="currentDemo.rootMemberId"
-          @select-member="handleSelectMember"
-          @add-relation="handleAddRelation"
-          @add-member="addMember"
+          :readonly="true"
         />
       </div>
 
