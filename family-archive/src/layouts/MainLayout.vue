@@ -59,6 +59,7 @@ onUnmounted(() => {
 })
 
 const scrollToSection = (id: string) => {
+  // Close mobile menu first
   isMobileMenuOpen.value = false
   isUserMenuOpen.value = false
 
@@ -68,11 +69,13 @@ const scrollToSection = (id: string) => {
     return
   }
 
-  // On landing page - scroll to section
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
-  }
+  // On landing page - scroll to section after menu closes
+  setTimeout(() => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, 100)
 }
 
 const toggleMobileMenu = () => {
@@ -99,6 +102,13 @@ const navigateTo = (path: string) => {
   isMobileMenuOpen.value = false
 }
 
+// Navigate to auth page with mode
+const navigateToAuth = (mode: 'login' | 'signup') => {
+  router.push(`/auth?mode=${mode}`)
+  isUserMenuOpen.value = false
+  isMobileMenuOpen.value = false
+}
+
 // Nav items for mobile menu
 const navItems = [
   { id: 'about', label: 'О сервисе', icon: Info },
@@ -110,7 +120,7 @@ const navItems = [
 <template>
   <div
     class="min-h-screen bg-obsidian text-silk font-sans selection:bg-gold/30 overflow-x-hidden relative flex flex-col"
-    :class="{ 'h-screen overflow-hidden': props.fullHeight || isMobileMenuOpen }"
+    :class="{ 'h-screen overflow-hidden': props.fullHeight }"
   >
 
     <!-- Navigation Header -->
@@ -323,10 +333,10 @@ const navItems = [
             <!-- Auth Buttons or User Menu -->
             <template v-if="!authStore.isAuthenticated">
               <div class="flex flex-col gap-3">
-                <BaseButton :full="true" size="lg" @click="router.push('/auth?mode=signup'); isMobileMenuOpen = false">
+                <BaseButton :full="true" size="lg" @click="navigateToAuth('signup')">
                   Создать архив
                 </BaseButton>
-                <BaseButton variant="outline" :full="true" size="lg" @click="router.push('/auth?mode=login'); isMobileMenuOpen = false">
+                <BaseButton variant="outline" :full="true" size="lg" @click="navigateToAuth('login')">
                   Войти
                 </BaseButton>
               </div>

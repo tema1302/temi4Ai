@@ -104,17 +104,6 @@ const calculateGenerations = () => {
     }
   })
 
-  // Находим всех, у кого НЕТ родителей в базе (самые старшие)
-  const oldestMembers = members.filter(m => !childOf.has(m.id) || childOf.get(m.id)!.length === 0)
-
-  if (oldestMembers.length === 0 && members.length > 0) {
-    oldestMembers.push(members[0])
-  }
-
-  // BFS от старших к младшим
-  const queue: { id: string; gen: number }[] = oldestMembers.map(m => ({ id: m.id, gen: 0 }))
-  const visited = new Set<string>()
-
   // Строим связи супругов
   const spouseOf = new Map<string, string>()
   relations.forEach(r => {
@@ -124,16 +113,60 @@ const calculateGenerations = () => {
     }
   })
 
+  // Строим связи сиблингов
+  const siblingOf = new Map<string, Set<string>>()
+  relations.forEach(r => {
+    if (r.relationType === 'sibling') {
+      if (!siblingOf.has(r.fromMemberId)) siblingOf.set(r.fromMemberId, new Set())
+      if (!siblingOf.has(r.toMemberId)) siblingOf.set(r.toMemberId, new Set())
+      siblingOf.get(r.fromMemberId)!.add(r.toMemberId)
+      siblingOf.get(r.toMemberId)!.add(r.fromMemberId)
+    }
+  })
+
+  // Находим всех, у кого НЕТ родителей в базе И НЕТ сиблингов (самые старшие, не связанные с другими)
+  // Сиблинги не должны попадать в oldestMembers - они получат поколение от своих братьев/сестёр
+  const oldestMembers = members.filter(m => {
+    const hasNoParents = !childOf.has(m.id) || childOf.get(m.id)!.length === 0
+    const hasNoSiblings = !siblingOf.has(m.id) || siblingOf.get(m.id)!.size === 0
+    return hasNoParents && hasNoSiblings
+  })
+
+  if (oldestMembers.length === 0 && members.length > 0) {
+    // Если нет "чистых" старших, берём тех у кого нет родителей но есть сиблинги
+    // Они будут первыми в своём поколении
+    const membersWithNoParents = members.filter(m => !childOf.has(m.id) || childOf.get(m.id)!.length === 0)
+    if (membersWithNoParents.length > 0) {
+      oldestMembers.push(membersWithNoParents[0])
+    } else {
+      oldestMembers.push(members[0])
+    }
+  }
+
+  // BFS от старших к младшим
+  const queue: { id: string; gen: number }[] = oldestMembers.map(m => ({ id: m.id, gen: 0 }))
+  const visited = new Set<string>()
+
   while (queue.length > 0) {
     const { id, gen } = queue.shift()!
     if (visited.has(id)) continue
     visited.add(id)
     generationMap.set(id, gen)
 
-    // Сначала супруги (то же поколение)
+    // Сначала супруги (то же поколение) - высокий приоритет
     const spouseId = spouseOf.get(id)
     if (spouseId && !visited.has(spouseId)) {
       queue.unshift({ id: spouseId, gen })
+    }
+
+    // Сиблинги (то же поколение) - высокий приоритет
+    const siblings = siblingOf.get(id)
+    if (siblings) {
+      siblings.forEach(siblingId => {
+        if (!visited.has(siblingId)) {
+          queue.unshift({ id: siblingId, gen })
+        }
+      })
     }
 
     // Дети (поколение + 1)
@@ -145,7 +178,7 @@ const calculateGenerations = () => {
     })
   }
 
-  // Члены без связей
+  // Члены без связей - поколение 0
   members.forEach(m => {
     if (!generationMap.has(m.id)) {
       generationMap.set(m.id, 0)
@@ -169,12 +202,9 @@ const layoutNodes = (
   const savedPositions = new Map<string, { x: number; y: number }>()
   members.forEach(member => {
     if (member.treePosition) {
-      console.log(`[FamilyTree] Found saved position for ${member.name}:`, member.treePosition)
       savedPositions.set(member.id, member.treePosition)
     }
   })
-
-  console.log(`[FamilyTree] Total saved positions: ${savedPositions.size} / ${members.length}`)
 
   // Константы для snake layout
   const nodeWidth = 180
@@ -238,46 +268,84 @@ const layoutNodes = (
     }
   })
 
+  // Находим родительские связи для позиционирования
+  // parentOf[A] = [B, C] означает A является родителем B и C
+  const parentOf = new Map<string, string[]>()
+  edgesList.forEach(edge => {
+    if (edge.data?.relationType === 'parent') {
+      // edge.source = родитель, edge.target = ребёнок
+      if (!parentOf.has(edge.source)) parentOf.set(edge.source, [])
+      parentOf.get(edge.source)!.push(edge.target)
+    }
+  })
+
   // Создаём Map id -> member для доступа к данным
   const memberMap = new Map<string, FamilyMember>()
   members.forEach(m => memberMap.set(m.id, m))
 
-  // Сортируем узлы внутри поколения: супруги рядом, сиблинги рядом, по дате рождения
+  // Сортируем узлы внутри поколения: сначала по связям, потом по дате рождения
+  // Новый подход: группируем связанные узлы вместе
   genGroups.forEach((ids, gen) => {
     const sorted: string[] = []
     const used = new Set<string>()
 
-    // Сортируем по дате рождения (если есть)
-    const sortedByBirth = [...ids].sort((a, b) => {
-      const memberA = memberMap.get(a)
-      const memberB = memberMap.get(b)
-      const yearA = memberA?.birthDate ? parseInt(memberA.birthDate.replace('~', '').replace('?', '0')) : 9999
-      const yearB = memberB?.birthDate ? parseInt(memberB.birthDate.replace('~', '').replace('?', '0')) : 9999
-      return yearA - yearB
-    })
+    // Вспомогательная функция для получения года рождения
+    const getBirthYear = (id: string): number => {
+      const member = memberMap.get(id)
+      return member?.birthDate ? parseInt(member.birthDate.replace('~', '').replace('?', '0')) : 9999
+    }
 
-    sortedByBirth.forEach(id => {
-      if (used.has(id)) return
+    // Функция для добавления члена со всеми его связями
+    const addMemberWithRelations = (id: string) => {
+      if (used.has(id) || !ids.includes(id)) return
 
       sorted.push(id)
       used.add(id)
 
-      // Если есть супруг, добавляем сразу после
+      // Добавляем супруга справа
       const spouseId = spousePairs.get(id)
       if (spouseId && !used.has(spouseId) && ids.includes(spouseId)) {
         sorted.push(spouseId)
         used.add(spouseId)
       }
 
-      // Если есть сиблинги в том же поколении, добавляем их рядом
+      // Добавляем сиблингов сразу после (или после супруга)
       const siblings = siblingPairs.get(id)
       if (siblings) {
-        siblings.forEach(siblingId => {
-          if (!used.has(siblingId) && ids.includes(siblingId)) {
-            sorted.push(siblingId)
-            used.add(siblingId)
-          }
+        // Сортируем сиблингов по дате рождения
+        const sortedSiblings = Array.from(siblings)
+          .filter(sId => !used.has(sId) && ids.includes(sId))
+          .sort((a, b) => getBirthYear(a) - getBirthYear(b))
+
+        sortedSiblings.forEach(siblingId => {
+          sorted.push(siblingId)
+          used.add(siblingId)
         })
+      }
+    }
+
+    // Сначала обрабатываем всех членов, у которых есть связи (супруги или сиблинги)
+    // Сортируем по дате рождения
+    const sortedByBirth = [...ids].sort((a, b) => getBirthYear(a) - getBirthYear(b))
+
+    // Находим "корневые" узлы - те, кто имеет связи в этом поколении
+    const membersWithRelations = new Set<string>()
+    ids.forEach(id => {
+      if (spousePairs.has(id)) membersWithRelations.add(id)
+      if (siblingPairs.has(id)) membersWithRelations.add(id)
+    })
+
+    // Сначала добавляем членов с связями, начиная с самых старших
+    sortedByBirth.forEach(id => {
+      if (membersWithRelations.has(id)) {
+        addMemberWithRelations(id)
+      }
+    })
+
+    // Потом добавляем оставшихся (без связей) по дате рождения
+    sortedByBirth.forEach(id => {
+      if (!used.has(id)) {
+        addMemberWithRelations(id)
       }
     })
 
@@ -297,26 +365,14 @@ const layoutNodes = (
     const ids = genGroups.get(gen)!
 
     // Базовое смещение по X для диагонального эффекта
-    // Каждое следующее поколение смещается вправо
     const baseX = genIndex * diagonalOffset
 
     // Y позиция - каждое поколение ниже предыдущего
     const y = genIndex * (nodeHeight + verticalGap)
 
-    // Чередуем направление: чётные поколения → вправо, нечётные ← влево
-    const goRight = genIndex % 2 === 0
-
+    // Расставляем узлы слева направо с одинаковыми отступами
     ids.forEach((id, posIndex) => {
-      let x: number
-
-      if (goRight) {
-        // Слева направо
-        x = baseX + posIndex * (nodeWidth + horizontalGap)
-      } else {
-        // Справа налево - разворачиваем порядок
-        x = baseX + (ids.length - 1 - posIndex) * (nodeWidth + horizontalGap)
-      }
-
+      const x = baseX + posIndex * (nodeWidth + horizontalGap)
       positions.set(id, { x, y })
     })
   })
@@ -405,8 +461,10 @@ const buildTree = (force = false) => {
     // Определяем тип связи и соответствующий стиль
     if (relation.relationType === 'spouse') {
       edgeType = 'straight' // Прямая линия для супругов
+      edgeStyle = { stroke: '#f472b6', strokeWidth: 2 } // Розовый цвет
     } else if (relation.relationType === 'sibling') {
       edgeType = 'straight' // Прямая линия для сиблингов
+      edgeStyle = { stroke: '#f472b6', strokeWidth: 2 } // Розовый цвет
     }
 
     // Определяем позиции для connections на основе типа связи

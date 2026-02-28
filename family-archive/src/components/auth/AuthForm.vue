@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import BackButton from '@/shared/ui/BackButton.vue'
@@ -8,8 +8,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAnalytics } from '@/composables/useAnalytics'
 import {
   Check,
-  X,
-  Play
+  Eye,
+  EyeOff
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -31,10 +31,33 @@ const confirmPassword = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
 
+// Password visibility
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
 // Legal checkboxes
 const acceptOffer = ref(false)
 const acceptPD = ref(false)
 const acceptNewsletter = ref(false)
+
+// Function to update mode based on query params
+const updateModeFromQuery = () => {
+  // Handle mode query param for login/signup
+  if (route.query.mode === 'signup') {
+    isLoginMode.value = false
+    isForgotPasswordMode.value = false
+    isResetPasswordMode.value = false
+    showSuccess.value = false
+  } else if (route.query.mode === 'login') {
+    isLoginMode.value = true
+    isForgotPasswordMode.value = false
+    isResetPasswordMode.value = false
+    showSuccess.value = false
+  }
+}
+
+// Watch for query param changes
+watch(() => route.query.mode, updateModeFromQuery)
 
 onMounted(async () => {
   // Handle email verification (signup, magiclink, email_change)
@@ -52,14 +75,11 @@ onMounted(async () => {
   if (route.query.type === 'recovery') {
     isResetPasswordMode.value = true
     isLoginMode.value = false
+    return
   }
 
-  // Handle mode query param for login/signup
-  if (route.query.mode === 'signup') {
-    isLoginMode.value = false
-  } else if (route.query.mode === 'login') {
-    isLoginMode.value = true
-  }
+  // Handle mode from query
+  updateModeFromQuery()
 })
 
 const toggleMode = () => {
@@ -248,7 +268,7 @@ const handleSuccessContinue = () => {
             <label class="block text-sm text-gray-400">
               {{ isResetPasswordMode ? 'Новый пароль' : 'Пароль' }}
             </label>
-            <button 
+            <button
               v-if="isLoginMode"
               type="button"
               class="text-xs text-gray-500 hover:text-gold transition-colors"
@@ -257,27 +277,49 @@ const handleSuccessContinue = () => {
               Забыли пароль?
             </button>
           </div>
-          <input
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
-            required
-            :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
-          />
+          <div class="relative">
+            <input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+              required
+              :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
+            />
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
+              :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
+            >
+              <Eye v-if="!showPassword" class="w-5 h-5" />
+              <EyeOff v-else class="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <!-- Confirm Password -->
         <div v-if="!isLoginMode && !isForgotPasswordMode">
           <label class="block text-sm text-gray-400 mb-2">Подтвердите пароль</label>
-          <input
-            v-model="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
-            required
-            autocomplete="new-password"
-          />
+          <div class="relative">
+            <input
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg text-silk placeholder:text-gray-500 focus:outline-none focus:border-gold/50 transition-colors"
+              required
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              @click="showConfirmPassword = !showConfirmPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold transition-colors p-1"
+              :title="showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'"
+            >
+              <Eye v-if="!showConfirmPassword" class="w-5 h-5" />
+              <EyeOff v-else class="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <!-- Registration Checkboxes -->

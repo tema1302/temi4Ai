@@ -60,42 +60,8 @@ const handleSelectMember = (memberId: string) => {
   console.log('Selected member:', memberId)
 }
 
-// Calculate position for new member based on relation type
-// Only used when source member has a known position
-const calculateNewMemberPosition = (
-  sourceMemberId: string,
-  relationType: RelationType | 'child' | 'sibling'
-): { x: number; y: number } | undefined => {
-  const sourceMember = localMembers.value.find(m => m.id === sourceMemberId)
-  if (!sourceMember || !sourceMember.treePosition) return undefined
-
-  const { x, y } = sourceMember.treePosition
-  const offsetX = 230 // Node width + gap
-  const offsetY = 120 // Vertical gap
-
-  switch (relationType) {
-    case 'sibling':
-      // Place sibling to the right of source
-      return { x: x + offsetX, y }
-    case 'spouse':
-      // Place spouse to the right
-      return { x: x + offsetX, y }
-    case 'parent':
-      // Place parent above (lower Y = higher on screen)
-      return { x, y: y - offsetY }
-    case 'child':
-      // Place child below
-      return { x, y: y + offsetY }
-    default:
-      return { x: x + offsetX, y }
-  }
-}
-
 // Handle add relation
 const handleAddRelation = (data: { memberId: string; relationType: RelationType | 'child' | 'sibling'; gender?: 'male' | 'female' }) => {
-  // Calculate position for new member
-  const newPosition = calculateNewMemberPosition(data.memberId, data.relationType)
-
   const newMember: FamilyMember = {
     id: generateId(),
     name: data.gender === 'male' ? 'Новый родственник' : 'Новая родственница',
@@ -109,8 +75,6 @@ const handleAddRelation = (data: { memberId: string; relationType: RelationType 
     relationship: '',
     gender: data.gender || 'male',
     photoUrl: '',
-    // Set calculated position
-    treePosition: newPosition,
   }
   localMembers.value.push(newMember)
 
@@ -132,7 +96,7 @@ const handleCreateOwn = () => {
 
 <template>
   <section class="py-20 md:py-32 px-4 bg-obsidian relative overflow-hidden">
-    <!-- Background decoration - optimized: removed expensive blur filters -->
+    <!-- Background decoration -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/[0.03] rounded-full"></div>
       <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/[0.02] rounded-full"></div>
@@ -148,10 +112,10 @@ const handleCreateOwn = () => {
           Создайте такое же древо своей семьи
         </h2>
         <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
-          Нажимайте на + чтобы добавить родственников, удаляйте — это демо!
+          Нажимайте на + чтобы добавить родственников, перетаскивайте карточки!
         </p>
         <p class="text-sm text-gold/70 max-w-xl mx-auto mb-8">
-          Всё происходит в вашей сессии. После перезагрузки данные сбросятся.
+          Это демо-режим. После перезагрузки страницы изменения сбросятся.
           <span class="text-gold">В личном кабинете изменения сохраняются навсегда!</span>
         </p>
 

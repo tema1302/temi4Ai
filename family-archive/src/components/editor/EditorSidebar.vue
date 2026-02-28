@@ -7,7 +7,7 @@ import { useMemoryStore } from '@/modules/family/store/memoryStore'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { FamilyRepository } from '@/modules/family/api/repository'
 import { useDialogStore } from '@/stores/dialogStore'
-import { Trash2, Plus, Quote, GitBranch } from 'lucide-vue-next'
+import { Trash2, Plus, Quote, GitBranch, Share2, Check, Users } from 'lucide-vue-next'
 import { ROLE_DICTIONARY } from '@/shared/utils/roleDictionary'
 
 const emit = defineEmits<{
@@ -21,6 +21,51 @@ const dialogs = useDialogStore()
 const { trackEvent } = useAnalytics()
 const currentMember = computed(() => store.activeMember)
 const isDragging = ref(false)
+
+// Sharing state
+const shareProfileCopied = ref(false)
+const shareTreeCopied = ref(false)
+
+// Share URLs
+const shareProfileUrl = computed(() => {
+  if (typeof window !== 'undefined' && store.currentFamily?.id && currentMember.value) {
+    return `${window.location.origin}/archive/${store.currentFamily.id}?member=${currentMember.value.id}`
+  }
+  return ''
+})
+
+const shareTreeUrl = computed(() => {
+  if (typeof window !== 'undefined' && store.currentFamily?.id) {
+    return `${window.location.origin}/archive/${store.currentFamily.id}/tree`
+  }
+  return ''
+})
+
+const copyProfileLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareProfileUrl.value)
+    shareProfileCopied.value = true
+    trackEvent('share_profile', { member_id: currentMember.value?.id })
+    setTimeout(() => {
+      shareProfileCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
+
+const copyTreeLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareTreeUrl.value)
+    shareTreeCopied.value = true
+    trackEvent('share_tree', { family_id: store.currentFamily?.id })
+    setTimeout(() => {
+      shareTreeCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
 
 const mainPhotoInput = ref<HTMLInputElement | null>(null)
 const galleryInput = ref<HTMLInputElement | null>(null)
@@ -247,6 +292,35 @@ const removeLifeEvent = (index: number) => {
         >
           🧬 Назначить на древе (Связи)
         </button>
+
+        <!-- Share buttons -->
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button
+            @click="copyProfileLink"
+            class="py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2"
+            :class="shareProfileCopied
+              ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+              : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+            :title="shareProfileUrl"
+          >
+            <Check v-if="shareProfileCopied" class="w-3.5 h-3.5" />
+            <Share2 v-else class="w-3.5 h-3.5" />
+            <span>{{ shareProfileCopied ? 'Готово!' : 'Профиль' }}</span>
+          </button>
+          <button
+            @click="copyTreeLink"
+            class="py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2"
+            :class="shareTreeCopied
+              ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+              : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-silk'"
+            :title="shareTreeUrl"
+          >
+            <Check v-if="shareTreeCopied" class="w-3.5 h-3.5" />
+            <Users v-else class="w-3.5 h-3.5" />
+            <span>{{ shareTreeCopied ? 'Готово!' : 'Древо' }}</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-500 text-center mt-1">Поделиться ссылкой</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
